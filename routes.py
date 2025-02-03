@@ -3,6 +3,7 @@ from flask import current_app as app, render_template, request, redirect, url_fo
 from models import db, User, Player, Birdie, Course, HistoricalTotal, Eagle
 from sqlalchemy.sql import func, case, and_, or_
 from datetime import datetime, timedelta
+from flask_login import login_required, login_user
 
 print("Routes file imported")
 
@@ -139,18 +140,27 @@ def add_birdie():
     courses = Course.query.all()
     return render_template("add_birdie.html", players=players, courses=courses)
 
-@app.route("/add_course", methods=["POST"])
+@app.route("/add_course", methods=['POST'])
+@login_required
 def add_course():
-    course_name = request.form["new_course"].strip()
-    existing_course = Course.query.filter(func.lower(Course.name) == func.lower(course_name)).first()
+    name = request.form.get('name')
+    if not name:
+        flash('Course name is required')
+        return redirect(url_for('admin_dashboard'))
+    
+    # Check if course already exists
+    existing_course = Course.query.filter_by(name=name).first()
     if existing_course:
-        flash("Course with this name already exists.", "error")
-        return redirect(url_for("add_birdie"))
-    new_course = Course(name=course_name)
-    db.session.add(new_course)
+        flash('A course with that name already exists')
+        return redirect(url_for('admin_dashboard'))
+    
+    # Create new course
+    course = Course(name=name)
+    db.session.add(course)
     db.session.commit()
-    flash("Course added successfully!", "success")
-    return redirect(url_for("add_birdie"))
+    
+    flash('Course added successfully')
+    return redirect(url_for('admin_dashboard'))
 
 @app.route("/players")
 def get_players():
@@ -205,19 +215,23 @@ def player_details(player_id):
         year=current_year
     )
 
-@app.route("/login", methods=["GET", "POST"])
+@app.route("/login", methods=['GET', 'POST'])
 def login():
-    if request.method == "POST":
-        username = request.form["username"]
-        password = request.form["password"]
+    if request.method == 'POST':
+        username = request.form.get('username')
+        password = request.form.get('password')
         user = User.query.filter_by(username=username).first()
+        
         if user and user.check_password(password):
-            session["user_id"] = user.id
-            session["is_admin"] = user.is_admin
-            flash("Logged in successfully!", "success")
-            return redirect(url_for("admin_dashboard"))
-        flash("Invalid username or password", "error")
-    return render_template("login.html")
+            login_user(user)
+            next_page = request.args.get('next')
+            flash('Logged in successfully!')
+            if next_page:
+                return redirect(next_page)
+            return redirect(url_for('admin_dashboard'))
+            
+        flash('Invalid username or password')
+    return render_template('login.html')
 
 @app.route("/logout")
 def logout():
@@ -226,14 +240,14 @@ def logout():
     return redirect(url_for("login"))
 
 @app.route("/admin")
+@login_required
 def admin_dashboard():
-    if not session.get("is_admin"):
-        flash("You do not have access to this page", "error")
-        return redirect(url_for("login"))
-    
     players = Player.query.all()
     courses = Course.query.all()
-    return render_template("admin_dashboard.html")
+    # Print debug information
+    for player in players:
+        print(f"Player: {player.name}, Has Trophy: {player.has_trophy}")
+    return render_template("admin_dashboard.html", players=players, courses=courses)
 
 @app.route("/admin/player_birdies", methods=["GET"])
 def admin_player_birdies():
@@ -258,16 +272,21 @@ def delete_player(player_id):
     flash("Player deleted successfully!", "success")
     return redirect(url_for("admin_dashboard"))
 
-@app.route("/admin/delete_course/<int:course_id>")
+@app.route("/delete_course/<int:course_id>")
+@login_required
 def delete_course(course_id):
-    if not session.get("is_admin"):
-        flash("You do not have access to this page", "error")
-        return redirect(url_for("login"))
+    # Get the course
     course = Course.query.get_or_404(course_id)
+    
+    # Delete all birdies associated with this course using the relationship
+    Birdie.query.filter_by(course_id=course_id).delete()
+    
+    # Delete the course
     db.session.delete(course)
     db.session.commit()
-    flash("Course deleted successfully!", "success")
-    return redirect(url_for("admin_dashboard"))
+    
+    flash('Course deleted successfully')
+    return redirect(url_for('admin_dashboard'))
 
 @app.route("/delete_birdie/<int:birdie_id>", methods=['POST'])
 def delete_birdie(birdie_id):
@@ -678,3 +697,15 @@ def trends():
         players=players,
         player_stats=player_stats
     )
+
+@app.route("/delete_trophy/<int:player_id>")
+@login_required
+def delete_trophy(player_id):
+    player = Player.query.get_or_404(player_id)
+    if player.has_trophy:
+        player.has_trophy = False
+        db.session.commit()
+        flash(f'Trophy removed from {player.name}')
+    else:
+        flash(f'{player.name} does not have a trophy')
+    return redirect(url_for('admin_dashboard'))
