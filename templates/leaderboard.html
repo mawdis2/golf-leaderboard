@@ -1,0 +1,139 @@
+<!-- templates/leaderboard.html -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Golf Stats Leaderboard</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
+    <style>
+        body {
+            background-image: url("{{ url_for('static', filename='background.jpg') }}");
+            background-size: cover;
+            background-position: center;
+            background-repeat: no-repeat;
+            background-attachment: fixed;
+            margin: 0;
+            padding: 20px;
+            min-height: 100vh;
+            font-family: Arial, sans-serif;
+        }
+
+        h1 {
+            text-align: center;
+            color: white;
+            margin-bottom: 30px;
+        }
+
+        .admin-login {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            padding: 10px 20px;
+            background-color: rgba(0, 0, 0, 0.7);
+            color: white;
+            text-decoration: none;
+            border-radius: 5px;
+        }
+
+        .admin-login:hover {
+            background-color: rgba(0, 0, 0, 0.9);
+        }
+
+        .add-player {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            padding: 10px 20px;
+            background-color: rgba(0, 0, 0, 0.7);
+            color: white;
+            text-decoration: none;
+            border-radius: 5px;
+        }
+
+        .add-player:hover {
+            background-color: rgba(0, 0, 0, 0.9);
+        }
+
+        table {
+            background-color: rgba(0, 0, 0, 0.8);
+            border-radius: 10px;
+            overflow: hidden;
+        }
+
+        th {
+            background-color: rgba(0, 0, 0, 0.6);
+            color: white;
+            padding: 12px;
+        }
+
+        td {
+            background-color: rgba(0, 0, 0, 0.4);
+            color: white;
+            padding: 10px;
+        }
+
+        tr:hover td {
+            background-color: rgba(0, 0, 0, 0.6);
+        }
+
+        .player-link {
+            color: white;
+            text-decoration: none;
+        }
+
+        .player-link:hover {
+            text-decoration: underline;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <nav>
+            <a href="{{ url_for('index') }}">Home</a>
+            <a href="{{ url_for('leaderboard') }}">Leaderboard</a>
+            <a href="{{ url_for('history') }}">History</a>
+            <a href="{{ url_for('add_birdie') }}">Add Birdie</a>
+        </nav>
+
+        <h1>Golf Stats Leaderboard {{ year }}</h1>
+
+        <table>
+            <tr>
+                <th>Rank</th>
+                <th>Player</th>
+                <th>Birdies</th>
+                <th>Eagles</th>
+                <th>Total</th>
+            </tr>
+            {% set current_rank = 1 %}
+            {% set prev_total = None %}
+            {% for player in players %}
+                <tr>
+                    <td>
+                        {% if loop.index > 1 %}
+                            {% if player.total == prev_total %}
+                                T{{ current_rank }}
+                            {% else %}
+                                {% set current_rank = loop.index %}
+                                {{ current_rank }}
+                            {% endif %}
+                        {% else %}
+                            {{ current_rank }}
+                        {% endif %}
+                    </td>
+                    <td><a href="{{ url_for('player_birdie_records', player_id=player.id) }}">{{ player.name }}</a> {{ player.emoji|safe }}</td>
+                    <td>{{ player.birdies }}</td>
+                    <td>{{ player.eagles }}</td>
+                    <td>{{ player.total }}</td>
+                </tr>
+                {% set prev_total = player.total %}
+            {% endfor %}
+        </table>
+
+        <div class="button-container">
+            <a href="{{ url_for('history') }}" class="button">View History</a>
+        </div>
+    </div>
+</body>
+</html>

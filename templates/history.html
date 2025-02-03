@@ -1,0 +1,59 @@
+<!-- templates/history.html -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Historical Rankings</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
+</head>
+<body>
+    <h1>Historical Rankings - {{ selected_year }}</h1>
+    
+    <div>
+        <label for="year">Select Year:</label>
+        <select name="year" id="year" onchange="window.location.href='/history?year=' + this.value">
+            {% for year in years %}
+            <option value="{{ year }}" {% if year == selected_year %}selected{% endif %}>{{ year }}</option>
+            {% endfor %}
+        </select>
+    </div>
+
+    {% if leaderboard %}
+        <table>
+            <thead>
+                <tr>
+                    <th>Rank</th>
+                    <th>Player</th>
+                    <th>Birdies</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for rank_display, player, birdies, player_id, permanent_emojis in leaderboard %}
+                    <tr>
+                        <td>{{ rank_display }}</td>
+                        <td>
+                            <a href="{{ url_for('player_birdie_records', player_id=player_id) }}?year={{ selected_year }}">
+                                {{ player }}
+                            </a> 
+                            {{ permanent_emojis }}
+                        </td>
+                        <td>{{ birdies }}</td>
+                    </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    {% else %}
+        <p>No data available for {{ selected_year }}</p>
+    {% endif %}
+
+    <div class="button-container">
+        <a href="{{ url_for('leaderboard') }}" class="button">Back to Leaderboard</a>
+        <a href="{{ url_for('trends') }}" class="button">View Trends</a>
+    </div>
+
+    {% if admin_view %}
+        <!-- Keep admin-specific content here -->
+    {% endif %}
+</body>
+</html>
