@@ -18,7 +18,7 @@
             </ul>
         {% endif %}
     {% endwith %}
-    <form method="POST">
+    <form method="POST" action="{{ url_for('main.login') }}">
         <label for="username">Username:</label>
         <input type="text" id="username" name="username" required>
         <label for="password">Password:</label>
@@ -26,7 +26,7 @@
         <button type="submit">Login</button>
     </form>
     <div class="button-container">
-        <a href="{{ url_for('leaderboard') }}">Back to Leaderboard</a>
+        <a href="{{ url_for('main.leaderboard') }}">Back to Leaderboard</a>
     </div>
 </body>
 </html>

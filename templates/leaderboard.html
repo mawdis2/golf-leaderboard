@@ -90,10 +90,9 @@
 <body>
     <div class="container">
         <nav>
-            <a href="{{ url_for('index') }}">Home</a>
-            <a href="{{ url_for('leaderboard') }}">Leaderboard</a>
-            <a href="{{ url_for('history') }}">History</a>
-            <a href="{{ url_for('add_birdie') }}">Add Birdie</a>
+            <a href="{{ url_for('main.home') }}">Home</a>
+            <a href="{{ url_for('main.leaderboard') }}">Leaderboard</a>
+            <a href="{{ url_for('main.admin_dashboard') }}">Admin</a>
         </nav>
 
         <h1>Golf Stats Leaderboard {{ year }}</h1>
@@ -122,7 +121,7 @@
                             {{ current_rank }}
                         {% endif %}
                     </td>
-                    <td><a href="{{ url_for('player_birdie_records', player_id=player.id) }}">{{ player.name }}</a> {{ player.emoji|safe }}</td>
+                    <td><a href="{{ url_for('main.player_birdie_records', player_id=player.id) }}">{{ player.name }}</a> {{ player.emoji|safe }}</td>
                     <td>{{ player.birdies }}</td>
                     <td>{{ player.eagles }}</td>
                     <td>{{ player.total }}</td>
@@ -132,9 +131,13 @@
         </table>
 
         <div class="button-container">
-            <a href="{{ url_for('history') }}" class="button">View History</a>
-            <a href="{{ url_for('login') }}" class="button">Admin Login</a>
+            <a href="{{ url_for('main.history') }}" class="button">View History</a>
+            <a href="{{ url_for('main.login') }}" class="button">Admin Login</a>
         </div>
+
+        <a href="{{ url_for('main.add_birdie') }}">Add Birdie</a>
+        <a href="{{ url_for('main.add_player') }}">Add Player</a>
+        <a href="{{ url_for('main.add_course') }}">Add Course</a>
     </div>
 </body>
 </html>

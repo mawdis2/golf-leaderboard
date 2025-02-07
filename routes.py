@@ -1,9 +1,12 @@
 # routes.py
-from flask import current_app as app, render_template, request, redirect, url_for, jsonify, flash, get_flashed_messages, session
+from flask import Blueprint, render_template, request, redirect, url_for, jsonify, flash, get_flashed_messages, session
+from flask_login import current_user, login_required, login_user, logout_user
 from models import db, User, Player, Birdie, Course, HistoricalTotal, Eagle
 from sqlalchemy.sql import func, case, and_, or_
 from datetime import datetime, timedelta
-from flask_login import login_required, login_user
+
+# Create a Blueprint
+bp = Blueprint('main', __name__)
 
 print("Routes file imported")
 
@@ -11,15 +14,15 @@ def clear_flash_messages():
     # Clear any existing flash messages
     get_flashed_messages(with_categories=True)
 
-@app.route("/test")
+@bp.route("/test")
 def test():
     return "Test route is working!"
 
-@app.route("/")
-def index():
-    return render_template("index.html")
+@bp.route("/")
+def home():
+    return redirect(url_for('main.leaderboard'))
 
-@app.route("/leaderboard")
+@bp.route("/leaderboard")
 def leaderboard():
     current_year = datetime.now().year
     
@@ -58,7 +61,7 @@ def leaderboard():
     
     return render_template('leaderboard.html', players=player_stats, year=current_year)
 
-@app.route("/add_player", methods=["GET", "POST"])
+@bp.route("/add_player", methods=["GET", "POST"])
 def add_player():
     if request.method == "POST":
         name = request.form["name"].strip()
@@ -70,11 +73,11 @@ def add_player():
         db.session.add(new_player)
         db.session.commit()
         flash("Player added successfully!", "success")
-        return redirect(url_for("leaderboard"))
+        return redirect(url_for("main.leaderboard"))
     clear_flash_messages()
     return render_template("add_player.html")
 
-@app.route("/add_birdie", methods=["GET", "POST"])
+@bp.route("/add_birdie", methods=["GET", "POST"])
 def add_birdie():
     if request.method == "POST":
         try:
@@ -127,7 +130,7 @@ def add_birdie():
             db.session.add(birdie)
             db.session.commit()
             flash("Score added successfully!", "success")
-            return redirect(url_for("leaderboard"))
+            return redirect(url_for("main.leaderboard"))
         except ValueError:
             flash("Error: Invalid date format!", "error")
             return redirect(url_for("add_birdie"))
@@ -140,19 +143,19 @@ def add_birdie():
     courses = Course.query.all()
     return render_template("add_birdie.html", players=players, courses=courses)
 
-@app.route("/add_course", methods=['POST'])
+@bp.route("/add_course", methods=['POST'])
 @login_required
 def add_course():
     name = request.form.get('name')
     if not name:
         flash('Course name is required')
-        return redirect(url_for('admin_dashboard'))
+        return redirect(url_for('main.admin_dashboard'))
     
     # Check if course already exists
     existing_course = Course.query.filter_by(name=name).first()
     if existing_course:
         flash('A course with that name already exists')
-        return redirect(url_for('admin_dashboard'))
+        return redirect(url_for('main.admin_dashboard'))
     
     # Create new course
     course = Course(name=name)
@@ -160,15 +163,15 @@ def add_course():
     db.session.commit()
     
     flash('Course added successfully')
-    return redirect(url_for('admin_dashboard'))
+    return redirect(url_for('main.admin_dashboard'))
 
-@app.route("/players")
+@bp.route("/players")
 def get_players():
     players = Player.query.all()
     players_list = [player.to_dict() for player in players]
     return jsonify(players=players_list)
 
-@app.route("/player/<int:player_id>")
+@bp.route("/player/<int:player_id>")
 def player_birdie_records(player_id):
     player = Player.query.get_or_404(player_id)
     current_year = datetime.now().year
@@ -193,7 +196,7 @@ def player_birdie_records(player_id):
         year=current_year
     )
 
-@app.route("/player/<int:player_id>")
+@bp.route("/player/<int:player_id>")
 def player_details(player_id):
     player = Player.query.get_or_404(player_id)
     current_year = datetime.now().year
@@ -215,7 +218,7 @@ def player_details(player_id):
         year=current_year
     )
 
-@app.route("/login", methods=['GET', 'POST'])
+@bp.route("/login", methods=['GET', 'POST'])
 def login():
     if request.method == 'POST':
         username = request.form.get('username')
@@ -223,23 +226,21 @@ def login():
         user = User.query.filter_by(username=username).first()
         
         if user and user.check_password(password):
-            login_user(user)
-            next_page = request.args.get('next')
-            flash('Logged in successfully!')
-            if next_page:
-                return redirect(next_page)
-            return redirect(url_for('admin_dashboard'))
-            
-        flash('Invalid username or password')
+            login_user(user, remember=True)
+            flash('Logged in successfully.')
+            return redirect(url_for('main.admin_dashboard'))
+        else:
+            flash('Invalid username or password')
+    
     return render_template('login.html')
 
-@app.route("/logout")
+@bp.route("/logout")
+@login_required
 def logout():
-    session.clear()
-    flash("Logged out successfully!", "success")
-    return redirect(url_for("login"))
+    logout_user()
+    return redirect(url_for('main.leaderboard'))
 
-@app.route("/admin")
+@bp.route("/admin")
 @login_required
 def admin_dashboard():
     players = Player.query.all()
@@ -249,7 +250,7 @@ def admin_dashboard():
         print(f"Player: {player.name}, Has Trophy: {player.has_trophy}")
     return render_template("admin_dashboard.html", players=players, courses=courses)
 
-@app.route("/admin/player_birdies", methods=["GET"])
+@bp.route("/admin/player_birdies", methods=["GET"])
 def admin_player_birdies():
     if not session.get("is_admin"):
         flash("You do not have access to this page", "error")
@@ -261,34 +262,42 @@ def admin_player_birdies():
     courses = Course.query.all()
     return render_template("admin_dashboard.html", players=players, courses=courses, birdies=birdies, selected_player=selected_player)
 
-@app.route("/admin/delete_player/<int:player_id>")
+@bp.route("/delete_player/<int:player_id>")
+@login_required
 def delete_player(player_id):
-    if not session.get("is_admin"):
-        flash("You do not have access to this page", "error")
-        return redirect(url_for("login"))
+    # Check if user is logged in again
+    if not current_user.is_authenticated:
+        flash('Please log in to access this page')
+        return redirect(url_for('login'))
+    
     player = Player.query.get_or_404(player_id)
+    
+    # Delete all birdies for this player first
+    Birdie.query.filter_by(player_id=player_id).delete()
+    
+    # Then delete the player
     db.session.delete(player)
     db.session.commit()
-    flash("Player deleted successfully!", "success")
-    return redirect(url_for("admin_dashboard"))
+    
+    flash(f'Player {player.name} has been deleted')
+    return redirect(url_for('main.admin_dashboard'))
 
-@app.route("/delete_course/<int:course_id>")
+@bp.route("/delete_course/<int:course_id>")
 @login_required
 def delete_course(course_id):
-    # Get the course
     course = Course.query.get_or_404(course_id)
     
-    # Delete all birdies associated with this course using the relationship
-    Birdie.query.filter_by(course_id=course_id).delete()
+    # First delete all birdies associated with this course
+    Birdie.query.filter(Birdie.course_id == course_id).delete()
     
-    # Delete the course
+    # Then delete the course
     db.session.delete(course)
     db.session.commit()
     
-    flash('Course deleted successfully')
-    return redirect(url_for('admin_dashboard'))
+    flash(f'Course {course.name} has been deleted.')
+    return redirect(url_for('main.admin_dashboard'))
 
-@app.route("/delete_birdie/<int:birdie_id>", methods=['POST'])
+@bp.route("/delete_birdie/<int:birdie_id>", methods=['POST'])
 def delete_birdie(birdie_id):
     birdie = Birdie.query.get_or_404(birdie_id)
     player_id = birdie.player_id
@@ -305,9 +314,9 @@ def delete_birdie(birdie_id):
     db.session.commit()
     
     flash("Birdie deleted successfully", "success")
-    return redirect(url_for('player_birdie_records', player_id=player_id))
+    return redirect(url_for('main.player_birdie_records', player_id=player_id))
 
-@app.route("/admin/edit_player/<int:player_id>", methods=["POST"])
+@bp.route("/admin/edit_player/<int:player_id>", methods=["POST"])
 def edit_player(player_id):
     if not session.get("is_admin"):
         flash("You do not have access to this page", "error")
@@ -316,9 +325,9 @@ def edit_player(player_id):
     player.name = request.form["name"].strip()
     db.session.commit()
     flash("Player name updated successfully!", "success")
-    return redirect(url_for("admin_dashboard"))
+    return redirect(url_for("main.admin_dashboard"))
 
-@app.route("/admin/edit_course/<int:course_id>", methods=["POST"])
+@bp.route("/admin/edit_course/<int:course_id>", methods=["POST"])
 def edit_course(course_id):
     if not session.get("is_admin"):
         flash("You do not have access to this page", "error")
@@ -327,9 +336,9 @@ def edit_course(course_id):
     course.name = request.form["name"].strip()
     db.session.commit()
     flash("Course name updated successfully!", "success")
-    return redirect(url_for("admin_dashboard"))
+    return redirect(url_for("main.admin_dashboard"))
 
-@app.route("/admin/edit_birdie/<int:birdie_id>", methods=["POST"])
+@bp.route("/admin/edit_birdie/<int:birdie_id>", methods=["POST"])
 def edit_birdie(birdie_id):
     if not session.get("is_admin"):
         flash("You do not have access to this page", "error")
@@ -338,9 +347,9 @@ def edit_birdie(birdie_id):
     birdie.date = datetime.strptime(request.form["date"], "%Y-%m-%d")
     db.session.commit()
     flash("Birdie date updated successfully!", "success")
-    return redirect(url_for("admin_player_birdies", player_id=birdie.player_id))
+    return redirect(url_for("main.admin_player_birdies", player_id=birdie.player_id))
 
-@app.route("/add_emoji", methods=["GET", "POST"])
+@bp.route("/add_emoji", methods=["GET", "POST"])
 def add_emoji():
     if request.method == "POST":
         player_id = request.form["player_id"]
@@ -351,11 +360,11 @@ def add_emoji():
         player.permanent_emojis += emoji
         db.session.commit()
         flash("Emoji added successfully!", "success")
-        return redirect(url_for("leaderboard"))
+        return redirect(url_for("main.leaderboard"))
     players = Player.query.all()
     return render_template("add_emoji.html", players=players)
 
-@app.route("/history", methods=["GET"])
+@bp.route("/history", methods=["GET"])
 def history():
     current_year = datetime.now().year
     selected_year = request.args.get('year', current_year, type=int)
@@ -477,7 +486,7 @@ def history():
         selected_year=selected_year
     )
 
-@app.route("/add_trophy", methods=["GET", "POST"])
+@bp.route("/add_trophy", methods=["GET", "POST"])
 def add_trophy():
     if not session.get("is_admin"):
         flash("You do not have access to this page", "error")
@@ -497,7 +506,7 @@ def add_trophy():
                 else:
                     flash(f"{player.name} already has a trophy!", "info")
             
-            return redirect(url_for("leaderboard"))
+            return redirect(url_for("main.leaderboard"))
         except Exception as e:
             print(f"Error adding trophy: {e}")
             flash("An error occurred while adding the trophy.", "error")
@@ -505,15 +514,41 @@ def add_trophy():
     players = Player.query.all()
     return render_template("add_trophy.html", players=players)
 
-@app.route("/add_historical_totals", methods=["GET", "POST"])
+@bp.route("/add_historical_totals", methods=['GET', 'POST'])
+@login_required
 def add_historical_totals():
-    if not session.get("is_admin"):
-        flash("You do not have access to this page", "error")
-        return redirect(url_for("login"))
-
     current_year = datetime.now().year
     selected_year = 2024  # Default to 2024
+    years = range(2020, current_year + 1)
+    if not current_user.is_authenticated:
+        return redirect(url_for("main.login"))
+
+    if request.method == 'POST':
+        player_id = request.form.get('player_id')
+        year = request.form.get('year')
+        birdies = request.form.get('birdies')
+        eagles = request.form.get('eagles')
+
+        historical_total = HistoricalTotal(
+            player_id=player_id,
+            year=year,
+            birdies=birdies,
+            eagles=eagles
+        )
+        db.session.add(historical_total)
+        db.session.commit()
+
+        flash('Historical totals added successfully!')
+        return redirect(url_for('main.admin_dashboard'))
+
+    players = Player.query.all()
+    return render_template('add_historical_totals.html', 
+        players=players,
+        current_year=current_year,
+        selected_year=selected_year,
+        years=years)  
     
+
     if request.method == "POST":
         try:
             print("\nForm Data:")
@@ -576,7 +611,7 @@ def add_historical_totals():
                 print(f"Player: {player.name}, Birdies: {record.total_birdies}, Eagles: {record.total_eagles}, Trophy: {record.has_trophy}")
             
             flash(f"Historical totals updated for {year}", "success")
-            return redirect(url_for("history", year=year))
+            return redirect(url_for("main.history", year=year))
 
         except Exception as e:
             print(f"\nError adding historical totals: {str(e)}")
@@ -596,7 +631,7 @@ def add_historical_totals():
         selected_year=selected_year
     )
 
-@app.route("/debug_eagles/<int:player_id>")
+@bp.route("/debug_eagles/<int:player_id>")
 def debug_eagles(player_id):
     current_year = datetime.now().year
     eagles = Birdie.query.filter_by(
@@ -616,7 +651,7 @@ def debug_eagles(player_id):
     
     return jsonify(result)
 
-@app.route("/debug_player/<int:player_id>")
+@bp.route("/debug_player/<int:player_id>")
 def debug_player(player_id):
     player = Player.query.get_or_404(player_id)
     return jsonify({
@@ -625,15 +660,15 @@ def debug_player(player_id):
         'id': player.id
     })
 
-@app.route("/reset_permanent_emojis/<int:player_id>")
+@bp.route("/reset_permanent_emojis/<int:player_id>")
 def reset_permanent_emojis(player_id):
     player = Player.query.get_or_404(player_id)
     player.permanent_emojis = None  # or "" if you prefer
     db.session.commit()
     flash("Permanent emojis have been reset", "success")
-    return redirect(url_for('leaderboard'))
+    return redirect(url_for('main.leaderboard'))
 
-@app.route("/trends")
+@bp.route("/trends")
 def trends():
     # Get all years from both current and historical data
     years = db.session.query(
@@ -698,7 +733,7 @@ def trends():
         player_stats=player_stats
     )
 
-@app.route("/delete_trophy/<int:player_id>")
+@bp.route("/delete_trophy/<int:player_id>")
 @login_required
 def delete_trophy(player_id):
     player = Player.query.get_or_404(player_id)

@@ -165,12 +165,12 @@
             {% endif %}
         {% endwith %}
 
-        <form method="POST">
+        <form method="POST" action="{{ url_for('main.add_historical_totals') }}">
             <div class="year-select">
                 <label for="year"><strong>Select Year:</strong></label>
-                <select name="year" id="year" required>
-                    {% for year in available_years %}
-                        <option value="{{ year }}" {% if year == 2024 %}selected{% endif %}>{{ year }}</option>
+                <select name="year" required>
+                    {% for year in years %}
+                        <option value="{{ year }}">{{ year }}</option>
                     {% endfor %}
                 </select>
             </div>
@@ -215,7 +215,7 @@
         </form>
 
         <div class="button-container">
-            <a href="{{ url_for('admin_dashboard') }}">Back to Admin Dashboard</a>
+            <a href="{{ url_for('main.admin_dashboard') }}" class="button">Back to Admin Dashboard</a>
         </div>
     </div>
 </body>

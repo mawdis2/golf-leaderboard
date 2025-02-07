@@ -18,7 +18,7 @@
             </ul>
         {% endif %}
     {% endwith %}
-    <form method="POST" action="{{ url_for('add_birdie') }}">
+    <form method="POST" action="{{ url_for('main.add_birdie') }}">
         <label for="player_id">Player:</label>
         <select name="player_id" id="player_id" required>
             {% for player in players %}
@@ -48,7 +48,7 @@
         <button type="submit">Add Course</button>
     </form>
     <div class="button-container">
-        <a href="{{ url_for('leaderboard') }}">Back to Leaderboard</a>
+        <a href="{{ url_for('main.leaderboard') }}">Back to Leaderboard</a>
     </div>
 
     <script>

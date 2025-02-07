@@ -35,26 +35,26 @@ class Birdie(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     player_id = db.Column(db.Integer, db.ForeignKey('player.id'), nullable=False)
     course_id = db.Column(db.Integer, db.ForeignKey('course.id'), nullable=False)
+    course = db.relationship('Course', backref='birdies')
     date = db.Column(db.Date, nullable=False)
     year = db.Column(db.Integer, nullable=False)
     is_eagle = db.Column(db.Boolean, default=False)  # New column
 
     player = db.relationship('Player', backref=db.backref('birdies', lazy=True))
-    course = db.relationship('Course', backref=db.backref('birdies', lazy=True))
 
 class Course(db.Model):
     id = db.Column(db.Integer, primary_key=True)
-    name = db.Column(db.String(80), unique=True, nullable=False)
+    name = db.Column(db.String(100), nullable=False)
 
 class HistoricalTotal(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     player_id = db.Column(db.Integer, db.ForeignKey('player.id'), nullable=False)
     year = db.Column(db.Integer, nullable=False)
-    total_birdies = db.Column(db.Integer, default=0)
-    total_eagles = db.Column(db.Integer, default=0)
+    birdies = db.Column(db.Integer, default=0)
+    eagles = db.Column(db.Integer, default=0)
     has_trophy = db.Column(db.Boolean, default=False)
     
-    player = db.relationship('Player', backref=db.backref('historical_totals', lazy=True))
+    player = db.relationship('Player', backref='historical_totals')
     
     __table_args__ = (db.UniqueConstraint('player_id', 'year', name='unique_player_year'),)
 
