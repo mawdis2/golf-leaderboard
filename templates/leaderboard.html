@@ -121,9 +121,9 @@
                             {{ current_rank }}
                         {% endif %}
                     </td>
-                    <td><a href="{{ url_for('main.player_birdie_records', player_id=player.id) }}">{{ player.name }}</a> {{ player.emoji|safe }}</td>
-                    <td>{{ player.birdies }}</td>
-                    <td>{{ player.eagles }}</td>
+                    <td><a href="{{ url_for('main.player_birdie_records', player_id=player.id) }}">{{ player.name }}</a> {{ player.emojis|safe }}</td>
+                    <td>{{ player.birdie_count }}</td>
+                    <td>{{ player.eagle_count }}</td>
                     <td>{{ player.total }}</td>
                 </tr>
                 {% set prev_total = player.total %}

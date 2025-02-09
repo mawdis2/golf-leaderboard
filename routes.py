@@ -25,41 +25,47 @@ def home():
 @bp.route("/leaderboard")
 def leaderboard():
     current_year = datetime.now().year
-    
-    # Get all players
     players = Player.query.all()
     
-    # Calculate stats for each player
-    player_stats = []
+    print(f"\nPlayers data for year {current_year}")
     for player in players:
-        # Get birdies and eagles for current year only
-        birdies = Birdie.query.filter_by(player_id=player.id, year=current_year).all()
-        eagles = Eagle.query.filter_by(player_id=player.id, year=current_year).all()
+        # Count birdies (where is_eagle is False)
+        birdie_count = Birdie.query.filter_by(
+            player_id=player.id, 
+            year=current_year, 
+            is_eagle=False
+        ).count()
         
-        # Check for recent birdies (within last 2 days)
-        two_days_ago = datetime.now().date() - timedelta(days=2)
-        recent_birdies = [b for b in birdies if b.date >= two_days_ago]
+        # Count eagles
+        eagle_count = Birdie.query.filter_by(
+            player_id=player.id, 
+            year=current_year, 
+            is_eagle=True
+        ).count()
         
-        # Add one birdie emoji for each recent birdie
-        emoji = "🐦" * len(recent_birdies)
+        # Calculate total
+        total = birdie_count + eagle_count
         
-        player_stats.append({
-            'name': player.name,
-            'id': player.id,
-            'birdies': len(birdies),
-            'eagles': len(eagles),
-            'total': len(birdies) + len(eagles),
-            'emoji': emoji
-        })
+        # Set emojis based on birdie count
+        if birdie_count >= 2:
+            player.emojis = "🐦" * 2
+        elif birdie_count == 1:
+            player.emojis = "🐦"
+        else:
+            player.emojis = ""
+        
+        # Add eagle emoji if they have any
+        if eagle_count > 0:
+            player.emojis += "🦅" * eagle_count
+            
+        print(f"{player.name}: Birdies={birdie_count}, Eagles={eagle_count}, Emojis={player.emojis}")
+        
+        # Store counts for template
+        player.birdie_count = birdie_count
+        player.eagle_count = eagle_count
+        player.total = total
     
-    # Sort by total birdies+eagles
-    player_stats.sort(key=lambda x: x['total'], reverse=True)
-    
-    print("\nPlayers data for year", current_year)
-    for stat in player_stats:
-        print(f"{stat['name']}: Birdies={stat['birdies']}, Eagles={stat['eagles']}, Emojis={stat['emoji']}")
-    
-    return render_template('leaderboard.html', players=player_stats, year=current_year)
+    return render_template("leaderboard.html", players=players, year=current_year)
 
 @bp.route("/add_player", methods=["GET", "POST"])
 def add_player():
@@ -80,28 +86,47 @@ def add_player():
 @bp.route("/add_birdie", methods=["GET", "POST"])
 def add_birdie():
     if request.method == "POST":
+        print("Form data received:")
+        print(request.form)
+        print(f"is_eagle raw value: {request.form.get('is_eagle')}")
+        
         try:
             player_id = request.form.get("player_id")
             course_id = request.form.get("course_id")
             date_str = request.form.get("date")
-            is_eagle = request.form.get("is_eagle") == "on"
+            is_eagle = True if request.form.get("is_eagle") else False
+            
+            print(f"is_eagle after conversion: {is_eagle}")
+            
+            # Debug prints
+            print(f"Received data:")
+            print(f"Player ID: {player_id}")
+            print(f"Course ID: {course_id}")
+            print(f"Date: {date_str}")
+            print(f"Is Eagle: {is_eagle}")
             
             # Parse the date
             date = datetime.strptime(date_str, "%Y-%m-%d")
             current_year = datetime.now().year
             
+            print(f"Parsed date: {date}")
+            print(f"Current year: {current_year}")
+            
             # Check if the date is from a previous year
             if date.year < current_year:
+                print("Error: Previous year date")
                 flash("Error: Cannot add birdies from previous years!", "error")
-                return redirect(url_for("add_birdie"))
+                return redirect(url_for("main.add_birdie"))
             
             # Check if the date is in the future
             if date.date() > datetime.now().date():
+                print("Error: Future date")
                 flash("Error: Cannot add birdies for future dates!", "error")
-                return redirect(url_for("add_birdie"))
+                return redirect(url_for("main.add_birdie"))
 
             # Get the player first
             player = Player.query.get(player_id)
+            print(f"Player found: {player.name}")
             
             # Create the birdie/eagle record
             birdie = Birdie(
@@ -112,58 +137,59 @@ def add_birdie():
                 is_eagle=is_eagle
             )
             
-            # If it's an eagle, update the permanent eagle emojis
+            print(f"Created record: player={player.name}, is_eagle={birdie.is_eagle}")
+            
             if is_eagle:
-                # Count total eagles for this player this year
+                print("Processing eagle...")
                 eagle_count = Birdie.query.filter_by(
                     player_id=player_id,
                     year=current_year,
                     is_eagle=True
                 ).count()
                 
-                # Add one for the new eagle we're adding
                 eagle_count += 1
-                
-                # Update player's permanent emojis to match total eagle count
+                print(f"New eagle count: {eagle_count}")
                 player.permanent_emojis = "🦅" * eagle_count
+                print(f"Updated emojis: {player.permanent_emojis}")
             
             db.session.add(birdie)
             db.session.commit()
+            
+            # Verify after commit
+            saved_birdie = Birdie.query.filter_by(id=birdie.id).first()
+            print(f"Saved to database: is_eagle={saved_birdie.is_eagle}")
+            
             flash("Score added successfully!", "success")
             return redirect(url_for("main.leaderboard"))
-        except ValueError:
+        except ValueError as ve:
+            print(f"ValueError: {ve}")
             flash("Error: Invalid date format!", "error")
-            return redirect(url_for("add_birdie"))
+            return redirect(url_for("main.add_birdie"))
         except Exception as e:
             print(f"Error adding score: {e}")
             flash("An error occurred while adding the score.", "error")
-            return redirect(url_for("add_birdie"))
+            return redirect(url_for("main.add_birdie"))
 
     players = Player.query.all()
     courses = Course.query.all()
-    return render_template("add_birdie.html", players=players, courses=courses)
+    return render_template("add_birdie.html", 
+                         players=players, 
+                         courses=courses,
+                         datetime=datetime,
+                         timedelta=timedelta)
 
-@bp.route("/add_course", methods=['POST'])
+@bp.route("/add_course", methods=["GET", "POST"])
 @login_required
 def add_course():
-    name = request.form.get('name')
-    if not name:
-        flash('Course name is required')
-        return redirect(url_for('main.admin_dashboard'))
-    
-    # Check if course already exists
-    existing_course = Course.query.filter_by(name=name).first()
-    if existing_course:
-        flash('A course with that name already exists')
-        return redirect(url_for('main.admin_dashboard'))
-    
-    # Create new course
-    course = Course(name=name)
-    db.session.add(course)
-    db.session.commit()
-    
-    flash('Course added successfully')
-    return redirect(url_for('main.admin_dashboard'))
+    if request.method == "POST":
+        course_name = request.form.get("name")
+        if course_name:
+            course = Course(name=course_name)
+            db.session.add(course)
+            db.session.commit()
+            flash(f'Course "{course_name}" added successfully!')
+            return redirect(url_for('main.add_birdie'))
+    return redirect(url_for('main.add_birdie'))
 
 @bp.route("/players")
 def get_players():
@@ -171,29 +197,42 @@ def get_players():
     players_list = [player.to_dict() for player in players]
     return jsonify(players=players_list)
 
-@bp.route("/player/<int:player_id>")
+@bp.route("/player/<int:player_id>/records")
 def player_birdie_records(player_id):
     player = Player.query.get_or_404(player_id)
-    current_year = datetime.now().year
     
-    # Get all birdies for the player for the current year
+    # Get all birdies for the player
     birdies = db.session.query(
-        Birdie
-    ).filter_by(
-        player_id=player_id,
-        year=current_year
-    ).order_by(Birdie.date.desc()).all()
+        Birdie.id,
+        Birdie.course,
+        Birdie.date,
+        Birdie.year,
+        Birdie.is_eagle
+    ).filter(
+        Birdie.player_id == player_id
+    ).order_by(
+        Birdie.date.desc()
+    ).all()
     
-    # Convert string dates to datetime objects if needed
-    for birdie in birdies:
-        if isinstance(birdie.date, str):
-            birdie.date = datetime.strptime(birdie.date, '%Y-%m-%d')
+    # Get yearly totals
+    yearly_totals = db.session.query(
+        Birdie.year,
+        func.count(case([(Birdie.is_eagle == True, None)])).label('eagle_count'),
+        func.count(case([(Birdie.is_eagle == False, 1)])).label('birdie_count'),
+        func.count(Birdie.id).label('total_count')
+    ).filter(
+        Birdie.player_id == player_id
+    ).group_by(
+        Birdie.year
+    ).order_by(
+        Birdie.year.desc()
+    ).all()
     
     return render_template(
-        "player_birdie_records.html",
+        'player_records.html',
         player=player,
         birdies=birdies,
-        year=current_year
+        yearly_totals=yearly_totals
     )
 
 @bp.route("/player/<int:player_id>")
@@ -560,7 +599,7 @@ def add_historical_totals():
             
             if year >= current_year:
                 flash("Cannot add historical records for current or future years!", "error")
-                return redirect(url_for("add_historical_totals"))
+                return redirect(url_for("main.add_historical_totals"))
             
             # Get all player IDs and their totals from the form
             for key, value in request.form.items():
@@ -618,7 +657,7 @@ def add_historical_totals():
             import traceback
             print(traceback.format_exc())
             flash("An error occurred while adding historical totals.", "error")
-            return redirect(url_for("add_historical_totals"))
+            return redirect(url_for("main.add_historical_totals"))
 
     # For GET request, prepare the form
     players = Player.query.all()

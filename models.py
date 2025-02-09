@@ -1,28 +1,27 @@
 # models.py
-from flask_sqlalchemy import SQLAlchemy
+from extensions import db
 from werkzeug.security import generate_password_hash, check_password_hash
 from datetime import datetime
 from flask_login import UserMixin
 
-db = SQLAlchemy()
-
 class User(db.Model, UserMixin):
     id = db.Column(db.Integer, primary_key=True)
     username = db.Column(db.String(80), unique=True, nullable=False)
-    password_hash = db.Column(db.String(120), nullable=False)
+    password = db.Column(db.String(120), nullable=False)
     is_admin = db.Column(db.Boolean, default=False)
 
     def set_password(self, password):
-        self.password_hash = generate_password_hash(password)
+        self.password = generate_password_hash(password)
 
     def check_password(self, password):
-        return password == "admin"  # Your existing password check
+        return check_password_hash(self.password, password)
 
 class Player(db.Model):
     id = db.Column(db.Integer, primary_key=True)
-    name = db.Column(db.String(80), unique=True, nullable=False)
+    name = db.Column(db.String(100), nullable=False)
     has_trophy = db.Column(db.Boolean, default=False)
-    permanent_emojis = db.Column(db.String(100))
+    permanent_emojis = db.Column(db.String(100), default='')
+    birdies = db.relationship('Birdie', backref='player', lazy=True)
 
     def to_dict(self):
         return {
@@ -35,12 +34,11 @@ class Birdie(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     player_id = db.Column(db.Integer, db.ForeignKey('player.id'), nullable=False)
     course_id = db.Column(db.Integer, db.ForeignKey('course.id'), nullable=False)
-    course = db.relationship('Course', backref='birdies')
-    date = db.Column(db.Date, nullable=False)
+    date = db.Column(db.Date, nullable=False, default=datetime.utcnow)
     year = db.Column(db.Integer, nullable=False)
-    is_eagle = db.Column(db.Boolean, default=False)  # New column
+    is_eagle = db.Column(db.Boolean, default=False)
 
-    player = db.relationship('Player', backref=db.backref('birdies', lazy=True))
+    course = db.relationship('Course', backref='birdies')
 
 class Course(db.Model):
     id = db.Column(db.Integer, primary_key=True)
