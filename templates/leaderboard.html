@@ -105,28 +105,19 @@
                 <th>Eagles</th>
                 <th>Total</th>
             </tr>
-            {% set current_rank = 1 %}
-            {% set prev_total = None %}
             {% for player in players %}
                 <tr>
+                    <td>{{ player.rank }}</td>
                     <td>
-                        {% if loop.index > 1 %}
-                            {% if player.total == prev_total %}
-                                T{{ current_rank }}
-                            {% else %}
-                                {% set current_rank = loop.index %}
-                                {{ current_rank }}
-                            {% endif %}
-                        {% else %}
-                            {{ current_rank }}
-                        {% endif %}
+                        <a href="{{ url_for('main.player_birdie_records', player_id=player.id) }}" style="color: green;">
+                            {{ player.name }}
+                        </a>
+                        {{ player.emojis|safe }}
                     </td>
-                    <td><a href="{{ url_for('main.player_birdie_records', player_id=player.id) }}">{{ player.name }}</a> {{ player.emojis|safe }}</td>
                     <td>{{ player.birdie_count }}</td>
                     <td>{{ player.eagle_count }}</td>
                     <td>{{ player.total }}</td>
                 </tr>
-                {% set prev_total = player.total %}
             {% endfor %}
         </table>
 

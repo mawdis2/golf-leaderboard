@@ -27,45 +27,68 @@ def leaderboard():
     current_year = datetime.now().year
     players = Player.query.all()
     
-    print(f"\nPlayers data for year {current_year}")
+    # First, calculate all scores and sort players
+    player_scores = []
     for player in players:
-        # Count birdies (where is_eagle is False)
         birdie_count = Birdie.query.filter_by(
             player_id=player.id, 
-            year=current_year, 
+            year=current_year,
             is_eagle=False
         ).count()
         
-        # Count eagles
         eagle_count = Birdie.query.filter_by(
             player_id=player.id, 
-            year=current_year, 
+            year=current_year,
             is_eagle=True
         ).count()
         
-        # Calculate total
         total = birdie_count + eagle_count
+        player.birdie_count = birdie_count
+        player.eagle_count = eagle_count
+        player.total = total
         
-        # Set emojis based on birdie count
+        # Set emojis based on counts
         if birdie_count >= 2:
             player.emojis = "🐦" * 2
         elif birdie_count == 1:
             player.emojis = "🐦"
         else:
             player.emojis = ""
-        
-        # Add eagle emoji if they have any
+            
         if eagle_count > 0:
             player.emojis += "🦅" * eagle_count
             
-        print(f"{player.name}: Birdies={birdie_count}, Eagles={eagle_count}, Emojis={player.emojis}")
-        
-        # Store counts for template
-        player.birdie_count = birdie_count
-        player.eagle_count = eagle_count
-        player.total = total
+        player_scores.append(player)
     
-    return render_template("leaderboard.html", players=players, year=current_year)
+    # Sort players by total score (descending)
+    player_scores.sort(key=lambda x: x.total, reverse=True)
+    
+    # Assign ranks with ties
+    current_rank = 1
+    prev_total = None
+    players_at_rank = 0
+    
+    for i, player in enumerate(player_scores):
+        if i == 0:
+            # First player
+            if len(player_scores) > 1 and player.total == player_scores[1].total:
+                player.rank = f"T{current_rank}"
+            else:
+                player.rank = str(current_rank)
+        else:
+            if player.total == prev_total:
+                player.rank = f"T{current_rank}"
+            else:
+                current_rank = i + 1
+                if i < len(player_scores) - 1 and player.total == player_scores[i + 1].total:
+                    player.rank = f"T{current_rank}"
+                else:
+                    player.rank = str(current_rank)
+        
+        prev_total = player.total
+        print(f"{player.name}: Birdies={player.birdie_count}, Eagles={player.eagle_count}, Emojis={player.emojis}, Rank={player.rank}")
+    
+    return render_template("leaderboard.html", players=player_scores, year=current_year)
 
 @bp.route("/add_player", methods=["GET", "POST"])
 def add_player():
