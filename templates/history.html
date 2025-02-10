@@ -8,48 +8,46 @@
     <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
 </head>
 <body>
-    <h1>Historical Rankings - {{ selected_year }}</h1>
-    
-    <div>
-        <label for="year">Select Year:</label>
-        <select name="year" id="year" onchange="window.location.href='/history?year=' + this.value">
-            {% for year in years %}
-            <option value="{{ year }}" {% if year == selected_year %}selected{% endif %}>{{ year }}</option>
-            {% endfor %}
-        </select>
-    </div>
-
-    {% if leaderboard %}
-        <table>
-            <thead>
-                <tr>
-                    <th>Rank</th>
-                    <th>Player</th>
-                    <th>Birdies</th>
-                </tr>
-            </thead>
-            <tbody>
-                {% for rank_display, player, birdies, player_id, permanent_emojis in leaderboard %}
-                    <tr>
-                        <td>{{ rank_display }}</td>
-                        <td>
-                            <a href="{{ url_for('player_birdie_records', player_id=player_id) }}?year={{ selected_year }}">
-                                {{ player }}
-                            </a> 
-                            {{ permanent_emojis }}
-                        </td>
-                        <td>{{ birdies }}</td>
-                    </tr>
+    <div class="container">
+        <h1>Historical Rankings - {{ selected_year }}</h1>
+        
+        <form method="GET" action="{{ url_for('main.history') }}">
+            <label for="year">Select Year:</label>
+            <select name="year" id="year" onchange="this.form.submit()">
+                {% for year in years %}
+                <option value="{{ year }}" {% if year == selected_year %}selected{% endif %}>{{ year }}</option>
                 {% endfor %}
-            </tbody>
-        </table>
-    {% else %}
-        <p>No data available for {{ selected_year }}</p>
-    {% endif %}
+            </select>
+        </form>
 
-    <div class="button-container">
-        <a href="{{ url_for('main.leaderboard') }}" class="button">Back to Leaderboard</a>
-        <a href="{{ url_for('trends') }}" class="button">View Trends</a>
+        <table>
+            <tr>
+                <th>Rank</th>
+                <th>Player</th>
+                <th>Birdies</th>
+                <th>Eagles</th>
+                <th>Total</th>
+            </tr>
+            {% for rank_display, player_name, birdies, player_id, trophy, eagles, eagle_emoji in leaderboard %}
+            <tr>
+                <td>{{ rank_display }}</td>
+                <td>
+                    <a href="{{ url_for('main.player_birdie_records', player_id=player_id) }}?year={{ selected_year }}" style="color: green;">
+                        {{ player_name }}
+                    </a>
+                    {{ eagle_emoji }}{{ trophy|safe }}
+                </td>
+                <td>{{ birdies|int }}</td>
+                <td>{{ eagles|int }}</td>
+                <td>{{ (birdies|int) + (eagles|int) }}</td>
+            </tr>
+            {% endfor %}
+        </table>
+
+        <div class="button-container">
+            <a href="{{ url_for('main.leaderboard') }}" class="button">Back to Leaderboard</a>
+            <a href="{{ url_for('main.trends') }}" class="button">View Trends</a>
+        </div>
     </div>
 
     {% if admin_view %}
