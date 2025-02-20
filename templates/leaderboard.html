@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Golf Stats Leaderboard</title>
+    <title>Golf Stats {{ year }}</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
     <style>
         body {
@@ -89,14 +89,12 @@
 </head>
 <body>
     <div class="container">
-        <nav>
-            <a href="{{ url_for('main.home') }}">Home</a>
-            <a href="{{ url_for('main.leaderboard') }}">Leaderboard</a>
-            <a href="{{ url_for('main.admin_dashboard') }}">Admin</a>
-        </nav>
-
-        <h1>Golf Stats Leaderboard {{ year }}</h1>
-
+        <div class="admin-login">
+            <a href="{{ url_for('main.login') }}" class="button">Admin Login</a>
+        </div>
+        
+        <h1>Birdie Leaderboard {{ year }}</h1>
+        
         <table>
             <tr>
                 <th>Rank</th>
@@ -106,29 +104,30 @@
                 <th>Total</th>
             </tr>
             {% for player in players %}
-                <tr>
-                    <td>{{ player.rank }}</td>
-                    <td>
-                        <a href="{{ url_for('main.player_birdie_records', player_id=player.id) }}" style="color: green;">
-                            {{ player.name }}
-                        </a>
-                        {{ player.emojis|safe }}
-                    </td>
-                    <td>{{ player.birdie_count }}</td>
-                    <td>{{ player.eagle_count }}</td>
-                    <td>{{ player.total }}</td>
-                </tr>
+            <tr>
+                <td>{{ player.rank }}</td>
+                <td>
+                    <a href="{{ url_for('main.player_birdie_records', player_id=player.id) }}" style="color: green;">
+                        {{ player.name }}
+                        {% if player.has_trophy %}🏆{% endif %}
+                        {% if player.birdie_count >= 2 %}🐦{% endif %}
+                        {% if player.birdie_count >= 4 %}🐦{% endif %}
+                        {% if player.eagle_count >= 1 %}🦅{% endif %}
+                    </a>
+                </td>
+                <td>{{ player.birdie_count }}</td>
+                <td>{{ player.eagle_count }}</td>
+                <td>{{ player.total }}</td>
+            </tr>
             {% endfor %}
         </table>
 
         <div class="button-container">
+            <a href="{{ url_for('main.add_birdie') }}" class="button">Add Birdie</a>
+            <a href="{{ url_for('main.add_course') }}" class="button">Add Course</a>
+            <a href="{{ url_for('main.add_player') }}" class="button">Add Player</a>
             <a href="{{ url_for('main.history') }}" class="button">View History</a>
-            <a href="{{ url_for('main.login') }}" class="button">Admin Login</a>
         </div>
-
-        <a href="{{ url_for('main.add_birdie') }}">Add Birdie</a>
-        <a href="{{ url_for('main.add_player') }}">Add Player</a>
-        <a href="{{ url_for('main.add_course') }}">Add Course</a>
     </div>
 </body>
 </html>

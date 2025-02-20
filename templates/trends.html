@@ -8,10 +8,10 @@
 <body>
     <div class="container">
         <nav>
-            <a href="{{ url_for('index') }}">Home</a>
-            <a href="{{ url_for('leaderboard') }}">Leaderboard</a>
-            <a href="{{ url_for('history') }}">History</a>
-            <a href="{{ url_for('add_birdie') }}">Add Birdie</a>
+            <a href="{{ url_for('main.leaderboard') }}">Home</a>
+            <a href="{{ url_for('main.leaderboard') }}">Leaderboard</a>
+            <a href="{{ url_for('main.history') }}">History</a>
+            <a href="{{ url_for('main.add_birdie') }}">Add Birdie</a>
         </nav>
 
         <h1>Golf Stats Trends</h1>
@@ -165,7 +165,7 @@
         </script>
 
         <div class="button-container">
-            <a href="{{ url_for('history') }}" class="button">Back to History</a>
+            <a href="{{ url_for('main.history') }}" class="button">Back to History</a>
         </div>
     </div>
 </body>

@@ -624,36 +624,8 @@ def add_trophy():
 def add_historical_totals():
     current_year = datetime.now().year
     selected_year = 2024  # Default to 2024
-    years = range(2020, current_year + 1)
-    if not current_user.is_authenticated:
-        return redirect(url_for("main.login"))
-
-    if request.method == 'POST':
-        player_id = request.form.get('player_id')
-        year = request.form.get('year')
-        birdies = request.form.get('birdies')
-        eagles = request.form.get('eagles')
-
-        historical_total = HistoricalTotal(
-            player_id=player_id,
-            year=year,
-            birdies=birdies,
-            eagles=eagles
-        )
-        db.session.add(historical_total)
-        db.session.commit()
-
-        flash('Historical totals added successfully!')
-        return redirect(url_for('main.admin_dashboard'))
-
-    players = Player.query.all()
-    return render_template('add_historical_totals.html', 
-        players=players,
-        current_year=current_year,
-        selected_year=selected_year,
-        years=years)  
+    years = range(2020, current_year + 1)  # Keep this range for the dropdown
     
-
     if request.method == "POST":
         try:
             print("\nForm Data:")
@@ -662,10 +634,6 @@ def add_historical_totals():
             
             year = int(request.form.get("year"))
             print(f"\nProcessing year: {year}")
-            
-            if year >= current_year:
-                flash("Cannot add historical records for current or future years!", "error")
-                return redirect(url_for("main.add_historical_totals"))
             
             # Get all player IDs and their totals from the form
             for key, value in request.form.items():
@@ -691,7 +659,6 @@ def add_historical_totals():
                         historical_total.total_birdies = total_birdies
                         historical_total.total_eagles = total_eagles
                         historical_total.has_trophy = has_trophy
-                        print(f"Updated values - Birdies: {historical_total.total_birdies}, Eagles: {historical_total.total_eagles}, Trophy: {historical_total.has_trophy}")
                     else:
                         print(f"Creating new record")
                         historical_total = HistoricalTotal(
@@ -702,39 +669,23 @@ def add_historical_totals():
                             has_trophy=has_trophy
                         )
                         db.session.add(historical_total)
-                        print("New record added to session")
             
-            print("\nCommitting to database...")
             db.session.commit()
-            print("Commit successful!")
-            
-            # Verify the data was saved
-            print("\nVerifying saved data:")
-            saved_records = HistoricalTotal.query.filter_by(year=year).all()
-            for record in saved_records:
-                player = Player.query.get(record.player_id)
-                print(f"Player: {player.name}, Birdies: {record.total_birdies}, Eagles: {record.total_eagles}, Trophy: {record.has_trophy}")
-            
             flash(f"Historical totals updated for {year}", "success")
             return redirect(url_for("main.history", year=year))
 
         except Exception as e:
             print(f"\nError adding historical totals: {str(e)}")
-            import traceback
-            print(traceback.format_exc())
             flash("An error occurred while adding historical totals.", "error")
             return redirect(url_for("main.add_historical_totals"))
 
-    # For GET request, prepare the form
+    # For GET request
     players = Player.query.all()
-    available_years = list(range(current_year - 5, current_year))  # Last 5 years
-    
-    return render_template(
-        "add_historical_totals.html", 
+    return render_template('add_historical_totals.html', 
         players=players,
-        available_years=available_years,
-        selected_year=selected_year
-    )
+        current_year=current_year,
+        selected_year=selected_year,
+        years=years)
 
 @bp.route("/debug_eagles/<int:player_id>")
 def debug_eagles(player_id):
