@@ -624,7 +624,7 @@ def add_trophy():
 def add_historical_totals():
     current_year = datetime.now().year
     selected_year = 2024  # Default to 2024
-    years = range(2020, current_year + 1)  # Keep this range for the dropdown
+    years = range(2020, current_year + 1)
     
     if request.method == "POST":
         try:
@@ -638,44 +638,54 @@ def add_historical_totals():
             # Get all player IDs and their totals from the form
             for key, value in request.form.items():
                 if key.startswith('birdies_'):
-                    player_id = int(key.split('_')[1])
-                    total_birdies = int(value) if value else 0
-                    total_eagles = int(request.form.get(f'eagles_{player_id}', 0))
-                    has_trophy = request.form.get(f'trophy_{player_id}') == 'on'
-                    
-                    print(f"\nProcessing player {player_id}:")
-                    print(f"Birdies: {total_birdies}")
-                    print(f"Eagles: {total_eagles}")
-                    print(f"Trophy: {has_trophy}")
-                    
-                    # Update or create the historical total
-                    historical_total = HistoricalTotal.query.filter_by(
-                        player_id=player_id,
-                        year=year
-                    ).first()
-                    
-                    if historical_total:
-                        print(f"Updating existing record")
-                        historical_total.total_birdies = total_birdies
-                        historical_total.total_eagles = total_eagles
-                        historical_total.has_trophy = has_trophy
-                    else:
-                        print(f"Creating new record")
-                        historical_total = HistoricalTotal(
+                    try:
+                        player_id = int(key.split('_')[1])
+                        birdies = int(value) if value else 0
+                        eagles = int(request.form.get(f'eagles_{player_id}', 0))
+                        has_trophy = request.form.get(f'trophy_{player_id}', 'off') == 'on'
+                        
+                        print(f"\nProcessing player {player_id}:")
+                        print(f"Birdies: {birdies}")
+                        print(f"Eagles: {eagles}")
+                        print(f"Trophy: {has_trophy}")
+                        
+                        # Update or create the historical total
+                        historical_total = HistoricalTotal.query.filter_by(
                             player_id=player_id,
-                            year=year,
-                            total_birdies=total_birdies,
-                            total_eagles=total_eagles,
-                            has_trophy=has_trophy
-                        )
-                        db.session.add(historical_total)
+                            year=year
+                        ).first()
+                        
+                        if historical_total:
+                            print(f"Updating existing record")
+                            historical_total.birdies = birdies
+                            historical_total.eagles = eagles
+                            historical_total.has_trophy = has_trophy
+                            print(f"Updated values - Birdies: {historical_total.birdies}, Eagles: {historical_total.eagles}, Trophy: {historical_total.has_trophy}")
+                        else:
+                            print(f"Creating new record")
+                            historical_total = HistoricalTotal(
+                                player_id=player_id,
+                                year=year,
+                                birdies=birdies,
+                                eagles=eagles,
+                                has_trophy=has_trophy
+                            )
+                            db.session.add(historical_total)
+                            print("New record added to session")
+                    except Exception as player_error:
+                        print(f"Error processing player {player_id}: {str(player_error)}")
+                        raise
             
+            print("\nCommitting to database...")
             db.session.commit()
+            print("Commit successful!")
             flash(f"Historical totals updated for {year}", "success")
             return redirect(url_for("main.history", year=year))
 
         except Exception as e:
             print(f"\nError adding historical totals: {str(e)}")
+            import traceback
+            print(traceback.format_exc())
             flash("An error occurred while adding historical totals.", "error")
             return redirect(url_for("main.add_historical_totals"))
 
@@ -766,8 +776,8 @@ def trends():
                     player_id=player.id,
                     year=year
                 ).first()
-                birdies = historical.total_birdies if historical else 0
-                eagles = historical.total_eagles if historical else 0
+                birdies = historical.birdies if historical else 0
+                eagles = historical.eagles if historical else 0
             
             yearly_stats.append({
                 'year': year,
