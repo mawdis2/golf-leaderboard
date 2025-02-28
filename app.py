@@ -21,7 +21,7 @@ if database_url:
     app.config['SQLALCHEMY_DATABASE_URI'] = database_url
 else:
     # Use SQLite in development
-    app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///app.db'
+    app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///birdie_tracker.db'
 
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
