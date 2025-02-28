@@ -200,6 +200,65 @@
         table td:first-child {
             color: black !important;
         }
+
+        .score-entry {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 8px;
+            margin: 4px 0;
+        }
+
+        .delete-btn {
+            background-color: #dc3545;
+            color: white;
+            border: none;
+            padding: 4px 8px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 0.9em;
+        }
+
+        .delete-btn:hover {
+            background-color: #c82333;
+        }
+
+        .scores-container {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+            margin-top: 20px;
+        }
+
+        .birdies-section, .eagles-section {
+            background-color: rgba(0, 0, 0, 0.3);
+            padding: 15px;
+            border-radius: 8px;
+        }
+
+        .score-entry {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 8px;
+            margin: 4px 0;
+            background-color: rgba(255, 255, 255, 0.1);
+            border-radius: 4px;
+        }
+
+        .delete-btn {
+            background-color: #dc3545;
+            color: white;
+            border: none;
+            padding: 4px 8px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 0.9em;
+        }
+
+        .delete-btn:hover {
+            background-color: #c82333;
+        }
     </style>
 </head>
 <body>
@@ -220,13 +279,14 @@
         {% endwith %}
 
         <div class="tab-container">
-            <button class="tab-button active" onclick="openTab(event, 'players')">Players</button>
-            <button class="tab-button" onclick="openTab(event, 'courses')">Courses</button>
-            <button class="tab-button" onclick="openTab(event, 'historical')">Historical Data</button>
-            <button class="tab-button" onclick="openTab(event, 'trophies')">Trophies</button>
+            <button class="tab-button active" onclick="showTab('Players')">Players</button>
+            <button class="tab-button" onclick="showTab('Courses')">Courses</button>
+            <button class="tab-button" onclick="showTab('Historical Data')">Historical Data</button>
+            <button class="tab-button" onclick="showTab('Trophies')">Trophies</button>
+            <button class="tab-button" onclick="showTab('Scores')">Scores</button>
         </div>
 
-        <div id="players" class="tab-content active">
+        <div id="Players" class="tab-content active">
             <a href="{{ url_for('main.add_player') }}" class="action-button add-button">Add New Player</a>
             <table>
                 <thead>
@@ -248,7 +308,7 @@
             </table>
         </div>
 
-        <div id="courses" class="tab-content">
+        <div id="Courses" class="tab-content">
             <h2>Add New Course</h2>
             <form method="POST" action="{{ url_for('main.add_course') }}">
                 <input type="text" name="name" placeholder="Course Name" required>
@@ -272,11 +332,11 @@
             </table>
         </div>
 
-        <div id="historical" class="tab-content">
+        <div id="Historical Data" class="tab-content">
             <a href="{{ url_for('main.add_historical_totals') }}" class="action-button add-button">Add Historical Totals</a>
         </div>
 
-        <div id="trophies" class="tab-content">
+        <div id="Trophies" class="tab-content">
             <h2>Manage Trophies</h2>
             <form method="POST" action="{{ url_for('main.add_trophy') }}">
                 <select name="player_id" required>
@@ -306,24 +366,62 @@
                 {% endfor %}
             </table>
         </div>
+
+        <div id="Scores" class="tab-content" style="display: none;">
+            <h2>Player Scores</h2>
+            <div class="scores-container">
+                <div class="birdies-section">
+                    <h3>Birdies</h3>
+                    {% for birdie in birdies %}
+                        <div class="score-entry">
+                            <span>{{ birdie.player.name }} - {{ birdie.date.strftime('%Y-%m-%d') }}</span>
+                            <form action="{{ url_for('main.delete_score', score_type='birdie', score_id=birdie.id) }}" 
+                                  method="POST" 
+                                  style="display: inline;"
+                                  onsubmit="return confirm('Are you sure you want to delete this birdie for {{ birdie.player.name }}?');">
+                                <button type="submit" class="delete-btn">Delete</button>
+                            </form>
+                        </div>
+                    {% endfor %}
+                </div>
+
+                <div class="eagles-section">
+                    <h3>Eagles</h3>
+                    {% for eagle in eagles %}
+                        <div class="score-entry">
+                            <span>{{ eagle.player.name }} - {{ eagle.date.strftime('%Y-%m-%d') }}</span>
+                            <form action="{{ url_for('main.delete_score', score_type='eagle', score_id=eagle.id) }}" 
+                                  method="POST" 
+                                  style="display: inline;"
+                                  onsubmit="return confirm('Are you sure you want to delete this eagle for {{ eagle.player.name }}?');">
+                                <button type="submit" class="delete-btn">Delete</button>
+                            </form>
+                        </div>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
     </div>
 
     <script>
-        function openTab(evt, tabName) {
-            var i, tabcontent, tabbuttons;
-            
-            tabcontent = document.getElementsByClassName("tab-content");
-            for (i = 0; i < tabcontent.length; i++) {
-                tabcontent[i].style.display = "none";
+        function showTab(tabName) {
+            // Hide all tab contents
+            var tabContents = document.getElementsByClassName('tab-content');
+            for (var i = 0; i < tabContents.length; i++) {
+                tabContents[i].style.display = 'none';
             }
             
-            tabbuttons = document.getElementsByClassName("tab-button");
-            for (i = 0; i < tabbuttons.length; i++) {
-                tabbuttons[i].className = tabbuttons[i].className.replace(" active", "");
-            }
+            // Show the selected tab content
+            document.getElementById(tabName).style.display = 'block';
             
-            document.getElementById(tabName).style.display = "block";
-            evt.currentTarget.className += " active";
+            // Update active tab button
+            var tabButtons = document.getElementsByClassName('tab-button');
+            for (var i = 0; i < tabButtons.length; i++) {
+                tabButtons[i].classList.remove('active');
+                if (tabButtons[i].innerText === tabName) {
+                    tabButtons[i].classList.add('active');
+                }
+            }
         }
     </script>
 </body>
