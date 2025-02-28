@@ -1,18 +1,12 @@
-# app.py
-from . import app
-from .config import Config
-from .extensions import db, migrate, login_manager
-from .models import User
-from middleware import require_site_password
-import os
 from flask import Flask
 from flask_sqlalchemy import SQLAlchemy
+from flask_login import LoginManager
+import os
 
-migrate.init_app(app, db)
-login_manager.init_app(app)
+app = Flask(__name__)
 
-# Remove the blueprint registration line
-# app.register_blueprint(bp)  # This line should be removed
+# Secret key configuration
+app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', 'dev')
 
 # Database configuration
 database_url = os.environ.get('DATABASE_URL')
@@ -25,21 +19,13 @@ else:
 
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
-# Initialize SQLAlchemy
+# Initialize extensions
 db = SQLAlchemy(app)
+login_manager = LoginManager(app)
+login_manager.login_view = 'login'
 
-# This ensures all models are loaded
-from models import *
-
-@app.route('/')
-@require_site_password
-def index():
-    return "Hello World"
-
-@app.route('/leaderboard')
-@require_site_password
-def leaderboard():
-    return "Leaderboard"
+# Import routes after app is created
+from routes import *
 
 if __name__ == '__main__':
     app.run(debug=True)
