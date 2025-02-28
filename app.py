@@ -25,15 +25,21 @@ else:
 
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
+# Initialize SQLAlchemy
+db = SQLAlchemy(app)
+
+# This ensures all models are loaded
+from models import *
+
 @app.route('/')
 @require_site_password
 def index():
-    # ... existing code ...
+    return "Hello World"
 
 @app.route('/leaderboard')
 @require_site_password
 def leaderboard():
-    # ... existing code ...
+    return "Leaderboard"
 
 if __name__ == '__main__':
     app.run(debug=True)
