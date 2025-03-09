@@ -63,15 +63,15 @@ rm -f init_db.py
 echo "==> Starting server..."
 exec gunicorn \
     --bind=0.0.0.0:10000 \
+    --worker-class=gthread \
     --workers=1 \
     --threads=4 \
-    --worker-class=gthread \
     --timeout=30 \
     --graceful-timeout=10 \
     --keep-alive=5 \
     --log-level=info \
     --access-logfile=- \
     --error-logfile=- \
-    --no-daemon \
     --preload \
+    --forwarded-allow-ips="*" \
     app:app 
