@@ -9,7 +9,7 @@ pip install -r requirements.txt
 export PYTHONPATH=$PYTHONPATH:/opt/render/project/src
 
 # Set the FLASK_APP environment variable
-export FLASK_APP=app.py
+export FLASK_APP=wsgi.py
 
 # Initialize database migrations if they don't exist
 if [ ! -d "migrations" ]; then
@@ -17,7 +17,7 @@ if [ ! -d "migrations" ]; then
 fi
 
 # Create and upgrade database
-python -c "from app import db; db.create_all()"
+python -c "from __init__ import create_app; app = create_app(); from models import db; db.create_all()"
 flask db migrate -m "Automatic migration"
 flask db upgrade
 

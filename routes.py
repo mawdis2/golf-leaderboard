@@ -3,7 +3,7 @@ from flask import Blueprint, render_template, request, redirect, url_for, jsonif
 from flask_login import current_user, login_required, login_user, logout_user
 from sqlalchemy.sql import func, case, and_, or_
 from datetime import datetime, timedelta
-from .models import db, User, Player, Birdie, Course, HistoricalTotal, Eagle
+from models import db, User, Player, Birdie, Course, HistoricalTotal, Eagle
 
 # Create a Blueprint
 bp = Blueprint('main', __name__)
