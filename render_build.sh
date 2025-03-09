@@ -109,27 +109,56 @@ echo "==> Initializing database..."
 python init_db.py
 
 # Create migration script
-cat > create_migration.py << 'EOF'
+cat > migration_env.py << 'EOF'
+from logging.config import fileConfig
+from sqlalchemy import engine_from_config, pool
+from alembic import context
 from app import app, db
-from flask_migrate import Migrate, upgrade
-from alembic.operations import Operations
-from alembic.migration import MigrationContext
-import sqlalchemy as sa
 
-with app.app_context():
-    # Drop existing tables in correct order
-    with db.engine.connect() as conn:
-        conn.execute(sa.text('DROP TABLE IF EXISTS birdie CASCADE'))
-        conn.execute(sa.text('DROP TABLE IF EXISTS historical_total CASCADE'))
-        conn.execute(sa.text('DROP TABLE IF EXISTS player CASCADE'))
-        conn.execute(sa.text('DROP TABLE IF EXISTS course CASCADE'))
-        conn.execute(sa.text('COMMIT'))
+config = context.config
+if config.config_file_name is not None:
+    fileConfig(config.config_file_name)
 
-    # Initialize migrations
-    migrate = Migrate(app, db)
-    
-    # Create tables from models
-    db.create_all()
+target_metadata = db.metadata
+
+def run_migrations_offline():
+    url = app.config['SQLALCHEMY_DATABASE_URI']
+    context.configure(
+        url=url,
+        target_metadata=target_metadata,
+        literal_binds=True,
+        dialect_opts={"paramstyle": "named"},
+        compare_type=True,
+        compare_server_default=True,
+        include_schemas=True
+    )
+    with context.begin_transaction():
+        context.run_migrations()
+
+def run_migrations_online():
+    configuration = config.get_section(config.config_ini_section)
+    configuration["sqlalchemy.url"] = app.config["SQLALCHEMY_DATABASE_URI"]
+    connectable = engine_from_config(
+        configuration,
+        prefix="sqlalchemy.",
+        poolclass=pool.NullPool,
+    )
+    with connectable.connect() as connection:
+        context.configure(
+            connection=connection,
+            target_metadata=target_metadata,
+            compare_type=True,
+            compare_server_default=True,
+            include_schemas=True,
+            version_table_schema="public"
+        )
+        with context.begin_transaction():
+            context.run_migrations()
+
+if context.is_offline_mode():
+    run_migrations_offline()
+else:
+    run_migrations_online()
 EOF
 
 # Remove existing migrations
@@ -140,12 +169,15 @@ rm -rf migrations
 echo "==> Setting up fresh migrations..."
 flask db init
 
-# Apply the migration script
-echo "==> Applying migrations..."
-python create_migration.py
+# Replace env.py with our custom version
+mv migration_env.py migrations/env.py
 
-# Create and apply initial migration
+# Create initial migration
+echo "==> Creating initial migration..."
 flask db migrate -m "Initial migration"
+
+# Apply migration
+echo "==> Applying migration..."
 flask db upgrade
 
 # Verify final state
@@ -164,7 +196,17 @@ with app.app_context():
         print(f'  Columns: {columns}')
         if fks:
             print(f'  Foreign keys: {[fk[\"referred_table\"] for fk in fks]}')
+    
+    # Verify tables exist and are accessible
+    from models import Player, Course, Birdie, HistoricalTotal
+    for model in [Player, Course, Birdie, HistoricalTotal]:
+        try:
+            count = model.query.count()
+            print(f'{model.__name__} table is accessible (count: {count})')
+        except Exception as e:
+            print(f'Error accessing {model.__name__} table: {e}')
+            raise
 "
 
 # Clean up
-rm -f init_db.py create_migration.py 
+rm -f init_db.py 
