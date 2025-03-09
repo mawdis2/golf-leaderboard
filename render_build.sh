@@ -20,6 +20,7 @@ start_time = time.time()
 print("==> Starting database initialization...")
 
 from app import app, db
+from models import Player, Course, Birdie, HistoricalTotal
 
 with app.app_context():
     try:
@@ -32,9 +33,47 @@ with app.app_context():
         db.session.commit()
         
         print("  -> Creating tables...")
-        db.create_all()
+        # Create tables with explicit column definitions
+        db.session.execute("""
+            CREATE TABLE player (
+                id SERIAL PRIMARY KEY,
+                name VARCHAR(255) NOT NULL,
+                permanent_emojis TEXT,
+                has_trophy BOOLEAN DEFAULT FALSE
+            )
+        """)
         
-        # Ensure proper permissions on all tables
+        db.session.execute("""
+            CREATE TABLE course (
+                id SERIAL PRIMARY KEY,
+                name VARCHAR(255) NOT NULL
+            )
+        """)
+        
+        db.session.execute("""
+            CREATE TABLE birdie (
+                id SERIAL PRIMARY KEY,
+                player_id INTEGER REFERENCES player(id),
+                course_id INTEGER REFERENCES course(id),
+                hole_number INTEGER NOT NULL,
+                year INTEGER,
+                date DATE,
+                is_eagle BOOLEAN DEFAULT FALSE
+            )
+        """)
+        
+        db.session.execute("""
+            CREATE TABLE historical_total (
+                id SERIAL PRIMARY KEY,
+                player_id INTEGER REFERENCES player(id),
+                year INTEGER NOT NULL,
+                birdies INTEGER DEFAULT 0,
+                eagles INTEGER DEFAULT 0,
+                has_trophy BOOLEAN DEFAULT FALSE
+            )
+        """)
+        
+        # Ensure proper permissions
         db.session.execute('GRANT ALL PRIVILEGES ON ALL TABLES IN SCHEMA public TO postgres')
         db.session.execute('GRANT ALL PRIVILEGES ON ALL SEQUENCES IN SCHEMA public TO postgres')
         db.session.execute('GRANT ALL PRIVILEGES ON ALL TABLES IN SCHEMA public TO public')
@@ -51,13 +90,14 @@ EOF
 echo "==> Initializing database..."
 python init_db.py
 
-# Handle migrations
-echo "==> Setting up migrations..."
-if [ ! -d "migrations" ]; then
-    flask db init
-fi
+# Remove existing migrations
+echo "==> Cleaning up old migrations..."
+rm -rf migrations
 
-echo "==> Running migrations..."
+# Initialize fresh migrations
+echo "==> Setting up fresh migrations..."
+flask db init
+flask db migrate -m "Initial migration"
 flask db upgrade
 
 # Clean up
