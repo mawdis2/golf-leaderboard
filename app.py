@@ -25,13 +25,12 @@ login_manager = LoginManager(app)
 login_manager.login_view = 'login'
 
 # Import routes after app is created
-from routes import *
-from routes import main
-app.register_blueprint(main)
+from routes import bp
+app.register_blueprint(bp)
 
 @app.route('/')
 def index():
-    return redirect(url_for('main.leaderboard'))  # or whatever your main page is
+    return redirect(url_for('main.leaderboard'))
 
 if __name__ == '__main__':
     app.run(debug=True)
