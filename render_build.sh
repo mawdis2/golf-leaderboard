@@ -16,8 +16,18 @@ if [ ! -d "migrations" ]; then
     flask db init
 fi
 
-# Create and upgrade database
-python -c "from __init__ import create_app; app = create_app(); from models import db; db.create_all()"
+# Create and upgrade database using proper application context
+python - << EOF
+from __init__ import create_app
+from models import db
+
+app = create_app()
+with app.app_context():
+    db.create_all()
+    print("Database tables created successfully!")
+EOF
+
+# Run database migrations
 flask db migrate -m "Automatic migration"
 flask db upgrade
 
