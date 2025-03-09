@@ -26,7 +26,9 @@ app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 db = SQLAlchemy(app)
 migrate = Migrate(app, db)
 login_manager = LoginManager(app)
-login_manager.login_view = 'login'
+login_manager.login_view = 'main.login'
+login_manager.login_message = 'Please log in to access this page.'
+login_manager.login_message_category = 'info'
 
 # Import all models to ensure they're registered before creating tables
 from models import User, Player, Birdie, Course, HistoricalTotal, Eagle

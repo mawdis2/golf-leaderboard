@@ -8,24 +8,26 @@ from flask_login import UserMixin
 def load_user(user_id):
     return User.query.get(int(user_id))
 
-class User(db.Model, UserMixin):
+class User(UserMixin, db.Model):
     id = db.Column(db.Integer, primary_key=True)
     username = db.Column(db.String(80), unique=True, nullable=False)
-    password = db.Column(db.String(120), nullable=False)
+    password_hash = db.Column(db.String(120), nullable=False)
     is_admin = db.Column(db.Boolean, default=False)
 
     def set_password(self, password):
-        self.password = generate_password_hash(password)
+        self.password_hash = generate_password_hash(password)
 
     def check_password(self, password):
-        return check_password_hash(self.password, password)
+        return check_password_hash(self.password_hash, password)
 
 class Player(db.Model):
     id = db.Column(db.Integer, primary_key=True)
-    name = db.Column(db.String(100), nullable=False)
+    name = db.Column(db.String(80), unique=True, nullable=False)
     has_trophy = db.Column(db.Boolean, default=False)
-    permanent_emojis = db.Column(db.String(100), default='')
+    permanent_emojis = db.Column(db.String(50))
     birdies = db.relationship('Birdie', backref='player', lazy=True)
+    eagles = db.relationship('Eagle', backref='player', lazy=True)
+    historical_totals = db.relationship('HistoricalTotal', backref='player', lazy=True)
 
     def to_dict(self):
         return {
@@ -38,15 +40,12 @@ class Birdie(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     player_id = db.Column(db.Integer, db.ForeignKey('player.id'), nullable=False)
     course_id = db.Column(db.Integer, db.ForeignKey('course.id'), nullable=False)
-    date = db.Column(db.Date, nullable=False, default=datetime.utcnow)
+    hole_number = db.Column(db.Integer, nullable=False)
     year = db.Column(db.Integer, nullable=False)
-    is_eagle = db.Column(db.Boolean, default=False)
-
-    course = db.relationship('Course', backref='birdies')
 
 class Course(db.Model):
     id = db.Column(db.Integer, primary_key=True)
-    name = db.Column(db.String(100), nullable=False)
+    name = db.Column(db.String(80), unique=True, nullable=False)
 
 class HistoricalTotal(db.Model):
     id = db.Column(db.Integer, primary_key=True)
@@ -56,17 +55,14 @@ class HistoricalTotal(db.Model):
     eagles = db.Column(db.Integer, default=0)
     has_trophy = db.Column(db.Boolean, default=False)
     
-    player = db.relationship('Player', backref='historical_totals')
-    
     __table_args__ = (db.UniqueConstraint('player_id', 'year', name='unique_player_year'),)
 
 class Eagle(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     player_id = db.Column(db.Integer, db.ForeignKey('player.id'), nullable=False)
-    course = db.Column(db.String(100), nullable=False)
-    hole = db.Column(db.Integer, nullable=False)
-    date = db.Column(db.DateTime, nullable=False, default=datetime.utcnow)
+    course_id = db.Column(db.Integer, db.ForeignKey('course.id'), nullable=False)
+    hole_number = db.Column(db.Integer, nullable=False)
     year = db.Column(db.Integer, nullable=False)
 
     def __repr__(self):
-        return f'<Eagle {self.player_id} {self.course} {self.hole}>'
+        return f'<Eagle {self.player_id} {self.course_id} {self.hole_number}>'
