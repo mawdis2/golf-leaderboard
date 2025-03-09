@@ -15,14 +15,23 @@ export FLASK_APP=wsgi.py
 cat > init_db.py << 'EOF'
 from __init__ import create_app
 from models import db, User, Player, Birdie, Course, HistoricalTotal, Eagle
+import sqlalchemy as sa
+from sqlalchemy import text
 
 app = create_app()
 with app.app_context():
     try:
+        # Drop all tables with CASCADE
+        db.session.execute(text('DROP SCHEMA public CASCADE;'))
+        db.session.execute(text('CREATE SCHEMA public;'))
+        db.session.commit()
+        
+        # Create all tables fresh
         db.create_all()
         print("Database tables created successfully!")
     except Exception as e:
         print(f"Error creating database tables: {e}")
+        db.session.rollback()
 EOF
 
 # Run the database initialization script
@@ -33,8 +42,9 @@ if [ ! -d "migrations" ]; then
     flask db init
 fi
 
-# Run database migrations
-flask db migrate -m "Automatic migration"
+# Create a fresh migration
+rm -f migrations/versions/*
+flask db migrate -m "Initial migration"
 flask db upgrade
 
 # Clean up
