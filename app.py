@@ -31,6 +31,10 @@ login_manager.login_view = 'login'
 # Import all models to ensure they're registered before creating tables
 from models import User, Player, Birdie, Course, HistoricalTotal, Eagle
 
+@login_manager.user_loader
+def load_user(user_id):
+    return User.query.get(int(user_id))
+
 # Import routes after app is created
 from routes import bp
 app.register_blueprint(bp)
