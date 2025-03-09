@@ -48,15 +48,6 @@ with app.app_context():
             conn.execute(text('GRANT ALL ON SCHEMA public TO public'))
             conn.execute(text('COMMIT'))
         
-        print("  -> Verifying models...")
-        models = [Player, Course, Birdie, HistoricalTotal]
-        for model in models:
-            print(f"    - Registering model: {model.__name__}")
-            if not hasattr(model, '__table__'):
-                raise Exception(f"Model {model.__name__} has no __table__ attribute")
-            print(f"      Table name: {model.__table__.name}")
-            print(f"      Columns: {', '.join(c.name for c in model.__table__.columns)}")
-        
         print("  -> Creating tables in dependency order...")
         with db.engine.begin() as conn:
             # First create tables without foreign keys
@@ -77,23 +68,6 @@ with app.app_context():
             conn.execute(text('GRANT ALL PRIVILEGES ON ALL TABLES IN SCHEMA public TO public'))
             conn.execute(text('GRANT ALL PRIVILEGES ON ALL SEQUENCES IN SCHEMA public TO public'))
         
-        # Verify tables
-        print("  -> Verifying tables...")
-        inspector = inspect(db.engine)
-        tables = ['player', 'course', 'birdie', 'historical_total']
-        existing_tables = inspector.get_table_names()
-        print(f"    - Found tables: {existing_tables}")
-        
-        for table in tables:
-            if not table in existing_tables:
-                raise Exception(f"Table {table} was not created successfully")
-            columns = [c['name'] for c in inspector.get_columns(table)]
-            fks = inspector.get_foreign_keys(table)
-            print(f"    - Verified table {table}:")
-            print(f"      Columns: {columns}")
-            if fks:
-                print(f"      Foreign keys: {[fk['referred_table'] for fk in fks]}")
-            
         print(f"==> Database initialized successfully in {time.time() - start_time:.2f}s")
         
     except Exception as e:
@@ -111,15 +85,38 @@ python init_db.py
 # Create migration script
 cat > migration_env.py << 'EOF'
 from logging.config import fileConfig
-from sqlalchemy import engine_from_config, pool
+from sqlalchemy import engine_from_config, pool, MetaData
 from alembic import context
 from app import app, db
+from models import Player, Course, Birdie, HistoricalTotal
 
 config = context.config
 if config.config_file_name is not None:
     fileConfig(config.config_file_name)
 
 target_metadata = db.metadata
+
+def include_object(object, name, type_, reflected, compare_to):
+    if type_ == "table":
+        # Always include tables in the autogenerate
+        return True
+    return False
+
+def process_revision_directives(context, revision, directives):
+    if directives[0].upgrade_ops.ops:
+        # Ensure tables are dropped in correct order
+        directives[0].upgrade_ops.ops.sort(
+            key=lambda op: (
+                # Drop dependent tables first
+                -1 if op.__class__.__name__ == "DropTableOp" and op.table_name in ["birdie", "historical_total"] else
+                # Then drop base tables
+                0 if op.__class__.__name__ == "DropTableOp" and op.table_name in ["player", "course"] else
+                # Create base tables first
+                1 if op.__class__.__name__ == "CreateTableOp" and op.table_name in ["player", "course"] else
+                # Create dependent tables last
+                2
+            )
+        )
 
 def run_migrations_offline():
     url = app.config['SQLALCHEMY_DATABASE_URI']
@@ -128,8 +125,8 @@ def run_migrations_offline():
         target_metadata=target_metadata,
         literal_binds=True,
         dialect_opts={"paramstyle": "named"},
-        compare_type=True,
-        compare_server_default=True,
+        include_object=include_object,
+        process_revision_directives=process_revision_directives,
         include_schemas=True
     )
     with context.begin_transaction():
@@ -147,8 +144,8 @@ def run_migrations_online():
         context.configure(
             connection=connection,
             target_metadata=target_metadata,
-            compare_type=True,
-            compare_server_default=True,
+            include_object=include_object,
+            process_revision_directives=process_revision_directives,
             include_schemas=True,
             version_table_schema="public"
         )
