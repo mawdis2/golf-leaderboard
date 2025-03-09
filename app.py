@@ -1,6 +1,7 @@
 from flask import Flask, redirect, url_for
 from flask_sqlalchemy import SQLAlchemy
 from flask_login import LoginManager
+from flask_migrate import Migrate
 import os
 
 app = Flask(__name__)
@@ -23,14 +24,15 @@ app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
 # Initialize extensions
 db = SQLAlchemy(app)
+migrate = Migrate(app, db)
 login_manager = LoginManager(app)
 login_manager.login_view = 'login'
 
 # Import all models to ensure they're registered before creating tables
-from models import User, Player, Birdie, Course, HistoricalTotal, Eagle
+from .models import User, Player, Birdie, Course, HistoricalTotal, Eagle
 
 # Import routes after app is created
-from routes import bp
+from .routes import bp
 app.register_blueprint(bp)
 
 @app.route('/')
