@@ -14,7 +14,7 @@ python -m pip install --no-cache-dir -r requirements.txt
 # Create database initialization script
 cat > init_db.py << 'EOF'
 import os, sys, time
-from sqlalchemy import text, inspect, MetaData, Table, Column, String
+from sqlalchemy import text, inspect, MetaData
 sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 
 start_time = time.time()
@@ -22,13 +22,6 @@ print("==> Starting database initialization...")
 
 from app import app, db
 from models import Player, Course, Birdie, HistoricalTotal
-
-def verify_table_exists(table_name):
-    with db.engine.connect() as conn:
-        result = conn.execute(text(
-            "SELECT EXISTS (SELECT FROM information_schema.tables WHERE table_schema = 'public' AND table_name = :table)"
-        ), {"table": table_name})
-        return result.scalar()
 
 with app.app_context():
     try:
@@ -38,28 +31,59 @@ with app.app_context():
             conn.execute(text("SELECT 1"))
             print("  -> Database connection successful")
 
-        # First transaction: Schema setup with CASCADE
+        # Drop and recreate schema
         print("  -> Setting up schema...")
         with db.engine.connect() as conn:
-            conn.execute(text('COMMIT'))  # Close any existing transaction
+            conn.execute(text('COMMIT'))
             conn.execute(text('DROP SCHEMA IF EXISTS public CASCADE'))
             conn.execute(text('CREATE SCHEMA public'))
             conn.execute(text('GRANT ALL ON SCHEMA public TO postgres'))
             conn.execute(text('GRANT ALL ON SCHEMA public TO public'))
             conn.execute(text('COMMIT'))
-        
-        print("  -> Creating tables in dependency order...")
+
+        # Create tables
+        print("  -> Creating tables...")
         with db.engine.begin() as conn:
-            # First create tables without foreign keys
-            for model in [Player, Course]:
-                print(f"    - Creating base table: {model.__table__.name}")
-                model.__table__.create(bind=conn)
+            # Create tables in order
+            conn.execute(text("""
+                CREATE TABLE public.player (
+                    id SERIAL PRIMARY KEY,
+                    name VARCHAR(255) NOT NULL,
+                    has_trophy BOOLEAN DEFAULT false,
+                    permanent_emojis VARCHAR(255)
+                )
+            """))
             
-            # Then create tables with foreign keys
-            for model in [Birdie, HistoricalTotal]:
-                print(f"    - Creating dependent table: {model.__table__.name}")
-                model.__table__.create(bind=conn)
-        
+            conn.execute(text("""
+                CREATE TABLE public.course (
+                    id SERIAL PRIMARY KEY,
+                    name VARCHAR(255) NOT NULL
+                )
+            """))
+            
+            conn.execute(text("""
+                CREATE TABLE public.birdie (
+                    id SERIAL PRIMARY KEY,
+                    player_id INTEGER REFERENCES public.player(id),
+                    course_id INTEGER REFERENCES public.course(id),
+                    hole_number INTEGER NOT NULL,
+                    year INTEGER NOT NULL,
+                    date DATE NOT NULL,
+                    is_eagle BOOLEAN DEFAULT false
+                )
+            """))
+            
+            conn.execute(text("""
+                CREATE TABLE public.historical_total (
+                    id SERIAL PRIMARY KEY,
+                    player_id INTEGER REFERENCES public.player(id),
+                    year INTEGER NOT NULL,
+                    birdies INTEGER NOT NULL DEFAULT 0,
+                    eagles INTEGER NOT NULL DEFAULT 0,
+                    has_trophy BOOLEAN DEFAULT false
+                )
+            """))
+
         # Set permissions
         print("  -> Setting permissions...")
         with db.engine.begin() as conn:
@@ -67,7 +91,20 @@ with app.app_context():
             conn.execute(text('GRANT ALL PRIVILEGES ON ALL SEQUENCES IN SCHEMA public TO postgres'))
             conn.execute(text('GRANT ALL PRIVILEGES ON ALL TABLES IN SCHEMA public TO public'))
             conn.execute(text('GRANT ALL PRIVILEGES ON ALL SEQUENCES IN SCHEMA public TO public'))
+
+        # Verify tables
+        print("  -> Verifying tables...")
+        inspector = inspect(db.engine)
+        tables = inspector.get_table_names()
+        print(f"    - Found tables: {tables}")
         
+        for table in ['player', 'course', 'birdie', 'historical_total']:
+            if table not in tables:
+                raise Exception(f"Table {table} was not created successfully")
+            columns = [c['name'] for c in inspector.get_columns(table)]
+            print(f"    - Verified table {table}:")
+            print(f"      Columns: {columns}")
+
         print(f"==> Database initialized successfully in {time.time() - start_time:.2f}s")
         
     except Exception as e:
@@ -81,141 +118,6 @@ EOF
 # Initialize database
 echo "==> Initializing database..."
 python init_db.py
-
-# Create alembic version table script
-cat > create_alembic_version.py << 'EOF'
-from sqlalchemy import create_engine, MetaData, Table, Column, String, text
-from app import app
-
-def create_alembic_version():
-    engine = create_engine(app.config['SQLALCHEMY_DATABASE_URI'])
-    
-    with engine.connect() as conn:
-        # Check if table exists
-        result = conn.execute(text(
-            "SELECT EXISTS (SELECT FROM information_schema.tables WHERE table_schema = 'public' AND table_name = 'alembic_version')"
-        ))
-        exists = result.scalar()
-        
-        if not exists:
-            print("Creating alembic_version table...")
-            conn.execute(text("""
-                CREATE TABLE public.alembic_version (
-                    version_num VARCHAR(32) NOT NULL,
-                    CONSTRAINT alembic_version_pkc PRIMARY KEY (version_num)
-                )
-            """))
-            conn.execute(text('GRANT ALL PRIVILEGES ON TABLE public.alembic_version TO postgres'))
-            conn.execute(text('GRANT ALL PRIVILEGES ON TABLE public.alembic_version TO public'))
-            conn.execute(text('COMMIT'))
-            print("alembic_version table created successfully")
-        else:
-            print("alembic_version table already exists")
-
-if __name__ == '__main__':
-    with app.app_context():
-        create_alembic_version()
-EOF
-
-# Create alembic version table
-echo "==> Creating alembic_version table..."
-python create_alembic_version.py
-
-# Create migration script
-cat > migration_env.py << 'EOF'
-from logging.config import fileConfig
-from sqlalchemy import engine_from_config, pool, MetaData, Table, Column, String
-from alembic import context
-from app import app, db
-from models import Player, Course, Birdie, HistoricalTotal
-
-config = context.config
-if config.config_file_name is not None:
-    fileConfig(config.config_file_name)
-
-target_metadata = db.metadata
-
-def include_object(object, name, type_, reflected, compare_to):
-    if type_ == "table":
-        # Always include tables in the autogenerate
-        return True
-    return False
-
-def process_revision_directives(context, revision, directives):
-    if directives[0].upgrade_ops.ops:
-        # Ensure tables are dropped in correct order
-        directives[0].upgrade_ops.ops.sort(
-            key=lambda op: (
-                # Drop dependent tables first
-                -1 if op.__class__.__name__ == "DropTableOp" and op.table_name in ["birdie", "historical_total"] else
-                # Then drop base tables
-                0 if op.__class__.__name__ == "DropTableOp" and op.table_name in ["player", "course"] else
-                # Create base tables first
-                1 if op.__class__.__name__ == "CreateTableOp" and op.table_name in ["player", "course"] else
-                # Create dependent tables last
-                2
-            )
-        )
-
-def run_migrations_offline():
-    url = app.config['SQLALCHEMY_DATABASE_URI']
-    context.configure(
-        url=url,
-        target_metadata=target_metadata,
-        literal_binds=True,
-        dialect_opts={"paramstyle": "named"},
-        include_object=include_object,
-        process_revision_directives=process_revision_directives,
-        include_schemas=True,
-        version_table_schema="public"
-    )
-    with context.begin_transaction():
-        context.run_migrations()
-
-def run_migrations_online():
-    configuration = config.get_section(config.config_ini_section)
-    configuration["sqlalchemy.url"] = app.config["SQLALCHEMY_DATABASE_URI"]
-    connectable = engine_from_config(
-        configuration,
-        prefix="sqlalchemy.",
-        poolclass=pool.NullPool,
-    )
-    with connectable.connect() as connection:
-        context.configure(
-            connection=connection,
-            target_metadata=target_metadata,
-            include_object=include_object,
-            process_revision_directives=process_revision_directives,
-            include_schemas=True,
-            version_table_schema="public"
-        )
-        with context.begin_transaction():
-            context.run_migrations()
-
-if context.is_offline_mode():
-    run_migrations_offline()
-else:
-    run_migrations_online()
-EOF
-
-# Remove existing migrations
-echo "==> Cleaning up old migrations..."
-rm -rf migrations
-
-# Initialize fresh migrations
-echo "==> Setting up fresh migrations..."
-flask db init
-
-# Replace env.py with our custom version
-mv migration_env.py migrations/env.py
-
-# Create initial migration
-echo "==> Creating initial migration..."
-flask db migrate -m "Initial migration"
-
-# Apply migration
-echo "==> Applying migration..."
-flask db upgrade
 
 # Verify final state
 echo "==> Verifying final database state..."
@@ -246,4 +148,4 @@ with app.app_context():
 "
 
 # Clean up
-rm -f init_db.py create_alembic_version.py 
+rm -f init_db.py 
