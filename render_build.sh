@@ -99,19 +99,16 @@ def create_alembic_version():
         
         if not exists:
             print("Creating alembic_version table...")
-            metadata = MetaData()
-            Table(
-                'alembic_version',
-                metadata,
-                Column('version_num', String(32), nullable=False, primary_key=True),
-                schema='public'
-            )
-            metadata.create_all(bind=engine)
-            print("alembic_version table created successfully")
-            
-            # Set permissions
+            conn.execute(text("""
+                CREATE TABLE public.alembic_version (
+                    version_num VARCHAR(32) NOT NULL,
+                    CONSTRAINT alembic_version_pkc PRIMARY KEY (version_num)
+                )
+            """))
             conn.execute(text('GRANT ALL PRIVILEGES ON TABLE public.alembic_version TO postgres'))
             conn.execute(text('GRANT ALL PRIVILEGES ON TABLE public.alembic_version TO public'))
+            conn.execute(text('COMMIT'))
+            print("alembic_version table created successfully")
         else:
             print("alembic_version table already exists")
 
