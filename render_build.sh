@@ -11,9 +11,14 @@ python -m pip install --no-cache-dir -r requirements.txt
 # Set environment variables
 export FLASK_APP=app
 export FLASK_ENV=production
+export PYTHONPATH=$PYTHONPATH:/opt/render/project/src
 
 # Create a Python script for database initialization
 cat > init_db.py << 'EOF'
+import os
+import sys
+sys.path.append(os.path.dirname(os.path.abspath(__file__)))
+
 from app import app, db
 
 with app.app_context():
@@ -42,9 +47,18 @@ if ! python init_db.py; then
     exit 1
 fi
 
-# Run migrations with minimal output and error handling
+# Create migrations directory if it doesn't exist
+mkdir -p migrations
+
+# Initialize migrations if not already initialized
+if [ ! -f "migrations/alembic.ini" ]; then
+    echo "Initializing migrations..."
+    flask db init
+fi
+
+# Run migrations with error handling
 echo "Running database migrations..."
-if ! flask db upgrade; then
+if ! PYTHONPATH=/opt/render/project/src flask db upgrade; then
     echo "Database migration failed"
     exit 1
 fi
@@ -54,4 +68,4 @@ rm -f init_db.py
 
 echo "Starting Gunicorn server..."
 # Start the application with optimized settings
-exec gunicorn app:app --workers=2 --threads=4 --worker-class=gthread --timeout 120 
+exec gunicorn "app:app" --workers=2 --threads=4 --worker-class=gthread --timeout 120 
