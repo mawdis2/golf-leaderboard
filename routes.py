@@ -200,13 +200,20 @@ def add_birdie():
 @bp.route("/add_course", methods=["GET", "POST"])
 def add_course():
     if request.method == "POST":
-        course_name = request.form.get("name")
+        course_name = request.form.get("course_name")
         if course_name:
-            course = Course(name=course_name)
-            db.session.add(course)
-            db.session.commit()
-            flash(f'Course "{course_name}" added successfully!')
-            return redirect(url_for('main.add_birdie'))
+            try:
+                course = Course(name=course_name)
+                db.session.add(course)
+                db.session.commit()
+                flash(f'Course "{course_name}" added successfully!', 'success')
+            except Exception as e:
+                db.session.rollback()
+                print(f"Error adding course: {e}")
+                flash('Error adding course. Please try again.', 'error')
+        else:
+            flash('Course name is required.', 'error')
+        return redirect(url_for('main.add_birdie'))
     return redirect(url_for('main.add_birdie'))
 
 @bp.route("/players")

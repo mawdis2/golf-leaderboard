@@ -26,9 +26,13 @@
         <div class="form-group">
             <label for="course_id">Course:</label>
             <select name="course_id" id="course_id" required class="form-control">
-                {% for course in courses %}
-                    <option value="{{ course.id }}">{{ course.name }}</option>
-                {% endfor %}
+                {% if courses %}
+                    {% for course in courses %}
+                        <option value="{{ course.id }}">{{ course.name }}</option>
+                    {% endfor %}
+                {% else %}
+                    <option value="" disabled>No courses available - add one below</option>
+                {% endif %}
             </select>
         </div>
         
@@ -51,7 +55,7 @@
         <button type="submit" class="btn btn-primary">Add Score</button>
     </form>
     
-    <div class="mt-3">
+    <div class="mt-4">
         <h3>Add New Course</h3>
         <form method="POST" action="{{ url_for('main.add_course') }}" class="form">
             <div class="form-group">
