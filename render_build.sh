@@ -48,17 +48,6 @@ with app.app_context():
             conn.execute(text('GRANT ALL ON SCHEMA public TO public'))
             conn.execute(text('COMMIT'))
         
-        # Create alembic_version table first
-        print("  -> Creating alembic_version table...")
-        metadata = MetaData()
-        alembic_version = Table(
-            'alembic_version',
-            metadata,
-            Column('version_num', String(32), nullable=False),
-            schema='public'
-        )
-        metadata.create_all(bind=db.engine)
-        
         print("  -> Creating tables in dependency order...")
         with db.engine.begin() as conn:
             # First create tables without foreign keys
@@ -92,6 +81,48 @@ EOF
 # Initialize database
 echo "==> Initializing database..."
 python init_db.py
+
+# Create alembic version table script
+cat > create_alembic_version.py << 'EOF'
+from sqlalchemy import create_engine, MetaData, Table, Column, String, text
+from app import app
+
+def create_alembic_version():
+    engine = create_engine(app.config['SQLALCHEMY_DATABASE_URI'])
+    
+    with engine.connect() as conn:
+        # Check if table exists
+        result = conn.execute(text(
+            "SELECT EXISTS (SELECT FROM information_schema.tables WHERE table_schema = 'public' AND table_name = 'alembic_version')"
+        ))
+        exists = result.scalar()
+        
+        if not exists:
+            print("Creating alembic_version table...")
+            metadata = MetaData()
+            Table(
+                'alembic_version',
+                metadata,
+                Column('version_num', String(32), nullable=False, primary_key=True),
+                schema='public'
+            )
+            metadata.create_all(bind=engine)
+            print("alembic_version table created successfully")
+            
+            # Set permissions
+            conn.execute(text('GRANT ALL PRIVILEGES ON TABLE public.alembic_version TO postgres'))
+            conn.execute(text('GRANT ALL PRIVILEGES ON TABLE public.alembic_version TO public'))
+        else:
+            print("alembic_version table already exists")
+
+if __name__ == '__main__':
+    with app.app_context():
+        create_alembic_version()
+EOF
+
+# Create alembic version table
+echo "==> Creating alembic_version table..."
+python create_alembic_version.py
 
 # Create migration script
 cat > migration_env.py << 'EOF'
@@ -145,19 +176,6 @@ def run_migrations_offline():
         context.run_migrations()
 
 def run_migrations_online():
-    # Create alembic_version table if it doesn't exist
-    with app.app_context():
-        with db.engine.connect() as connection:
-            if not db.inspect(db.engine).has_table("alembic_version", schema="public"):
-                metadata = MetaData()
-                Table(
-                    'alembic_version',
-                    metadata,
-                    Column('version_num', String(32), nullable=False),
-                    schema='public'
-                )
-                metadata.create_all(bind=connection)
-
     configuration = config.get_section(config.config_ini_section)
     configuration["sqlalchemy.url"] = app.config["SQLALCHEMY_DATABASE_URI"]
     connectable = engine_from_config(
@@ -231,4 +249,4 @@ with app.app_context():
 "
 
 # Clean up
-rm -f init_db.py 
+rm -f init_db.py create_alembic_version.py 
