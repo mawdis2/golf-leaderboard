@@ -15,6 +15,29 @@ export PIP_DISABLE_PIP_VERSION_CHECK=1
 echo "==> Installing dependencies..."
 python -m pip install --no-cache-dir --quiet -r requirements.txt
 
+# Create health check script
+cat > healthcheck.py << 'EOF'
+import sys
+import socket
+import time
+
+def check_port(port, retries=5, delay=1):
+    for i in range(retries):
+        sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        result = sock.connect_ex(('127.0.0.1', port))
+        sock.close()
+        if result == 0:
+            print("Server is up!")
+            return True
+        print(f"Attempt {i+1}/{retries}: Server not ready...")
+        time.sleep(delay)
+    return False
+
+if not check_port(10000):
+    print("Server failed to start")
+    sys.exit(1)
+EOF
+
 # Database initialization script
 cat > init_db.py << 'EOF'
 import os, sys, time
@@ -56,12 +79,12 @@ fi
 echo "==> Running migrations..."
 timeout 30s flask db upgrade || { echo "Migration upgrade timed out after 30s"; exit 1; }
 
-# Clean up
+# Clean up database script
 rm -f init_db.py
 
-# Start server in foreground
+# Start server in background and verify it's running
 echo "==> Starting server..."
-exec gunicorn \
+gunicorn \
     --bind=0.0.0.0:10000 \
     --worker-class=gthread \
     --workers=1 \
@@ -74,4 +97,11 @@ exec gunicorn \
     --error-logfile=- \
     --preload \
     --forwarded-allow-ips="*" \
-    app:app 
+    app:app &
+
+# Wait for server to start
+echo "==> Checking server health..."
+timeout 30s python healthcheck.py || { echo "Server failed to start within 30s"; exit 1; }
+
+# Keep the script running but allow for proper shutdown
+wait $! 
