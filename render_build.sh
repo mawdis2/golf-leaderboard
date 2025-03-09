@@ -48,14 +48,23 @@ with app.app_context():
             conn.execute(text('GRANT ALL ON SCHEMA public TO public'))
             conn.execute(text('COMMIT'))
         
-        print("  -> Creating tables using SQLAlchemy models...")
-        # Print model metadata
-        for table in db.Model.metadata.tables.values():
-            print(f"    - Found model: {table.name}")
-            print(f"      Columns: {', '.join(c.name for c in table.columns)}")
+        print("  -> Verifying models...")
+        # Explicitly register models with SQLAlchemy
+        models = [Player, Course, Birdie, HistoricalTotal]
+        for model in models:
+            print(f"    - Registering model: {model.__name__}")
+            if not hasattr(model, '__table__'):
+                raise Exception(f"Model {model.__name__} has no __table__ attribute")
+            print(f"      Table name: {model.__table__.name}")
+            print(f"      Columns: {', '.join(c.name for c in model.__table__.columns)}")
         
-        # Create tables
-        db.Model.metadata.create_all(bind=db.engine)
+        print("  -> Creating tables using SQLAlchemy...")
+        # Create tables using both methods to ensure success
+        db.create_all()
+        for model in models:
+            if not model.__table__.exists(db.engine):
+                print(f"    - Table {model.__table__.name} not created by create_all(), trying direct creation...")
+                model.__table__.create(db.engine)
         
         # Set permissions
         print("  -> Setting permissions...")
@@ -74,6 +83,16 @@ with app.app_context():
         
         for table in tables:
             if not table in existing_tables:
+                # Try to diagnose why the table is missing
+                print(f"    - Diagnosing missing table {table}...")
+                with db.engine.connect() as conn:
+                    result = conn.execute(text(
+                        "SELECT pg_get_viewdef(format('%I.%I', schemaname, viewname), true) "
+                        "FROM pg_views WHERE schemaname = 'public'"
+                    ))
+                    views = result.fetchall()
+                    if views:
+                        print(f"      Found views: {views}")
                 raise Exception(f"Table {table} was not created successfully")
             columns = [c['name'] for c in inspector.get_columns(table)]
             print(f"    - Verified table {table} exists with columns: {columns}")
@@ -82,7 +101,9 @@ with app.app_context():
         
     except Exception as e:
         print(f"==> Database initialization error: {e}")
-        print("  -> Full error details:", str(sys.exc_info()))
+        import traceback
+        print("  -> Full error details:")
+        traceback.print_exc()
         sys.exit(1)
 EOF
 
@@ -110,6 +131,7 @@ flask db upgrade
 echo "==> Verifying final database state..."
 python -c "
 from app import app, db
+from sqlalchemy import inspect
 with app.app_context():
     inspector = inspect(db.engine)
     tables = inspector.get_table_names()
