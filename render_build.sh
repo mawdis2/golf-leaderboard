@@ -14,30 +14,34 @@ export FLASK_ENV=production
 
 # Create a Python script for database initialization
 cat > init_db.py << 'EOF'
-from app import db
-from flask import current_app
+from app import create_app, db
 
-with current_app.app_context():
-    # Drop and recreate schema in one go
+app = create_app()
+with app.app_context():
+    print("Dropping existing schema...")
     db.session.execute('DROP SCHEMA IF EXISTS public CASCADE')
+    print("Creating new schema...")
     db.session.execute('CREATE SCHEMA public')
     db.session.execute('GRANT ALL ON SCHEMA public TO postgres')
     db.session.execute('GRANT ALL ON SCHEMA public TO public')
     db.session.commit()
     
-    # Initialize database
+    print("Creating database tables...")
     db.create_all()
     db.session.commit()
+    print("Database initialization completed successfully!")
 EOF
 
 # Initialize database with error handling
+echo "Starting database initialization..."
 if ! python init_db.py; then
     echo "Database initialization failed"
     exit 1
 fi
 
 # Run migrations with minimal output and error handling
-if ! flask db upgrade --sql > /dev/null 2>&1; then
+echo "Running database migrations..."
+if ! flask db upgrade; then
     echo "Database migration failed"
     exit 1
 fi
@@ -45,5 +49,6 @@ fi
 # Clean up
 rm -f init_db.py
 
+echo "Starting Gunicorn server..."
 # Start the application with optimized settings
 exec gunicorn app:app --workers=2 --threads=4 --worker-class=gthread --timeout 120 
