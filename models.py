@@ -1,6 +1,6 @@
 # models.py
 from werkzeug.security import generate_password_hash, check_password_hash
-from .extensions import db, login_manager
+from extensions import db, login_manager
 from datetime import datetime
 from flask_login import UserMixin
 
