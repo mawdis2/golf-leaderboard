@@ -21,10 +21,21 @@ from sqlalchemy import text
 app = create_app()
 with app.app_context():
     try:
-        # Drop and recreate the schema to handle all dependencies at once
-        db.session.execute(text('DROP SCHEMA IF EXISTS public CASCADE'))
-        db.session.execute(text('CREATE SCHEMA public'))
-        db.session.execute(text('GRANT ALL ON SCHEMA public TO public'))
+        # Drop tables in correct order to handle dependencies
+        db.session.execute(text("""
+            -- First drop tables with foreign key dependencies
+            DROP TABLE IF EXISTS "birdie" CASCADE;
+            DROP TABLE IF EXISTS "eagle" CASCADE;
+            DROP TABLE IF EXISTS "historical_total" CASCADE;
+            
+            -- Then drop the tables they depend on
+            DROP TABLE IF EXISTS "player" CASCADE;
+            DROP TABLE IF EXISTS "course" CASCADE;
+            DROP TABLE IF EXISTS "user" CASCADE;
+            
+            -- Finally drop the migrations table
+            DROP TABLE IF EXISTS "alembic_version" CASCADE;
+        """))
         db.session.commit()
         
         # Create all tables fresh
@@ -45,11 +56,11 @@ rm -rf migrations
 # Initialize fresh migrations
 flask db init
 
-# Create initial migration
-flask db migrate -m "Initial migration"
+# Create initial migration with --rev-id to force a specific version
+flask db migrate --rev-id 1 -m "Initial migration"
 
-# Upgrade database
-flask db upgrade
+# Upgrade database with --sql flag to see the SQL commands
+flask db upgrade --sql
 
 # Clean up
 rm init_db.py
