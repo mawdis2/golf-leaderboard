@@ -30,7 +30,7 @@ login_manager.login_view = 'main.login'
 login_manager.login_message = 'Please log in to access this page.'
 login_manager.login_message_category = 'info'
 
-# Import all models to ensure they're registered before creating tables
+# Import models after db is initialized
 from models import User, Player, Birdie, Course, HistoricalTotal, Eagle
 
 @login_manager.user_loader
