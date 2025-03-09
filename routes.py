@@ -129,7 +129,7 @@ def add_birdie():
             
             player_id = request.form.get('player_id')
             course_id = request.form.get('course_id')
-            hole_number = request.form.get('hole_number')  # Get hole number from form
+            hole_number = request.form.get('hole_number')
             date_str = request.form.get('date')
             is_eagle_raw = request.form.get('is_eagle')
             
@@ -161,7 +161,7 @@ def add_birdie():
                 new_record = Birdie(
                     player_id=player_id,
                     course_id=course_id,
-                    hole_number=hole_number,  # Add hole number
+                    hole_number=hole_number,
                     year=current_year,
                     date=date,
                     is_eagle=is_eagle
@@ -187,12 +187,12 @@ def add_birdie():
             flash('Error processing request. Please try again.', 'error')
             return redirect(url_for('main.add_birdie'))
     
+    # For GET requests, just render the template
     try:
         players = Player.query.all()
         courses = Course.query.all()
         return render_template('add_birdie.html', players=players, courses=courses)
     except Exception as e:
-        db.session.rollback()
         print(f"Error loading page: {e}")
         flash('Error loading page. Please try again.', 'error')
         return redirect(url_for('main.leaderboard'))
