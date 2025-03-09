@@ -21,15 +21,15 @@ from sqlalchemy import text
 app = create_app()
 with app.app_context():
     try:
-        # Drop all tables directly using raw SQL
+        # Drop all tables directly using raw SQL with quoted identifiers
         db.session.execute(text("""
-            DROP TABLE IF EXISTS birdie CASCADE;
-            DROP TABLE IF EXISTS eagle CASCADE;
-            DROP TABLE IF EXISTS historical_total CASCADE;
-            DROP TABLE IF EXISTS player CASCADE;
-            DROP TABLE IF EXISTS course CASCADE;
-            DROP TABLE IF EXISTS user CASCADE;
-            DROP TABLE IF EXISTS alembic_version CASCADE;
+            DROP TABLE IF EXISTS "birdie" CASCADE;
+            DROP TABLE IF EXISTS "eagle" CASCADE;
+            DROP TABLE IF EXISTS "historical_total" CASCADE;
+            DROP TABLE IF EXISTS "player" CASCADE;
+            DROP TABLE IF EXISTS "course" CASCADE;
+            DROP TABLE IF EXISTS "user" CASCADE;
+            DROP TABLE IF EXISTS "alembic_version" CASCADE;
         """))
         db.session.commit()
         
