@@ -120,100 +120,82 @@ def add_player():
     clear_flash_messages()
     return render_template("add_player.html")
 
-@bp.route("/add_birdie", methods=["GET", "POST"])
+@bp.route("/add_birdie", methods=['GET', 'POST'])
 def add_birdie():
-    if request.method == "POST":
-        print("Form data received:")
-        print(request.form)
-        print(f"is_eagle raw value: {request.form.get('is_eagle')}")
-        
+    if request.method == 'POST':
         try:
-            player_id = request.form.get("player_id")
-            course_id = request.form.get("course_id")
-            date_str = request.form.get("date")
-            is_eagle = True if request.form.get("is_eagle") else False
+            print("Form data received:")
+            print(request.form)
             
-            print(f"is_eagle after conversion: {is_eagle}")
+            player_id = request.form.get('player_id')
+            course_id = request.form.get('course_id')
+            hole_number = request.form.get('hole_number')  # Get hole number from form
+            date_str = request.form.get('date')
+            is_eagle_raw = request.form.get('is_eagle')
             
-            # Debug prints
-            print(f"Received data:")
+            print("is_eagle raw value:", is_eagle_raw)
+            is_eagle = True if is_eagle_raw == 'true' else False
+            print("is_eagle after conversion:", is_eagle)
+            
+            print("Received data:")
             print(f"Player ID: {player_id}")
             print(f"Course ID: {course_id}")
+            print(f"Hole Number: {hole_number}")
             print(f"Date: {date_str}")
             print(f"Is Eagle: {is_eagle}")
             
             # Parse the date
-            date = datetime.strptime(date_str, "%Y-%m-%d")
-            current_year = datetime.now().year
-            
+            date = datetime.strptime(date_str, '%Y-%m-%d')
             print(f"Parsed date: {date}")
+            
+            # Get the current year
+            current_year = datetime.now().year
             print(f"Current year: {current_year}")
             
-            # Check if the date is from a previous year
-            if date.year < current_year:
-                print("Error: Previous year date")
-                flash("Error: Cannot add birdies from previous years!", "error")
-                return redirect(url_for("main.add_birdie"))
-            
-            # Check if the date is in the future
-            if date.date() > datetime.now().date():
-                print("Error: Future date")
-                flash("Error: Cannot add birdies for future dates!", "error")
-                return redirect(url_for("main.add_birdie"))
-
-            # Get the player first
+            # Find the player
             player = Player.query.get(player_id)
-            print(f"Player found: {player.name}")
-            
-            # Create the birdie/eagle record
-            birdie = Birdie(
-                player_id=player_id, 
-                course_id=course_id, 
-                date=date, 
-                year=current_year,
-                is_eagle=is_eagle
-            )
-            
-            print(f"Created record: player={player.name}, is_eagle={birdie.is_eagle}")
-            
-            if is_eagle:
-                print("Processing eagle...")
-                eagle_count = Birdie.query.filter_by(
-                    player_id=player_id,
-                    year=current_year,
-                    is_eagle=True
-                ).count()
+            if player:
+                print(f"Player found: {player.name}")
                 
-                eagle_count += 1
-                print(f"New eagle count: {eagle_count}")
-                player.permanent_emojis = "🦅" * eagle_count
-                print(f"Updated emojis: {player.permanent_emojis}")
+                # Create new birdie record
+                new_record = Birdie(
+                    player_id=player_id,
+                    course_id=course_id,
+                    hole_number=hole_number,  # Add hole number
+                    year=current_year,
+                    date=date,
+                    is_eagle=is_eagle
+                )
+                print(f"Created record: player={player.name}, is_eagle={is_eagle}")
+                
+                try:
+                    db.session.add(new_record)
+                    db.session.commit()
+                    flash('Score added successfully!', 'success')
+                except Exception as e:
+                    db.session.rollback()
+                    print(f"Error adding score: {e}")
+                    flash('Error adding score. Please try again.', 'error')
+            else:
+                flash('Player not found.', 'error')
+                
+            return redirect(url_for('main.add_birdie'))
             
-            db.session.add(birdie)
-            db.session.commit()
-            
-            # Verify after commit
-            saved_birdie = Birdie.query.filter_by(id=birdie.id).first()
-            print(f"Saved to database: is_eagle={saved_birdie.is_eagle}")
-            
-            flash("Score added successfully!", "success")
-            return redirect(url_for("main.leaderboard"))
-        except ValueError as ve:
-            print(f"ValueError: {ve}")
-            flash("Error: Invalid date format!", "error")
-            return redirect(url_for("main.add_birdie"))
         except Exception as e:
-            print(f"Error adding score: {e}")
-            flash("An error occurred while adding the score.", "error")
-            return redirect(url_for("main.add_birdie"))
-
-    players = Player.query.all()
-    courses = Course.query.all()
-    return render_template("add_birdie.html", 
-                         players=players, 
-                         courses=courses,
-                         datetime=datetime,
-                         timedelta=timedelta)
+            db.session.rollback()
+            print(f"Error: {e}")
+            flash('Error processing request. Please try again.', 'error')
+            return redirect(url_for('main.add_birdie'))
+    
+    try:
+        players = Player.query.all()
+        courses = Course.query.all()
+        return render_template('add_birdie.html', players=players, courses=courses)
+    except Exception as e:
+        db.session.rollback()
+        print(f"Error loading page: {e}")
+        flash('Error loading page. Please try again.', 'error')
+        return redirect(url_for('main.leaderboard'))
 
 @bp.route("/add_course", methods=["GET", "POST"])
 def add_course():
