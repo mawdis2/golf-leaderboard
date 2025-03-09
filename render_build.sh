@@ -24,6 +24,7 @@ with app.app_context():
         # Drop all tables with CASCADE
         db.session.execute(text('DROP SCHEMA public CASCADE;'))
         db.session.execute(text('CREATE SCHEMA public;'))
+        db.session.execute(text('GRANT ALL ON SCHEMA public TO public;'))
         db.session.commit()
         
         # Create all tables fresh
@@ -37,14 +38,16 @@ EOF
 # Run the database initialization script
 python init_db.py
 
-# Initialize database migrations if they don't exist
-if [ ! -d "migrations" ]; then
-    flask db init
-fi
+# Remove existing migrations directory if it exists
+rm -rf migrations
 
-# Create a fresh migration
-rm -f migrations/versions/*
+# Initialize fresh migrations
+flask db init
+
+# Create initial migration
 flask db migrate -m "Initial migration"
+
+# Upgrade database
 flask db upgrade
 
 # Clean up
