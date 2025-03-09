@@ -21,16 +21,15 @@ from sqlalchemy import text
 app = create_app()
 with app.app_context():
     try:
-        # Drop tables in correct order to handle dependencies
+        # Drop all tables directly using raw SQL
         db.session.execute(text("""
-            DO $$ DECLARE
-                r RECORD;
-            BEGIN
-                -- Drop tables in reverse order to handle dependencies
-                FOR r IN (SELECT tablename FROM pg_tables WHERE schemaname = 'public') LOOP
-                    EXECUTE 'DROP TABLE IF EXISTS ' || quote_ident(r.tablename) || ' CASCADE';
-                END LOOP;
-            END $$;
+            DROP TABLE IF EXISTS birdie CASCADE;
+            DROP TABLE IF EXISTS eagle CASCADE;
+            DROP TABLE IF EXISTS historical_total CASCADE;
+            DROP TABLE IF EXISTS player CASCADE;
+            DROP TABLE IF EXISTS course CASCADE;
+            DROP TABLE IF EXISTS user CASCADE;
+            DROP TABLE IF EXISTS alembic_version CASCADE;
         """))
         db.session.commit()
         
@@ -52,8 +51,8 @@ rm -rf migrations
 # Initialize fresh migrations
 flask db init
 
-# Create initial migration
-flask db migrate -m "Initial migration"
+# Create initial migration with --autogenerate
+flask db migrate --message "Initial migration" --autogenerate
 
 # Upgrade database
 flask db upgrade
