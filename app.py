@@ -1,4 +1,4 @@
-from flask import Flask
+from flask import Flask, redirect, url_for
 from flask_sqlalchemy import SQLAlchemy
 from flask_login import LoginManager
 import os
@@ -26,6 +26,12 @@ login_manager.login_view = 'login'
 
 # Import routes after app is created
 from routes import *
+from routes import main
+app.register_blueprint(main)
+
+@app.route('/')
+def index():
+    return redirect(url_for('main.leaderboard'))  # or whatever your main page is
 
 if __name__ == '__main__':
     app.run(debug=True)
