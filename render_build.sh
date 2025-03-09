@@ -32,6 +32,12 @@ def verify_table_exists(table_name):
 
 with app.app_context():
     try:
+        print(f"  -> Database URL: {db.engine.url}")
+        print("  -> Testing database connection...")
+        with db.engine.connect() as conn:
+            conn.execute(text("SELECT 1"))
+            print("  -> Database connection successful")
+
         # First transaction: Schema setup
         print("  -> Setting up schema...")
         with db.engine.connect() as conn:
@@ -42,9 +48,14 @@ with app.app_context():
             conn.execute(text('GRANT ALL ON SCHEMA public TO public'))
             conn.execute(text('COMMIT'))
         
-        # Create tables using SQLAlchemy
-        print("  -> Creating tables using SQLAlchemy...")
-        db.create_all()
+        print("  -> Creating tables using SQLAlchemy models...")
+        # Print model metadata
+        for table in db.Model.metadata.tables.values():
+            print(f"    - Found model: {table.name}")
+            print(f"      Columns: {', '.join(c.name for c in table.columns)}")
+        
+        # Create tables
+        db.Model.metadata.create_all(bind=db.engine)
         
         # Set permissions
         print("  -> Setting permissions...")
@@ -58,15 +69,20 @@ with app.app_context():
         print("  -> Verifying tables...")
         inspector = inspect(db.engine)
         tables = ['player', 'course', 'birdie', 'historical_total']
+        existing_tables = inspector.get_table_names()
+        print(f"    - Found tables: {existing_tables}")
+        
         for table in tables:
-            if not table in inspector.get_table_names():
+            if not table in existing_tables:
                 raise Exception(f"Table {table} was not created successfully")
-            print(f"    - Verified table {table} exists")
+            columns = [c['name'] for c in inspector.get_columns(table)]
+            print(f"    - Verified table {table} exists with columns: {columns}")
             
         print(f"==> Database initialized successfully in {time.time() - start_time:.2f}s")
         
     except Exception as e:
         print(f"==> Database initialization error: {e}")
+        print("  -> Full error details:", str(sys.exc_info()))
         sys.exit(1)
 EOF
 
@@ -91,12 +107,16 @@ echo "==> Applying migration..."
 flask db upgrade
 
 # Verify database state
-echo "==> Verifying database state..."
+echo "==> Verifying final database state..."
 python -c "
 from app import app, db
 with app.app_context():
-    tables = db.inspect(db.engine).get_table_names()
+    inspector = inspect(db.engine)
+    tables = inspector.get_table_names()
     print('Available tables:', tables)
+    for table in tables:
+        columns = [c['name'] for c in inspector.get_columns(table)]
+        print(f'Table {table} columns:', columns)
     if not all(t in tables for t in ['player', 'course', 'birdie', 'historical_total']):
         raise Exception('Missing required tables')
 "
