@@ -30,30 +30,32 @@ def leaderboard():
     # First, calculate all scores and sort players
     player_scores = []
     for player in players:
-        birdie_count = Birdie.query.filter_by(
-            player_id=player.id, 
-            year=current_year,
-            is_eagle=False
+        # Count regular birdies (not eagles)
+        birdie_count = Birdie.query.filter(
+            Birdie.player_id == player.id,
+            Birdie.year == current_year,
+            Birdie.is_eagle == False
         ).count()
         
-        eagle_count = Birdie.query.filter_by(
-            player_id=player.id, 
-            year=current_year,
-            is_eagle=True
+        # Count eagles
+        eagle_count = Birdie.query.filter(
+            Birdie.player_id == player.id,
+            Birdie.year == current_year,
+            Birdie.is_eagle == True
         ).count()
         
         # Check for trophy
-        has_trophy = HistoricalTotal.query.filter_by(
-            player_id=player.id,
-            year=current_year,
-            has_trophy=1
+        has_trophy = HistoricalTotal.query.filter(
+            HistoricalTotal.player_id == player.id,
+            HistoricalTotal.year == current_year,
+            HistoricalTotal.has_trophy == True
         ).first() is not None
         
         total = birdie_count + eagle_count
         player.birdie_count = birdie_count
         player.eagle_count = eagle_count
         player.total = total
-        player.has_trophy = has_trophy  # Add trophy status
+        player.has_trophy = has_trophy
         
         # Set emojis based on counts
         if birdie_count >= 2:

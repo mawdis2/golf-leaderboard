@@ -42,6 +42,8 @@ class Birdie(db.Model):
     course_id = db.Column(db.Integer, db.ForeignKey('course.id'), nullable=False)
     hole_number = db.Column(db.Integer, nullable=False)
     year = db.Column(db.Integer, nullable=False)
+    date = db.Column(db.DateTime, nullable=False)
+    is_eagle = db.Column(db.Boolean, default=False)
 
 class Course(db.Model):
     id = db.Column(db.Integer, primary_key=True)
