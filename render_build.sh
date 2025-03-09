@@ -21,10 +21,17 @@ from sqlalchemy import text
 app = create_app()
 with app.app_context():
     try:
-        # Drop all tables with CASCADE
-        db.session.execute(text('DROP SCHEMA public CASCADE;'))
-        db.session.execute(text('CREATE SCHEMA public;'))
-        db.session.execute(text('GRANT ALL ON SCHEMA public TO public;'))
+        # Drop tables in correct order to handle dependencies
+        db.session.execute(text("""
+            DO $$ DECLARE
+                r RECORD;
+            BEGIN
+                -- Drop tables in reverse order to handle dependencies
+                FOR r IN (SELECT tablename FROM pg_tables WHERE schemaname = 'public') LOOP
+                    EXECUTE 'DROP TABLE IF EXISTS ' || quote_ident(r.tablename) || ' CASCADE';
+                END LOOP;
+            END $$;
+        """))
         db.session.commit()
         
         # Create all tables fresh
@@ -33,6 +40,7 @@ with app.app_context():
     except Exception as e:
         print(f"Error creating database tables: {e}")
         db.session.rollback()
+        raise
 EOF
 
 # Run the database initialization script
