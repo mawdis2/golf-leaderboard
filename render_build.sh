@@ -49,7 +49,6 @@ with app.app_context():
             conn.execute(text('COMMIT'))
         
         print("  -> Verifying models...")
-        # Create tables in correct order
         models = [Player, Course, Birdie, HistoricalTotal]
         for model in models:
             print(f"    - Registering model: {model.__name__}")
@@ -59,7 +58,6 @@ with app.app_context():
             print(f"      Columns: {', '.join(c.name for c in model.__table__.columns)}")
         
         print("  -> Creating tables in dependency order...")
-        # Create tables in correct order
         with db.engine.begin() as conn:
             # First create tables without foreign keys
             for model in [Player, Course]:
@@ -110,6 +108,30 @@ EOF
 echo "==> Initializing database..."
 python init_db.py
 
+# Create migration script
+cat > create_migration.py << 'EOF'
+from app import app, db
+from flask_migrate import Migrate, upgrade
+from alembic.operations import Operations
+from alembic.migration import MigrationContext
+import sqlalchemy as sa
+
+with app.app_context():
+    # Drop existing tables in correct order
+    with db.engine.connect() as conn:
+        conn.execute(sa.text('DROP TABLE IF EXISTS birdie CASCADE'))
+        conn.execute(sa.text('DROP TABLE IF EXISTS historical_total CASCADE'))
+        conn.execute(sa.text('DROP TABLE IF EXISTS player CASCADE'))
+        conn.execute(sa.text('DROP TABLE IF EXISTS course CASCADE'))
+        conn.execute(sa.text('COMMIT'))
+
+    # Initialize migrations
+    migrate = Migrate(app, db)
+    
+    # Create tables from models
+    db.create_all()
+EOF
+
 # Remove existing migrations
 echo "==> Cleaning up old migrations..."
 rm -rf migrations
@@ -118,64 +140,11 @@ rm -rf migrations
 echo "==> Setting up fresh migrations..."
 flask db init
 
-# Create initial migration
-echo "==> Creating initial migration..."
-cat > migration_env.py << 'EOF'
-from logging.config import fileConfig
-from sqlalchemy import engine_from_config
-from sqlalchemy import pool
-from alembic import context
-from app import app, db
+# Apply the migration script
+echo "==> Applying migrations..."
+python create_migration.py
 
-config = context.config
-if config.config_file_name is not None:
-    fileConfig(config.config_file_name)
-
-target_metadata = db.metadata
-
-def run_migrations_offline():
-    url = app.config['SQLALCHEMY_DATABASE_URI']
-    context.configure(
-        url=url,
-        target_metadata=target_metadata,
-        literal_binds=True,
-        dialect_opts={"paramstyle": "named"},
-        compare_type=True,
-        compare_server_default=True,
-        render_as_batch=True
-    )
-    with context.begin_transaction():
-        context.run_migrations()
-
-def run_migrations_online():
-    configuration = config.get_section(config.config_ini_section)
-    configuration["sqlalchemy.url"] = app.config["SQLALCHEMY_DATABASE_URI"]
-    connectable = engine_from_config(
-        configuration,
-        prefix="sqlalchemy.",
-        poolclass=pool.NullPool,
-    )
-    with connectable.connect() as connection:
-        context.configure(
-            connection=connection,
-            target_metadata=target_metadata,
-            compare_type=True,
-            compare_server_default=True,
-            render_as_batch=True
-        )
-        with context.begin_transaction():
-            context.run_migrations()
-
-if context.is_offline_mode():
-    run_migrations_offline()
-else:
-    run_migrations_online()
-EOF
-
-# Replace the env.py file
-mv migration_env.py migrations/env.py
-
-# Create and apply migration
+# Create and apply initial migration
 flask db migrate -m "Initial migration"
 flask db upgrade
 
@@ -198,4 +167,4 @@ with app.app_context():
 "
 
 # Clean up
-rm -f init_db.py 
+rm -f init_db.py create_migration.py 
