@@ -51,8 +51,8 @@ rm -rf migrations
 # Initialize fresh migrations
 flask db init
 
-# Create initial migration with --autogenerate
-flask db migrate --message "Initial migration" --autogenerate
+# Create initial migration
+flask db migrate -m "Initial migration"
 
 # Upgrade database
 flask db upgrade
