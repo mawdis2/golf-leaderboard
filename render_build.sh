@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Exit on error and handle interrupts
+# Exit on error
 set -e
 
 echo "==> Starting deployment process..."
@@ -61,11 +61,15 @@ rm -f init_db.py
 
 # Create a Gunicorn config file
 cat > gunicorn.conf.py << 'EOF'
+import multiprocessing
+
 # Gunicorn configuration
 bind = "0.0.0.0:10000"
 workers = 1
 threads = 4
 worker_class = "gthread"
+daemon = False
+pidfile = None
 timeout = 30
 graceful_timeout = 10
 keepalive = 5
@@ -75,14 +79,12 @@ capture_output = True
 loglevel = "info"
 accesslog = "-"
 errorlog = "-"
+preload_app = True
 
-def on_starting(server):
-    print("==> Gunicorn starting...")
-
-def on_exit(server):
-    print("==> Gunicorn shutting down...")
+def when_ready(server):
+    print("==> Gunicorn server is ready!")
 EOF
 
 # Start Gunicorn with config file
 echo "==> Starting Gunicorn server..."
-exec gunicorn --config gunicorn.conf.py "app:app" 
+exec gunicorn --config gunicorn.conf.py --preload "app:app" 
