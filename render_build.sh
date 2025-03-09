@@ -14,7 +14,7 @@ python -m pip install --no-cache-dir -r requirements.txt
 # Create database initialization script
 cat > init_db.py << 'EOF'
 import os, sys, time
-from sqlalchemy import text
+from sqlalchemy import text, inspect
 sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 
 start_time = time.time()
@@ -42,60 +42,24 @@ with app.app_context():
             conn.execute(text('GRANT ALL ON SCHEMA public TO public'))
             conn.execute(text('COMMIT'))
         
-        # Second transaction: Table creation
-        print("  -> Creating tables...")
+        # Create tables using SQLAlchemy
+        print("  -> Creating tables using SQLAlchemy...")
+        db.create_all()
+        
+        # Set permissions
+        print("  -> Setting permissions...")
         with db.engine.begin() as conn:
-            # Create tables with explicit column definitions
-            conn.execute(text("""
-                CREATE TABLE player (
-                    id SERIAL PRIMARY KEY,
-                    name VARCHAR(255) NOT NULL,
-                    permanent_emojis TEXT,
-                    has_trophy BOOLEAN DEFAULT FALSE
-                )
-            """))
-            
-            conn.execute(text("""
-                CREATE TABLE course (
-                    id SERIAL PRIMARY KEY,
-                    name VARCHAR(255) NOT NULL
-                )
-            """))
-            
-            conn.execute(text("""
-                CREATE TABLE birdie (
-                    id SERIAL PRIMARY KEY,
-                    player_id INTEGER REFERENCES player(id),
-                    course_id INTEGER REFERENCES course(id),
-                    hole_number INTEGER NOT NULL,
-                    year INTEGER,
-                    date DATE,
-                    is_eagle BOOLEAN DEFAULT FALSE
-                )
-            """))
-            
-            conn.execute(text("""
-                CREATE TABLE historical_total (
-                    id SERIAL PRIMARY KEY,
-                    player_id INTEGER REFERENCES player(id),
-                    year INTEGER NOT NULL,
-                    birdies INTEGER DEFAULT 0,
-                    eagles INTEGER DEFAULT 0,
-                    has_trophy BOOLEAN DEFAULT FALSE
-                )
-            """))
-            
-            print("  -> Setting table permissions...")
             conn.execute(text('GRANT ALL PRIVILEGES ON ALL TABLES IN SCHEMA public TO postgres'))
             conn.execute(text('GRANT ALL PRIVILEGES ON ALL SEQUENCES IN SCHEMA public TO postgres'))
             conn.execute(text('GRANT ALL PRIVILEGES ON ALL TABLES IN SCHEMA public TO public'))
             conn.execute(text('GRANT ALL PRIVILEGES ON ALL SEQUENCES IN SCHEMA public TO public'))
         
-        # Verify tables were created
+        # Verify tables
         print("  -> Verifying tables...")
+        inspector = inspect(db.engine)
         tables = ['player', 'course', 'birdie', 'historical_total']
         for table in tables:
-            if not verify_table_exists(table):
+            if not table in inspector.get_table_names():
                 raise Exception(f"Table {table} was not created successfully")
             print(f"    - Verified table {table} exists")
             
@@ -117,8 +81,25 @@ rm -rf migrations
 # Initialize fresh migrations
 echo "==> Setting up fresh migrations..."
 flask db init
+
+# Create initial migration
+echo "==> Creating initial migration..."
 flask db migrate -m "Initial migration"
+
+# Apply migration
+echo "==> Applying migration..."
 flask db upgrade
+
+# Verify database state
+echo "==> Verifying database state..."
+python -c "
+from app import app, db
+with app.app_context():
+    tables = db.inspect(db.engine).get_table_names()
+    print('Available tables:', tables)
+    if not all(t in tables for t in ['player', 'course', 'birdie', 'historical_total']):
+        raise Exception('Missing required tables')
+"
 
 # Clean up
 rm -f init_db.py 
