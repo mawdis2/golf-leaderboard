@@ -14,22 +14,25 @@ export FLASK_ENV=production
 
 # Create a Python script for database initialization
 cat > init_db.py << 'EOF'
-from app import create_app, db
+from app import app, db
 
-app = create_app()
 with app.app_context():
-    print("Dropping existing schema...")
-    db.session.execute('DROP SCHEMA IF EXISTS public CASCADE')
-    print("Creating new schema...")
-    db.session.execute('CREATE SCHEMA public')
-    db.session.execute('GRANT ALL ON SCHEMA public TO postgres')
-    db.session.execute('GRANT ALL ON SCHEMA public TO public')
-    db.session.commit()
-    
-    print("Creating database tables...")
-    db.create_all()
-    db.session.commit()
-    print("Database initialization completed successfully!")
+    try:
+        print("Dropping existing schema...")
+        db.session.execute('DROP SCHEMA IF EXISTS public CASCADE')
+        print("Creating new schema...")
+        db.session.execute('CREATE SCHEMA public')
+        db.session.execute('GRANT ALL ON SCHEMA public TO postgres')
+        db.session.execute('GRANT ALL ON SCHEMA public TO public')
+        db.session.commit()
+        
+        print("Creating database tables...")
+        db.create_all()
+        db.session.commit()
+        print("Database initialization completed successfully!")
+    except Exception as e:
+        print(f"Error during database initialization: {str(e)}")
+        raise
 EOF
 
 # Initialize database with error handling
