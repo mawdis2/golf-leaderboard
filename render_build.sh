@@ -59,32 +59,19 @@ timeout 30s flask db upgrade || { echo "Migration upgrade timed out after 30s"; 
 # Clean up
 rm -f init_db.py
 
-# Create a Gunicorn config file
-cat > gunicorn.conf.py << 'EOF'
-import multiprocessing
-
-# Gunicorn configuration
-bind = "0.0.0.0:10000"
-workers = 1
-threads = 4
-worker_class = "gthread"
-daemon = False
-pidfile = None
-timeout = 30
-graceful_timeout = 10
-keepalive = 5
-max_requests = 1000
-max_requests_jitter = 50
-capture_output = True
-loglevel = "info"
-accesslog = "-"
-errorlog = "-"
-preload_app = True
-
-def when_ready(server):
-    print("==> Gunicorn server is ready!")
-EOF
-
-# Start Gunicorn with config file
-echo "==> Starting Gunicorn server..."
-exec gunicorn --config gunicorn.conf.py --preload "app:app" 
+# Start server in foreground
+echo "==> Starting server..."
+exec gunicorn \
+    --bind=0.0.0.0:10000 \
+    --workers=1 \
+    --threads=4 \
+    --worker-class=gthread \
+    --timeout=30 \
+    --graceful-timeout=10 \
+    --keep-alive=5 \
+    --log-level=info \
+    --access-logfile=- \
+    --error-logfile=- \
+    --no-daemon \
+    --preload \
+    app:app 
