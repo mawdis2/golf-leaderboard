@@ -14,7 +14,7 @@ python -m pip install --no-cache-dir -r requirements.txt
 # Create database initialization script
 cat > init_db.py << 'EOF'
 import os, sys, time
-from sqlalchemy import text, inspect, MetaData
+from sqlalchemy import text, inspect, MetaData, Table, Column, String
 sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 
 start_time = time.time()
@@ -47,6 +47,17 @@ with app.app_context():
             conn.execute(text('GRANT ALL ON SCHEMA public TO postgres'))
             conn.execute(text('GRANT ALL ON SCHEMA public TO public'))
             conn.execute(text('COMMIT'))
+        
+        # Create alembic_version table first
+        print("  -> Creating alembic_version table...")
+        metadata = MetaData()
+        alembic_version = Table(
+            'alembic_version',
+            metadata,
+            Column('version_num', String(32), nullable=False),
+            schema='public'
+        )
+        metadata.create_all(bind=db.engine)
         
         print("  -> Creating tables in dependency order...")
         with db.engine.begin() as conn:
@@ -85,7 +96,7 @@ python init_db.py
 # Create migration script
 cat > migration_env.py << 'EOF'
 from logging.config import fileConfig
-from sqlalchemy import engine_from_config, pool, MetaData
+from sqlalchemy import engine_from_config, pool, MetaData, Table, Column, String
 from alembic import context
 from app import app, db
 from models import Player, Course, Birdie, HistoricalTotal
@@ -127,12 +138,26 @@ def run_migrations_offline():
         dialect_opts={"paramstyle": "named"},
         include_object=include_object,
         process_revision_directives=process_revision_directives,
-        include_schemas=True
+        include_schemas=True,
+        version_table_schema="public"
     )
     with context.begin_transaction():
         context.run_migrations()
 
 def run_migrations_online():
+    # Create alembic_version table if it doesn't exist
+    with app.app_context():
+        with db.engine.connect() as connection:
+            if not db.inspect(db.engine).has_table("alembic_version", schema="public"):
+                metadata = MetaData()
+                Table(
+                    'alembic_version',
+                    metadata,
+                    Column('version_num', String(32), nullable=False),
+                    schema='public'
+                )
+                metadata.create_all(bind=connection)
+
     configuration = config.get_section(config.config_ini_section)
     configuration["sqlalchemy.url"] = app.config["SQLALCHEMY_DATABASE_URI"]
     connectable = engine_from_config(
