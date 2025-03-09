@@ -5,6 +5,9 @@ set -e
 # Install Python dependencies
 pip install -r requirements.txt
 
+# Add the current directory to PYTHONPATH
+export PYTHONPATH=$PYTHONPATH:/opt/render/project/src
+
 # Set the FLASK_APP environment variable
 export FLASK_APP=app.py
 

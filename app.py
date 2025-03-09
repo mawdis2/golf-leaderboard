@@ -29,10 +29,10 @@ login_manager = LoginManager(app)
 login_manager.login_view = 'login'
 
 # Import all models to ensure they're registered before creating tables
-from .models import User, Player, Birdie, Course, HistoricalTotal, Eagle
+from models import User, Player, Birdie, Course, HistoricalTotal, Eagle
 
 # Import routes after app is created
-from .routes import bp
+from routes import bp
 app.register_blueprint(bp)
 
 @app.route('/')
