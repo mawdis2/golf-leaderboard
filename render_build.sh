@@ -1,14 +1,6 @@
 #!/usr/bin/env bash
 # Exit on error and handle interrupts
 set -e
-trap 'kill $(jobs -p) 2>/dev/null' EXIT
-
-# Function to time operations
-time_cmd() {
-    TIMEFORMAT="$1: %Rs"
-    shift
-    time "$@"
-}
 
 echo "==> Starting deployment process..."
 
@@ -21,7 +13,7 @@ export PIP_DISABLE_PIP_VERSION_CHECK=1
 
 # Install dependencies efficiently
 echo "==> Installing dependencies..."
-time_cmd "Dependencies installation" python -m pip install --no-cache-dir --quiet -r requirements.txt
+python -m pip install --no-cache-dir --quiet -r requirements.txt
 
 # Database initialization script
 cat > init_db.py << 'EOF'
@@ -67,19 +59,30 @@ timeout 30s flask db upgrade || { echo "Migration upgrade timed out after 30s"; 
 # Clean up
 rm -f init_db.py
 
-# Start Gunicorn with proper signal handling
+# Create a Gunicorn config file
+cat > gunicorn.conf.py << 'EOF'
+# Gunicorn configuration
+bind = "0.0.0.0:10000"
+workers = 1
+threads = 4
+worker_class = "gthread"
+timeout = 30
+graceful_timeout = 10
+keepalive = 5
+max_requests = 1000
+max_requests_jitter = 50
+capture_output = True
+loglevel = "info"
+accesslog = "-"
+errorlog = "-"
+
+def on_starting(server):
+    print("==> Gunicorn starting...")
+
+def on_exit(server):
+    print("==> Gunicorn shutting down...")
+EOF
+
+# Start Gunicorn with config file
 echo "==> Starting Gunicorn server..."
-exec gunicorn "app:app" \
-    --bind=0.0.0.0:10000 \
-    --workers=1 \
-    --threads=4 \
-    --worker-class=gthread \
-    --timeout=30 \
-    --graceful-timeout=10 \
-    --keep-alive=5 \
-    --max-requests=1000 \
-    --max-requests-jitter=50 \
-    --log-level=info \
-    --access-logfile=- \
-    --error-logfile=- \
-    --capture-output 
+exec gunicorn --config gunicorn.conf.py "app:app" 
