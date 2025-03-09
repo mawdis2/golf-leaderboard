@@ -14,7 +14,7 @@ python -m pip install --no-cache-dir -r requirements.txt
 # Create database initialization script
 cat > init_db.py << 'EOF'
 import os, sys, time
-from sqlalchemy import text, inspect
+from sqlalchemy import text, inspect, MetaData
 sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 
 start_time = time.time()
@@ -38,7 +38,7 @@ with app.app_context():
             conn.execute(text("SELECT 1"))
             print("  -> Database connection successful")
 
-        # First transaction: Schema setup
+        # First transaction: Schema setup with CASCADE
         print("  -> Setting up schema...")
         with db.engine.connect() as conn:
             conn.execute(text('COMMIT'))  # Close any existing transaction
@@ -49,7 +49,7 @@ with app.app_context():
             conn.execute(text('COMMIT'))
         
         print("  -> Verifying models...")
-        # Explicitly register models with SQLAlchemy
+        # Create tables in correct order
         models = [Player, Course, Birdie, HistoricalTotal]
         for model in models:
             print(f"    - Registering model: {model.__name__}")
@@ -58,13 +58,18 @@ with app.app_context():
             print(f"      Table name: {model.__table__.name}")
             print(f"      Columns: {', '.join(c.name for c in model.__table__.columns)}")
         
-        print("  -> Creating tables using SQLAlchemy...")
-        # Create tables using both methods to ensure success
-        db.create_all()
-        for model in models:
-            if not model.__table__.exists(db.engine):
-                print(f"    - Table {model.__table__.name} not created by create_all(), trying direct creation...")
-                model.__table__.create(db.engine)
+        print("  -> Creating tables in dependency order...")
+        # Create tables in correct order
+        with db.engine.begin() as conn:
+            # First create tables without foreign keys
+            for model in [Player, Course]:
+                print(f"    - Creating base table: {model.__table__.name}")
+                model.__table__.create(bind=conn)
+            
+            # Then create tables with foreign keys
+            for model in [Birdie, HistoricalTotal]:
+                print(f"    - Creating dependent table: {model.__table__.name}")
+                model.__table__.create(bind=conn)
         
         # Set permissions
         print("  -> Setting permissions...")
@@ -83,19 +88,13 @@ with app.app_context():
         
         for table in tables:
             if not table in existing_tables:
-                # Try to diagnose why the table is missing
-                print(f"    - Diagnosing missing table {table}...")
-                with db.engine.connect() as conn:
-                    result = conn.execute(text(
-                        "SELECT pg_get_viewdef(format('%I.%I', schemaname, viewname), true) "
-                        "FROM pg_views WHERE schemaname = 'public'"
-                    ))
-                    views = result.fetchall()
-                    if views:
-                        print(f"      Found views: {views}")
                 raise Exception(f"Table {table} was not created successfully")
             columns = [c['name'] for c in inspector.get_columns(table)]
-            print(f"    - Verified table {table} exists with columns: {columns}")
+            fks = inspector.get_foreign_keys(table)
+            print(f"    - Verified table {table}:")
+            print(f"      Columns: {columns}")
+            if fks:
+                print(f"      Foreign keys: {[fk['referred_table'] for fk in fks]}")
             
         print(f"==> Database initialized successfully in {time.time() - start_time:.2f}s")
         
@@ -121,13 +120,66 @@ flask db init
 
 # Create initial migration
 echo "==> Creating initial migration..."
-flask db migrate -m "Initial migration"
+cat > migration_env.py << 'EOF'
+from logging.config import fileConfig
+from sqlalchemy import engine_from_config
+from sqlalchemy import pool
+from alembic import context
+from app import app, db
 
-# Apply migration
-echo "==> Applying migration..."
+config = context.config
+if config.config_file_name is not None:
+    fileConfig(config.config_file_name)
+
+target_metadata = db.metadata
+
+def run_migrations_offline():
+    url = app.config['SQLALCHEMY_DATABASE_URI']
+    context.configure(
+        url=url,
+        target_metadata=target_metadata,
+        literal_binds=True,
+        dialect_opts={"paramstyle": "named"},
+        compare_type=True,
+        compare_server_default=True,
+        render_as_batch=True
+    )
+    with context.begin_transaction():
+        context.run_migrations()
+
+def run_migrations_online():
+    configuration = config.get_section(config.config_ini_section)
+    configuration["sqlalchemy.url"] = app.config["SQLALCHEMY_DATABASE_URI"]
+    connectable = engine_from_config(
+        configuration,
+        prefix="sqlalchemy.",
+        poolclass=pool.NullPool,
+    )
+    with connectable.connect() as connection:
+        context.configure(
+            connection=connection,
+            target_metadata=target_metadata,
+            compare_type=True,
+            compare_server_default=True,
+            render_as_batch=True
+        )
+        with context.begin_transaction():
+            context.run_migrations()
+
+if context.is_offline_mode():
+    run_migrations_offline()
+else:
+    run_migrations_online()
+EOF
+
+# Replace the env.py file
+mv migration_env.py migrations/env.py
+
+# Create and apply migration
+flask db migrate -m "Initial migration"
 flask db upgrade
 
-# Verify database state
+# Verify final state
 echo "==> Verifying final database state..."
 python -c "
 from app import app, db
@@ -138,9 +190,11 @@ with app.app_context():
     print('Available tables:', tables)
     for table in tables:
         columns = [c['name'] for c in inspector.get_columns(table)]
-        print(f'Table {table} columns:', columns)
-    if not all(t in tables for t in ['player', 'course', 'birdie', 'historical_total']):
-        raise Exception('Missing required tables')
+        fks = inspector.get_foreign_keys(table)
+        print(f'Table {table}:')
+        print(f'  Columns: {columns}')
+        if fks:
+            print(f'  Foreign keys: {[fk[\"referred_table\"] for fk in fks]}')
 "
 
 # Clean up
