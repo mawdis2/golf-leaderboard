@@ -72,6 +72,18 @@ def leaderboard():
         if has_trophy:
             player.emojis = "🏆" + player.emojis
             
+        # Check for recent birdies (within last 3 days)
+        three_days_ago = datetime.now() - timedelta(days=3)
+        recent_birdies = Birdie.query.filter(
+            Birdie.player_id == player.id,
+            Birdie.is_eagle == False,
+            Birdie.date >= three_days_ago
+        ).count()
+        
+        # Add recent achievement emojis
+        if recent_birdies > 0:
+            player.emojis += "🐦"
+        
         player_scores.append(player)
     
     # Sort players by total score (descending)
