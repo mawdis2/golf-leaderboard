@@ -6,8 +6,8 @@ print("==> Starting database initialization...")
 
 from app import app
 from extensions import db
-from models import User, Player, Course, Birdie, HistoricalTotal
-from sqlalchemy import inspect
+from models import User, Player, Course, Birdie, HistoricalTotal, Eagle
+from sqlalchemy import inspect, text
 
 def table_exists(table_name, inspector):
     return table_name in inspector.get_table_names()
@@ -35,13 +35,21 @@ with app.app_context():
         except Exception as e:
             db.session.rollback()
             print(f"  -> Error creating admin user: {e}")
-        
-        # Verify final state
+
+        # Verify all tables were created
         final_tables = inspect(db.engine).get_table_names()
         print(f"  -> Final database tables: {final_tables}")
+        
+        # Verify users table specifically
         if 'users' in final_tables:
-            user_count = User.query.count()
-            print(f"  -> Found {user_count} users in the database")
+            with db.engine.connect() as conn:
+                result = conn.execute(text("SELECT COUNT(*) FROM users")).scalar()
+                print(f"  -> Users table exists with {result} records")
+        else:
+            print("  -> WARNING: Users table was not created!")
+            # Try to create it explicitly
+            db.create_all()
+            print("  -> Attempted to create users table again")
         
         print(f"==> Database initialization completed in {time.time() - start_time:.2f}s")
         
