@@ -4,8 +4,7 @@ sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 start_time = time.time()
 print("==> Starting database initialization...")
 
-from app import app
-from extensions import db
+from app import create_app, db
 from models import User, Player, Course, Birdie, HistoricalTotal, Eagle
 from sqlalchemy import inspect, text
 
@@ -14,6 +13,8 @@ def verify_table_exists(table_name, inspector):
     exists = table_name in tables
     print(f"  -> Checking table '{table_name}': {'EXISTS' if exists else 'MISSING'}")
     return exists
+
+app = create_app()
 
 with app.app_context():
     try:

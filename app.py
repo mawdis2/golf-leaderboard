@@ -4,6 +4,16 @@ from flask_login import LoginManager
 from flask_migrate import Migrate
 import os
 
+# Initialize extensions
+db = SQLAlchemy()
+migrate = Migrate()
+login_manager = LoginManager()
+
+@login_manager.user_loader
+def load_user(user_id):
+    from models import User
+    return User.query.get(int(user_id))
+
 def create_app():
     app = Flask(__name__)
     
@@ -23,10 +33,12 @@ def create_app():
 
     app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
-    # Initialize extensions
-    db = SQLAlchemy(app)
-    migrate = Migrate(app, db)
-    login_manager = LoginManager(app)
+    # Initialize Flask extensions
+    db.init_app(app)
+    migrate.init_app(app, db)
+    login_manager.init_app(app)
+    
+    # Configure login manager
     login_manager.login_view = 'main.login'
     login_manager.login_message = 'Please log in to access this page.'
     login_manager.login_message_category = 'info'
@@ -45,10 +57,6 @@ def create_app():
     return app
 
 app = create_app()
-
-@login_manager.user_loader
-def load_user(user_id):
-    return User.query.get(int(user_id))
 
 @app.route('/')
 def index():
