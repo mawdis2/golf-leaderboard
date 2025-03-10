@@ -4,8 +4,9 @@ sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 start_time = time.time()
 print("==> Starting database initialization...")
 
-from app import app, db
-from models import User
+from app import app
+from extensions import db
+from models import User, Player, Course, Birdie, HistoricalTotal
 from sqlalchemy import inspect
 
 def table_exists(table_name, inspector):
@@ -17,28 +18,31 @@ with app.app_context():
         existing_tables = inspector.get_table_names()
         print(f"  -> Found existing tables: {existing_tables}")
 
-        # Create all tables that don't exist
-        db.create_all()
-        print("  -> Checked and created any missing tables")
+        # Drop and recreate all tables
+        print("  -> Creating all tables...")
+        db.drop_all()  # This will drop all tables
+        db.create_all()  # This will create all tables fresh
+        print("  -> Tables created successfully")
 
-        # Create admin user only if users table is empty
-        if 'users' not in existing_tables or User.query.count() == 0:
-            print("  -> Creating admin user...")
-            admin = User(username='mawdisho', is_admin=True)
-            admin.set_password('ign')
-            db.session.add(admin)
-            try:
-                db.session.commit()
-                print("  -> Admin user created successfully")
-            except Exception as e:
-                db.session.rollback()
-                print(f"  -> Error creating admin user: {e}")
-        else:
-            print("  -> Admin user already exists")
+        # Create admin user
+        print("  -> Creating admin user...")
+        admin = User(username='mawdisho', is_admin=True)
+        admin.set_password('ign')
+        db.session.add(admin)
+        try:
+            db.session.commit()
+            print("  -> Admin user created successfully")
+        except Exception as e:
+            db.session.rollback()
+            print(f"  -> Error creating admin user: {e}")
         
         # Verify final state
         final_tables = inspect(db.engine).get_table_names()
         print(f"  -> Final database tables: {final_tables}")
+        if 'users' in final_tables:
+            user_count = User.query.count()
+            print(f"  -> Found {user_count} users in the database")
+        
         print(f"==> Database initialization completed in {time.time() - start_time:.2f}s")
         
     except Exception as e:
