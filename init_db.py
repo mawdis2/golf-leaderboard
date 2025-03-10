@@ -4,7 +4,8 @@ sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 start_time = time.time()
 print("==> Starting database initialization...")
 
-from app import create_app, db
+from app import create_app
+from extensions import db
 from models import User, Player, Course, Birdie, HistoricalTotal, Eagle
 from sqlalchemy import inspect, text
 
@@ -46,10 +47,13 @@ with app.app_context():
         print(f"  -> Tables after creation: {tables_after}")
         
         # Verify all required tables
-        required_tables = ['users', 'player', 'course', 'birdie', 'historical_total']
+        required_tables = ['users', 'player', 'course', 'birdie', 'historical_total', 'eagle']
         for table in required_tables:
             if verify_table_exists(table, inspector):
                 verify_table_columns(table, inspector)
+            else:
+                print(f"  -> ERROR: Required table '{table}' is missing!")
+                raise Exception(f"Required table '{table}' was not created")
         
         # Create admin user
         print("\n==> Creating admin user...")

@@ -1,20 +1,6 @@
 from flask import Flask, redirect, url_for
-from flask_sqlalchemy import SQLAlchemy
-from flask_login import LoginManager
-from flask_migrate import Migrate
 import os
-
-# Initialize extensions
-db = SQLAlchemy()
-migrate = Migrate()
-login_manager = LoginManager()
-
-# Import models at module level
-from models import User, Player, Birdie, Course, HistoricalTotal, Eagle
-
-@login_manager.user_loader
-def load_user(user_id):
-    return User.query.get(int(user_id))
+from extensions import init_extensions, db, login_manager
 
 def create_app():
     app = Flask(__name__)
@@ -35,17 +21,13 @@ def create_app():
 
     app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
-    # Initialize Flask extensions
-    db.init_app(app)
-    migrate.init_app(app, db)
-    login_manager.init_app(app)
-    
-    # Configure login manager
-    login_manager.login_view = 'main.login'
-    login_manager.login_message = 'Please log in to access this page.'
-    login_manager.login_message_category = 'info'
+    # Initialize extensions
+    init_extensions(app)
 
     with app.app_context():
+        # Import models here to avoid circular imports
+        from models import User, Player, Birdie, Course, HistoricalTotal, Eagle
+        
         # Create all database tables
         db.create_all()
         
