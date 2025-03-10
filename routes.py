@@ -1,9 +1,13 @@
 # routes.py
+print("=== TESTING SIMPLE PATH ACCESS ===")
+print("=== SECOND TEST - CONFIRMED FILE ACCESS ===")
 from flask import Blueprint, render_template, request, redirect, url_for, jsonify, flash, get_flashed_messages, session
 from flask_login import current_user, login_required, login_user, logout_user
 from sqlalchemy.sql import func, case, and_, or_
 from datetime import datetime, timedelta
 from models import db, User, Player, Birdie, Course, HistoricalTotal, Eagle
+
+print("TEST LINE WITH RELATIVE PATH - " + str(datetime.now()))
 
 # Create a Blueprint
 bp = Blueprint('main', __name__)
@@ -25,6 +29,7 @@ def home():
 @bp.route("/leaderboard")
 def leaderboard():
     current_year = datetime.now().year
+    three_days_ago = datetime.now() - timedelta(days=3)
     players = Player.query.all()
     
     # First, calculate all scores and sort players
@@ -57,32 +62,32 @@ def leaderboard():
         player.total = total
         player.has_trophy = has_trophy
         
+        # Initialize emojis string
+        emojis = ""
+        
+        # Add trophy if player has one for current year
+        if has_trophy:
+            emojis += "🏆"
+        
         # Check for recent birdies (within last 3 days)
-        three_days_ago = datetime.now() - timedelta(days=3)
         recent_birdies = Birdie.query.filter(
             Birdie.player_id == player.id,
             Birdie.is_eagle == False,
-            Birdie.date >= three_days_ago
+            Birdie.date >= three_days_ago,
+            Birdie.year == current_year
         ).count()
         
-        # Add recent achievement emojis
+        # Add one birdie emoji for each recent birdie
         if recent_birdies > 0:
-            player.emojis = "🐦"
-        
-        # Set emojis based on counts
-        if birdie_count >= 2:
-            player.emojis = "🐦" * 2
-        elif birdie_count == 1:
-            player.emojis = "🐦"
-        else:
-            player.emojis = ""
+            emojis += "🐦" * recent_birdies
+            print(f"Found {recent_birdies} recent birdies for {player.name}")
             
+        # Add eagle emojis for current year
         if eagle_count > 0:
-            player.emojis += "🦅" * eagle_count
-            
-        # Add trophy emoji if player has one
-        if has_trophy:
-            player.emojis = "🏆" + player.emojis
+            emojis += "🦅" * eagle_count
+        
+        player.emojis = emojis
+        print(f"Final emojis for {player.name}: {emojis} (Recent birdies: {recent_birdies}, Eagles: {eagle_count}, Trophy: {has_trophy})")
         
         player_scores.append(player)
     
@@ -203,7 +208,17 @@ def add_birdie():
     try:
         players = Player.query.all()
         courses = Course.query.all()
-        return render_template('add_birdie.html', players=players, courses=courses)
+        
+        # Get date restrictions
+        today = datetime.now().strftime('%Y-%m-%d')
+        start_of_year = f"{datetime.now().year}-01-01"
+        
+        return render_template('add_birdie.html', 
+            players=players, 
+            courses=courses,
+            min_date=start_of_year,
+            max_date=today
+        )
     except Exception as e:
         print(f"Error loading page: {e}")
         flash('Error loading page. Please try again.', 'error')

@@ -110,6 +110,7 @@
                     <a href="{{ url_for('main.player_birdie_records', player_id=player.id) }}" style="color: green;">
                         {{ player.name }}
                         {% if player.has_trophy %}🏆{% endif %}
+                        {% if player.recent_birdies > 0 %}🐦{% endif %}
                         {% if player.birdie_count >= 2 %}🐦{% endif %}
                         {% if player.birdie_count >= 4 %}🐦{% endif %}
                         {% if player.eagle_count >= 1 %}🦅{% endif %}
