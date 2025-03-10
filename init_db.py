@@ -17,22 +17,24 @@ with app.app_context():
         existing_tables = inspector.get_table_names()
         print(f"  -> Found existing tables: {existing_tables}")
 
-        # Only create tables that don't exist
+        # Create all tables that don't exist
         db.create_all()
         print("  -> Checked and created any missing tables")
 
-        # Create admin user only if user table is empty
-        if table_exists('user', inspector):
-            user_count = User.query.count()
-            if user_count == 0:
-                print("  -> Creating admin user...")
-                admin = User(username='mawdisho', is_admin=True)
-                admin.set_password('ign')
-                db.session.add(admin)
+        # Create admin user only if users table is empty
+        if 'users' not in existing_tables or User.query.count() == 0:
+            print("  -> Creating admin user...")
+            admin = User(username='mawdisho', is_admin=True)
+            admin.set_password('ign')
+            db.session.add(admin)
+            try:
                 db.session.commit()
-                print("  -> Admin user created")
-            else:
-                print(f"  -> Found {user_count} existing users, skipping admin creation")
+                print("  -> Admin user created successfully")
+            except Exception as e:
+                db.session.rollback()
+                print(f"  -> Error creating admin user: {e}")
+        else:
+            print("  -> Admin user already exists")
         
         # Verify final state
         final_tables = inspect(db.engine).get_table_names()
