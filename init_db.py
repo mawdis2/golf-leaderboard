@@ -8,14 +8,7 @@ from app import app, db
 
 with app.app_context():
     try:
-        print("  -> Dropping schema...")
-        db.session.execute('DROP SCHEMA IF EXISTS public CASCADE')
-        print("  -> Creating schema...")
-        db.session.execute('CREATE SCHEMA public')
-        db.session.execute('GRANT ALL ON SCHEMA public TO postgres')
-        db.session.execute('GRANT ALL ON SCHEMA public TO public')
-        db.session.commit()
-        print("  -> Creating tables...")
+        print("  -> Creating tables if they don't exist...")
         db.create_all()
         db.session.commit()
         print(f"==> Database initialized successfully in {time.time() - start_time:.2f}s")
