@@ -101,24 +101,23 @@
 </script>
 
 <style>
-    /* Style for disabled dates in the date picker */
-    input[type="date"]::-webkit-calendar-picker-indicator {
-        background: transparent;
-        color: transparent;
-        cursor: pointer;
-        height: 100%;
-        left: 0;
-        position: absolute;
-        right: 0;
-        width: auto;
-    }
-    
-    /* Add some spacing and styling to the date input */
+    /* Style for the date input */
     input[type="date"] {
         padding: 8px;
         border: 1px solid #ced4da;
         border-radius: 4px;
         width: 100%;
+    }
+
+    /* Style for the calendar picker icon */
+    input[type="date"]::-webkit-calendar-picker-indicator {
+        cursor: pointer;
+        padding: 5px;
+    }
+
+    /* Remove default calendar icon in Edge */
+    input[type="date"]::-webkit-clear-button {
+        display: none;
     }
 </style>
 {% endblock %}
