@@ -9,9 +9,11 @@ db = SQLAlchemy()
 migrate = Migrate()
 login_manager = LoginManager()
 
+# Import models at module level
+from models import User, Player, Birdie, Course, HistoricalTotal, Eagle
+
 @login_manager.user_loader
 def load_user(user_id):
-    from models import User
     return User.query.get(int(user_id))
 
 def create_app():
@@ -44,9 +46,6 @@ def create_app():
     login_manager.login_message_category = 'info'
 
     with app.app_context():
-        # Import models here to ensure they're registered with SQLAlchemy
-        from models import User, Player, Birdie, Course, HistoricalTotal, Eagle
-        
         # Create all database tables
         db.create_all()
         

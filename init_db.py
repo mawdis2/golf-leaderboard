@@ -56,11 +56,22 @@ with app.app_context():
             admin_user = User.query.filter_by(username='mawdisho').first()
             if admin_user:
                 print(f"  -> Verified admin user exists: {admin_user.username}")
+                print(f"  -> Admin user ID: {admin_user.id}")
+                print(f"  -> Admin status: {admin_user.is_admin}")
             else:
                 print("  -> WARNING: Admin user not found after creation!")
+                
+            # Print all tables for verification
+            print("\n==> Final Database State:")
+            for table in inspector.get_table_names():
+                print(f"  -> Table '{table}':")
+                for column in inspector.get_columns(table):
+                    print(f"     - {column['name']}: {column['type']}")
+                    
         except Exception as e:
             db.session.rollback()
             print(f"  -> Error creating admin user: {e}")
+            raise
         
         print(f"==> Database initialization completed in {time.time() - start_time:.2f}s")
         
