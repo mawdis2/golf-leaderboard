@@ -77,6 +77,9 @@ def leaderboard():
             Birdie.year == current_year
         ).count()
         
+        # Set recent_birdies on player object for template access
+        player.recent_birdies = recent_birdies
+        
         # Add one birdie emoji for each recent birdie
         if recent_birdies > 0:
             emojis += "🐦" * recent_birdies
