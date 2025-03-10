@@ -14,14 +14,24 @@ def verify_table_exists(table_name, inspector):
     print(f"  -> Checking table '{table_name}': {'EXISTS' if exists else 'MISSING'}")
     return exists
 
+def verify_table_columns(table_name, inspector):
+    columns = inspector.get_columns(table_name)
+    print(f"  -> Table '{table_name}' columns:")
+    for column in columns:
+        print(f"     - {column['name']}: {column['type']}")
+
 app = create_app()
 
 with app.app_context():
     try:
-        inspector = inspect(db.engine)
-        existing_tables = inspector.get_table_names()
-        print(f"  -> Found existing tables: {existing_tables}")
-
+        print("==> Starting database setup...")
+        
+        # Get database URL (with password masked)
+        db_url = str(db.engine.url)
+        if '@' in db_url:
+            db_url = db_url.split('@')[1]
+        print(f"  -> Using database: {db_url}")
+        
         # Drop all existing tables
         print("  -> Dropping existing tables...")
         db.drop_all()
@@ -35,14 +45,14 @@ with app.app_context():
         tables_after = inspector.get_table_names()
         print(f"  -> Tables after creation: {tables_after}")
         
-        # Verify specific tables
-        verify_table_exists('users', inspector)
-        verify_table_exists('player', inspector)
-        verify_table_exists('course', inspector)
-        verify_table_exists('birdie', inspector)
+        # Verify all required tables
+        required_tables = ['users', 'player', 'course', 'birdie', 'historical_total']
+        for table in required_tables:
+            if verify_table_exists(table, inspector):
+                verify_table_columns(table, inspector)
         
         # Create admin user
-        print("  -> Creating admin user...")
+        print("\n==> Creating admin user...")
         admin = User(username='mawdisho', is_admin=True)
         admin.set_password('ign')
         db.session.add(admin)
@@ -52,28 +62,22 @@ with app.app_context():
             print("  -> Admin user created successfully")
             
             # Verify admin user was created
-            user_count = User.query.count()
             admin_user = User.query.filter_by(username='mawdisho').first()
             if admin_user:
-                print(f"  -> Verified admin user exists: {admin_user.username}")
-                print(f"  -> Admin user ID: {admin_user.id}")
-                print(f"  -> Admin status: {admin_user.is_admin}")
+                print(f"  -> Verified admin user exists:")
+                print(f"     - Username: {admin_user.username}")
+                print(f"     - ID: {admin_user.id}")
+                print(f"     - Admin: {admin_user.is_admin}")
             else:
                 print("  -> WARNING: Admin user not found after creation!")
+                raise Exception("Failed to create admin user")
                 
-            # Print all tables for verification
-            print("\n==> Final Database State:")
-            for table in inspector.get_table_names():
-                print(f"  -> Table '{table}':")
-                for column in inspector.get_columns(table):
-                    print(f"     - {column['name']}: {column['type']}")
-                    
         except Exception as e:
             db.session.rollback()
             print(f"  -> Error creating admin user: {e}")
             raise
         
-        print(f"==> Database initialization completed in {time.time() - start_time:.2f}s")
+        print(f"\n==> Database initialization completed in {time.time() - start_time:.2f}s")
         
     except Exception as e:
         print(f"==> Database initialization error: {e}")
