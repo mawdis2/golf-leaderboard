@@ -295,26 +295,63 @@ def player_birdie_records(player_id):
     player = Player.query.get_or_404(player_id)
     current_year = datetime.now().year
     
-    # Get all records with date and hole number
-    records = db.session.query(
-        Course.name.label('course_name'),
-        Birdie.date,
-        Birdie.hole_number,
-        Birdie.is_eagle
-    ).join(
-        Course, Course.id == Birdie.course_id
-    ).filter(
-        Birdie.player_id == player_id,
-        Birdie.year == current_year
-    ).order_by(
-        Birdie.date.desc()
-    ).all()
+    # Get the selected year from the query parameter, default to current year
+    selected_year = request.args.get('year', current_year, type=int)
+    
+    # Check if we're looking at historical data or current year
+    if selected_year == current_year:
+        # Get current year records from Birdie table
+        records = db.session.query(
+            Course.name.label('course_name'),
+            Birdie.date,
+            Birdie.hole_number,
+            Birdie.is_eagle
+        ).join(
+            Course, Course.id == Birdie.course_id
+        ).filter(
+            Birdie.player_id == player_id,
+            Birdie.year == selected_year
+        ).order_by(
+            Birdie.date.desc()
+        ).all()
+    else:
+        # For historical years, check if we have individual records
+        records = db.session.query(
+            Course.name.label('course_name'),
+            Birdie.date,
+            Birdie.hole_number,
+            Birdie.is_eagle
+        ).join(
+            Course, Course.id == Birdie.course_id
+        ).filter(
+            Birdie.player_id == player_id,
+            Birdie.year == selected_year
+        ).order_by(
+            Birdie.date.desc()
+        ).all()
+        
+        # If no individual records exist, get the summary from HistoricalTotal
+        if not records:
+            historical = HistoricalTotal.query.filter_by(
+                player_id=player_id,
+                year=selected_year
+            ).first()
+            
+            if historical:
+                # Create a summary message to display
+                summary = {
+                    'is_summary': True,
+                    'birdies': historical.birdies,
+                    'eagles': historical.eagles,
+                    'has_trophy': historical.has_trophy
+                }
+                records = [summary]
 
     return render_template(
         "player_birdie_records.html",
         player=player,
         records=records,
-        year=current_year
+        year=selected_year
     )
 
 @bp.route("/player/<int:player_id>")

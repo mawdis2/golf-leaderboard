@@ -1,57 +1,59 @@
 <!-- templates/history.html -->
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Historical Rankings</title>
-    <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
-</head>
-<body>
-    <div class="container">
-        <h1>Historical Rankings - {{ selected_year }}</h1>
-        
-        <form method="GET" action="{{ url_for('main.history') }}">
-            <label for="year">Select Year:</label>
-            <select name="year" id="year" onchange="this.form.submit()">
-                {% for year in years %}
-                <option value="{{ year }}" {% if year == selected_year %}selected{% endif %}>{{ year }}</option>
-                {% endfor %}
-            </select>
-        </form>
+{% extends "base.html" %}
 
-        <table>
-            <tr>
-                <th>Rank</th>
-                <th>Player</th>
-                <th>Birdies</th>
-                <th>Eagles</th>
-                <th>Total</th>
-            </tr>
-            {% for rank_display, player_name, birdies, player_id, trophy, eagles, eagle_emoji in leaderboard %}
-            <tr>
-                <td>{{ rank_display }}</td>
-                <td>
-                    <a href="{{ url_for('main.player_birdie_records', player_id=player_id) }}?year={{ selected_year }}" style="color: green;">
-                        {{ player_name }}
-                    </a>
-                    {{ eagle_emoji }}{{ trophy|safe }}
-                </td>
-                <td>{{ birdies|int }}</td>
-                <td>{{ eagles|int }}</td>
-                <td>{{ (birdies|int) + (eagles|int) }}</td>
-            </tr>
-            {% endfor %}
-        </table>
+{% block title %}Birdie History{% endblock %}
 
-        <div class="button-container">
-            <a href="{{ url_for('main.leaderboard') }}" class="button">Back to Leaderboard</a>
-            <a href="{{ url_for('main.trends') }}" class="button">View Trends</a>
+{% block content %}
+<div class="container">
+    <h1 class="text-center mb-4">Birdie History</h1>
+    
+    <div class="text-center mb-3">
+        <a href="{{ url_for('main.leaderboard') }}" class="btn btn-primary">Back to Leaderboard</a>
+    </div>
+    
+    <div class="card">
+        <div class="card-header bg-primary text-white">
+            <div class="d-flex justify-content-between align-items-center">
+                <h2 class="h4 mb-0">Leaderboard for {{ selected_year }}</h2>
+                <div>
+                    <form method="get" class="d-inline-block">
+                        <select name="year" class="form-control" onchange="this.form.submit()">
+                            {% for year in years %}
+                                <option value="{{ year }}" {% if year == selected_year %}selected{% endif %}>{{ year }}</option>
+                            {% endfor %}
+                        </select>
+                    </form>
+                </div>
+            </div>
+        </div>
+        <div class="card-body">
+            <table class="table table-striped">
+                <thead>
+                    <tr>
+                        <th>Rank</th>
+                        <th>Player</th>
+                        <th>Birdies</th>
+                        <th>Eagles</th>
+                        <th>Total</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for rank, name, birdies, player_id, trophy, eagles, eagle_emoji in leaderboard %}
+                        <tr>
+                            <td>{{ rank }}</td>
+                            <td>
+                                <a href="{{ url_for('main.player_birdie_records', player_id=player_id, year=selected_year) }}">
+                                    {{ name }} {{ trophy }} {{ eagle_emoji }}
+                                </a>
+                            </td>
+                            <td>{{ birdies }}</td>
+                            <td>{{ eagles }}</td>
+                            <td>{{ birdies + eagles }}</td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
         </div>
     </div>
-
-    {% if admin_view %}
-        <!-- Keep admin-specific content here -->
-    {% endif %}
-</body>
-</html>
+</div>
+{% endblock %}
