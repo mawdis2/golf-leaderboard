@@ -5,7 +5,7 @@ from flask import Blueprint, render_template, request, redirect, url_for, jsonif
 from flask_login import current_user, login_required, login_user, logout_user
 from sqlalchemy.sql import func, case, and_, or_
 from datetime import datetime, timedelta
-from models import db, User, Player, Birdie, Course, HistoricalTotal, Eagle
+from models import db, User, Player, Birdie, Course, HistoricalTotal, Eagle, Tournament, Team, TeamMember, TournamentResult
 
 print("TEST LINE WITH RELATIVE PATH - " + str(datetime.now()))
 
@@ -958,3 +958,332 @@ def delete_score(score_id):
         flash(f'Error deleting score: {str(e)}', 'error')
     
     return redirect(url_for('main.admin_dashboard'))
+
+@bp.route("/tournaments")
+def tournaments():
+    auth_check = check_site_auth()
+    if auth_check:
+        return auth_check
+        
+    current_year = datetime.now().year
+    selected_year = request.args.get('year', current_year, type=int)
+    
+    # Get all tournaments for the selected year
+    tournaments = Tournament.query.filter_by(year=selected_year).order_by(Tournament.date.desc()).all()
+    
+    # Get list of available years
+    tournament_years = db.session.query(
+        db.distinct(Tournament.year)
+    ).filter(
+        Tournament.year.isnot(None)
+    ).all()
+    
+    years = [year[0] for year in tournament_years]
+    
+    # Always include current year
+    if current_year not in years:
+        years.append(current_year)
+    
+    # Sort years in descending order
+    years = sorted(list(set(years)), reverse=True)
+    
+    return render_template(
+        "tournaments.html",
+        tournaments=tournaments,
+        selected_year=selected_year,
+        years=years
+    )
+
+@bp.route("/tournament/<int:tournament_id>")
+def tournament_details(tournament_id):
+    auth_check = check_site_auth()
+    if auth_check:
+        return auth_check
+        
+    tournament = Tournament.query.get_or_404(tournament_id)
+    
+    # Get results ordered by position
+    results = TournamentResult.query.filter_by(tournament_id=tournament_id).order_by(TournamentResult.position).all()
+    
+    return render_template(
+        "tournament_details.html",
+        tournament=tournament,
+        results=results
+    )
+
+@bp.route("/admin/tournaments")
+@login_required
+def admin_tournaments():
+    if not current_user.is_admin:
+        flash('You do not have permission to access this page.')
+        return redirect(url_for('main.leaderboard'))
+    
+    tournaments = Tournament.query.order_by(Tournament.date.desc()).all()
+    courses = Course.query.all()
+    
+    return render_template(
+        "admin_tournaments.html",
+        tournaments=tournaments,
+        courses=courses
+    )
+
+@bp.route("/admin/add_tournament", methods=['GET', 'POST'])
+@login_required
+def add_tournament():
+    if not current_user.is_admin:
+        flash('You do not have permission to access this page.')
+        return redirect(url_for('main.leaderboard'))
+    
+    if request.method == 'POST':
+        try:
+            name = request.form.get('name')
+            date_str = request.form.get('date')
+            course_id = request.form.get('course_id')
+            is_team_event = request.form.get('is_team_event') == 'on'
+            description = request.form.get('description')
+            
+            # Parse date
+            date = datetime.strptime(date_str, '%Y-%m-%d')
+            year = date.year
+            
+            # Create tournament
+            tournament = Tournament(
+                name=name,
+                date=date,
+                course_id=course_id,
+                is_team_event=is_team_event,
+                description=description,
+                year=year
+            )
+            
+            db.session.add(tournament)
+            db.session.commit()
+            
+            flash(f'Tournament "{name}" added successfully!', 'success')
+            return redirect(url_for('main.admin_tournaments'))
+            
+        except Exception as e:
+            db.session.rollback()
+            print(f"Error adding tournament: {e}")
+            flash('Error adding tournament. Please try again.', 'error')
+    
+    courses = Course.query.all()
+    return render_template(
+        "add_tournament.html",
+        courses=courses
+    )
+
+@bp.route("/admin/edit_tournament/<int:tournament_id>", methods=['GET', 'POST'])
+@login_required
+def edit_tournament(tournament_id):
+    if not current_user.is_admin:
+        flash('You do not have permission to access this page.')
+        return redirect(url_for('main.leaderboard'))
+    
+    tournament = Tournament.query.get_or_404(tournament_id)
+    
+    if request.method == 'POST':
+        try:
+            tournament.name = request.form.get('name')
+            tournament.date = datetime.strptime(request.form.get('date'), '%Y-%m-%d')
+            tournament.course_id = request.form.get('course_id')
+            tournament.is_team_event = request.form.get('is_team_event') == 'on'
+            tournament.description = request.form.get('description')
+            tournament.year = tournament.date.year
+            
+            db.session.commit()
+            
+            flash(f'Tournament "{tournament.name}" updated successfully!', 'success')
+            return redirect(url_for('main.admin_tournaments'))
+            
+        except Exception as e:
+            db.session.rollback()
+            print(f"Error updating tournament: {e}")
+            flash('Error updating tournament. Please try again.', 'error')
+    
+    courses = Course.query.all()
+    return render_template(
+        "edit_tournament.html",
+        tournament=tournament,
+        courses=courses
+    )
+
+@bp.route("/admin/delete_tournament/<int:tournament_id>")
+@login_required
+def delete_tournament(tournament_id):
+    if not current_user.is_admin:
+        flash('You do not have permission to access this page.')
+        return redirect(url_for('main.leaderboard'))
+    
+    tournament = Tournament.query.get_or_404(tournament_id)
+    
+    try:
+        db.session.delete(tournament)
+        db.session.commit()
+        flash(f'Tournament "{tournament.name}" deleted successfully!', 'success')
+    except Exception as e:
+        db.session.rollback()
+        print(f"Error deleting tournament: {e}")
+        flash('Error deleting tournament. Please try again.', 'error')
+    
+    return redirect(url_for('main.admin_tournaments'))
+
+@bp.route("/admin/manage_teams")
+@login_required
+def manage_teams():
+    if not current_user.is_admin:
+        flash('You do not have permission to access this page.')
+        return redirect(url_for('main.leaderboard'))
+    
+    teams = Team.query.all()
+    players = Player.query.all()
+    
+    return render_template(
+        "manage_teams.html",
+        teams=teams,
+        players=players
+    )
+
+@bp.route("/admin/add_team", methods=['POST'])
+@login_required
+def add_team():
+    if not current_user.is_admin:
+        flash('You do not have permission to access this page.')
+        return redirect(url_for('main.leaderboard'))
+    
+    try:
+        name = request.form.get('name')
+        
+        # Create team
+        team = Team(name=name)
+        db.session.add(team)
+        db.session.commit()
+        
+        flash(f'Team "{name}" added successfully!', 'success')
+    except Exception as e:
+        db.session.rollback()
+        print(f"Error adding team: {e}")
+        flash('Error adding team. Please try again.', 'error')
+    
+    return redirect(url_for('main.manage_teams'))
+
+@bp.route("/admin/add_team_member", methods=['POST'])
+@login_required
+def add_team_member():
+    if not current_user.is_admin:
+        flash('You do not have permission to access this page.')
+        return redirect(url_for('main.leaderboard'))
+    
+    try:
+        team_id = request.form.get('team_id')
+        player_id = request.form.get('player_id')
+        
+        # Check if player is already in the team
+        existing_member = TeamMember.query.filter_by(
+            team_id=team_id,
+            player_id=player_id
+        ).first()
+        
+        if existing_member:
+            flash('Player is already a member of this team.', 'error')
+            return redirect(url_for('main.manage_teams'))
+        
+        # Add player to team
+        team_member = TeamMember(
+            team_id=team_id,
+            player_id=player_id
+        )
+        
+        db.session.add(team_member)
+        db.session.commit()
+        
+        team = Team.query.get(team_id)
+        player = Player.query.get(player_id)
+        
+        flash(f'Added {player.name} to team "{team.name}" successfully!', 'success')
+    except Exception as e:
+        db.session.rollback()
+        print(f"Error adding team member: {e}")
+        flash('Error adding team member. Please try again.', 'error')
+    
+    return redirect(url_for('main.manage_teams'))
+
+@bp.route("/admin/remove_team_member/<int:team_member_id>")
+@login_required
+def remove_team_member(team_member_id):
+    if not current_user.is_admin:
+        flash('You do not have permission to access this page.')
+        return redirect(url_for('main.leaderboard'))
+    
+    team_member = TeamMember.query.get_or_404(team_member_id)
+    
+    try:
+        player_name = team_member.player.name
+        team_name = team_member.team.name
+        
+        db.session.delete(team_member)
+        db.session.commit()
+        
+        flash(f'Removed {player_name} from team "{team_name}" successfully!', 'success')
+    except Exception as e:
+        db.session.rollback()
+        print(f"Error removing team member: {e}")
+        flash('Error removing team member. Please try again.', 'error')
+    
+    return redirect(url_for('main.manage_teams'))
+
+@bp.route("/admin/add_tournament_result/<int:tournament_id>", methods=['GET', 'POST'])
+@login_required
+def add_tournament_result(tournament_id):
+    if not current_user.is_admin:
+        flash('You do not have permission to access this page.')
+        return redirect(url_for('main.leaderboard'))
+    
+    tournament = Tournament.query.get_or_404(tournament_id)
+    
+    if request.method == 'POST':
+        try:
+            position = int(request.form.get('position'))
+            score = request.form.get('score')
+            
+            if tournament.is_team_event:
+                team_id = request.form.get('team_id')
+                
+                # Create result
+                result = TournamentResult(
+                    tournament_id=tournament_id,
+                    team_id=team_id,
+                    position=position,
+                    score=score
+                )
+            else:
+                player_id = request.form.get('player_id')
+                
+                # Create result
+                result = TournamentResult(
+                    tournament_id=tournament_id,
+                    player_id=player_id,
+                    position=position,
+                    score=score
+                )
+            
+            db.session.add(result)
+            db.session.commit()
+            
+            flash('Tournament result added successfully!', 'success')
+            return redirect(url_for('main.tournament_details', tournament_id=tournament_id))
+            
+        except Exception as e:
+            db.session.rollback()
+            print(f"Error adding tournament result: {e}")
+            flash('Error adding tournament result. Please try again.', 'error')
+    
+    players = Player.query.all()
+    teams = Team.query.all()
+    
+    return render_template(
+        "add_tournament_result.html",
+        tournament=tournament,
+        players=players,
+        teams=teams
+    )

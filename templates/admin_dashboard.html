@@ -289,6 +289,9 @@
             <button class="tab-button" onclick="showTab('Historical Data')">Historical Data</button>
             <button class="tab-button" onclick="showTab('Trophies')">Trophies</button>
             <button class="tab-button" onclick="showTab('Scores')">Scores</button>
+            <li class="nav-item">
+                <a class="nav-link" id="tournaments-tab" data-bs-toggle="tab" href="#tournaments" role="tab" aria-controls="tournaments" aria-selected="false">Tournaments</a>
+            </li>
         </div>
 
         <div id="Players" class="tab-content active">
@@ -402,6 +405,29 @@
                     {% endfor %}
                 </tbody>
             </table>
+        </div>
+
+        <div class="tab-pane fade" id="tournaments" role="tabpanel" aria-labelledby="tournaments-tab">
+            <div class="card">
+                <div class="card-header bg-primary text-white">
+                    <h2 class="h4 mb-0">Tournament Management</h2>
+                </div>
+                <div class="card-body">
+                    <div class="d-grid gap-2">
+                        <a href="{{ url_for('main.admin_tournaments') }}" class="btn btn-primary">Manage Tournaments</a>
+                        <a href="{{ url_for('main.manage_teams') }}" class="btn btn-success">Manage Teams</a>
+                        <a href="{{ url_for('main.tournaments') }}" class="btn btn-info">View Tournament History</a>
+                    </div>
+                    <div class="alert alert-info mt-3">
+                        <p>In this section, you can:</p>
+                        <ul>
+                            <li>Create and manage tournaments</li>
+                            <li>Create teams and assign players</li>
+                            <li>Record tournament results</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
         </div>
     </div>
 

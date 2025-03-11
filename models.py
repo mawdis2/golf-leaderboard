@@ -13,8 +13,8 @@ class User(UserMixin, db.Model):
     __tablename__ = 'users'
     
     id = db.Column(db.Integer, primary_key=True)
-    username = db.Column(db.String(80), unique=True, nullable=False)
-    password_hash = db.Column(db.String(256))
+    username = db.Column(db.String(64), unique=True, index=True)
+    password_hash = db.Column(db.String(128))
     is_admin = db.Column(db.Boolean, default=False)
 
     def set_password(self, password):
@@ -27,56 +27,112 @@ class User(UserMixin, db.Model):
         return f'<User {self.username}>'
 
 class Player(db.Model):
+    __tablename__ = 'player'
     id = db.Column(db.Integer, primary_key=True)
-    name = db.Column(db.String(80), unique=True, nullable=False)
+    name = db.Column(db.String(64), unique=True)
     has_trophy = db.Column(db.Boolean, default=False)
-    permanent_emojis = db.Column(db.String(50))
+    permanent_emojis = db.Column(db.String(64), nullable=True)
     
-    # Define relationships
-    birdies = db.relationship('Birdie', backref='player', lazy=True)
-    historical_totals = db.relationship('HistoricalTotal', backref='player', lazy=True)
-    eagles = db.relationship('Eagle', backref='player', lazy=True)
-
+    birdies = db.relationship('Birdie', backref='player', lazy='dynamic')
+    
     def to_dict(self):
         return {
-            "id": self.id,
-            "name": self.name,
-            "permanent_emojis": self.permanent_emojis
+            'id': self.id,
+            'name': self.name
         }
 
-class Birdie(db.Model):
-    id = db.Column(db.Integer, primary_key=True)
-    player_id = db.Column(db.Integer, db.ForeignKey('player.id'), nullable=False)
-    course_id = db.Column(db.Integer, db.ForeignKey('course.id'), nullable=False)
-    hole_number = db.Column(db.Integer, nullable=False)
-    year = db.Column(db.Integer, nullable=False)
-    date = db.Column(db.DateTime, nullable=False)
-    is_eagle = db.Column(db.Boolean, default=False)
-    
-    # Define relationships without duplicate backrefs
-    course = db.relationship('Course', backref='birdies')
-    # The player relationship is already defined in the Player model
-
 class Course(db.Model):
+    __tablename__ = 'course'
     id = db.Column(db.Integer, primary_key=True)
-    name = db.Column(db.String(80), unique=True, nullable=False)
+    name = db.Column(db.String(64), unique=True)
+    
+    birdies = db.relationship('Birdie', backref='course', lazy='dynamic')
+
+class Birdie(db.Model):
+    __tablename__ = 'birdie'
+    id = db.Column(db.Integer, primary_key=True)
+    player_id = db.Column(db.Integer, db.ForeignKey('player.id'))
+    course_id = db.Column(db.Integer, db.ForeignKey('course.id'))
+    hole_number = db.Column(db.Integer)
+    year = db.Column(db.Integer)
+    date = db.Column(db.DateTime, default=datetime.utcnow)
+    is_eagle = db.Column(db.Boolean, default=False)
 
 class HistoricalTotal(db.Model):
+    __tablename__ = 'historical_total'
     id = db.Column(db.Integer, primary_key=True)
-    player_id = db.Column(db.Integer, db.ForeignKey('player.id'), nullable=False)
-    year = db.Column(db.Integer, nullable=False)
+    player_id = db.Column(db.Integer, db.ForeignKey('player.id'))
+    year = db.Column(db.Integer)
     birdies = db.Column(db.Integer, default=0)
     eagles = db.Column(db.Integer, default=0)
     has_trophy = db.Column(db.Boolean, default=False)
-    
-    __table_args__ = (db.UniqueConstraint('player_id', 'year', name='unique_player_year'),)
 
 class Eagle(db.Model):
+    __tablename__ = 'eagle'
     id = db.Column(db.Integer, primary_key=True)
-    player_id = db.Column(db.Integer, db.ForeignKey('player.id'), nullable=False)
-    course_id = db.Column(db.Integer, db.ForeignKey('course.id'), nullable=False)
-    hole_number = db.Column(db.Integer, nullable=False)
-    year = db.Column(db.Integer, nullable=False)
+    player_id = db.Column(db.Integer, db.ForeignKey('player.id'))
+    course_id = db.Column(db.Integer, db.ForeignKey('course.id'))
+    hole_number = db.Column(db.Integer)
+    year = db.Column(db.Integer)
+    date = db.Column(db.DateTime, default=datetime.utcnow)
 
+# New models for tournaments
+
+class Tournament(db.Model):
+    __tablename__ = 'tournament'
+    id = db.Column(db.Integer, primary_key=True)
+    name = db.Column(db.String(128), nullable=False)
+    date = db.Column(db.DateTime, nullable=False)
+    course_id = db.Column(db.Integer, db.ForeignKey('course.id'))
+    is_team_event = db.Column(db.Boolean, default=False)
+    description = db.Column(db.Text, nullable=True)
+    year = db.Column(db.Integer, nullable=False)
+    
+    # Relationships
+    course = db.relationship('Course', backref='tournaments')
+    results = db.relationship('TournamentResult', backref='tournament', cascade='all, delete-orphan')
+    
     def __repr__(self):
-        return f'<Eagle {self.player_id} {self.course_id} {self.hole_number}>'
+        return f'<Tournament {self.name} - {self.date.strftime("%Y-%m-%d")}>'
+
+class Team(db.Model):
+    __tablename__ = 'team'
+    id = db.Column(db.Integer, primary_key=True)
+    name = db.Column(db.String(128), nullable=False)
+    
+    # Relationships
+    team_members = db.relationship('TeamMember', backref='team', cascade='all, delete-orphan')
+    results = db.relationship('TournamentResult', backref='team')
+    
+    def __repr__(self):
+        return f'<Team {self.name}>'
+
+class TeamMember(db.Model):
+    __tablename__ = 'team_member'
+    id = db.Column(db.Integer, primary_key=True)
+    team_id = db.Column(db.Integer, db.ForeignKey('team.id'), nullable=False)
+    player_id = db.Column(db.Integer, db.ForeignKey('player.id'), nullable=False)
+    
+    # Relationship
+    player = db.relationship('Player', backref='team_memberships')
+    
+    def __repr__(self):
+        return f'<TeamMember {self.player.name} in {self.team.name}>'
+
+class TournamentResult(db.Model):
+    __tablename__ = 'tournament_result'
+    id = db.Column(db.Integer, primary_key=True)
+    tournament_id = db.Column(db.Integer, db.ForeignKey('tournament.id'), nullable=False)
+    player_id = db.Column(db.Integer, db.ForeignKey('player.id'), nullable=True)
+    team_id = db.Column(db.Integer, db.ForeignKey('team.id'), nullable=True)
+    position = db.Column(db.Integer, nullable=False)  # 1 for winner, 2 for runner-up, etc.
+    score = db.Column(db.String(32), nullable=True)  # Could be strokes, points, etc.
+    
+    # Relationships
+    player = db.relationship('Player', backref='tournament_results')
+    
+    def __repr__(self):
+        if self.team_id:
+            return f'<Result: Tournament {self.tournament.name} - Team {self.team.name} - Position {self.position}>'
+        else:
+            return f'<Result: Tournament {self.tournament.name} - Player {self.player.name} - Position {self.position}>'

@@ -1,0 +1,58 @@
+{% extends "base.html" %}
+
+{% block title %}Edit Tournament - {{ tournament.name }}{% endblock %}
+
+{% block content %}
+<div class="container">
+    <h1 class="text-center mb-4">Edit Tournament</h1>
+    
+    <div class="text-center mb-3">
+        <a href="{{ url_for('main.admin_tournaments') }}" class="btn btn-primary">Back to Tournament Management</a>
+    </div>
+    
+    <div class="row justify-content-center">
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-header bg-primary text-white">
+                    <h2 class="h4 mb-0">Edit {{ tournament.name }}</h2>
+                </div>
+                <div class="card-body">
+                    <form action="{{ url_for('main.edit_tournament', tournament_id=tournament.id) }}" method="post">
+                        <div class="mb-3">
+                            <label for="name" class="form-label">Tournament Name</label>
+                            <input type="text" class="form-control" id="name" name="name" value="{{ tournament.name }}" required>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label for="date" class="form-label">Date</label>
+                            <input type="date" class="form-control" id="date" name="date" value="{{ tournament.date.strftime('%Y-%m-%d') }}" required>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label for="course_id" class="form-label">Course</label>
+                            <select class="form-control" id="course_id" name="course_id" required>
+                                <option value="">Select a course</option>
+                                {% for course in courses %}
+                                    <option value="{{ course.id }}" {% if course.id == tournament.course_id %}selected{% endif %}>{{ course.name }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        
+                        <div class="mb-3 form-check">
+                            <input type="checkbox" class="form-check-input" id="is_team_event" name="is_team_event" {% if tournament.is_team_event %}checked{% endif %}>
+                            <label class="form-check-label" for="is_team_event">Team Event</label>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label for="description" class="form-label">Description (Optional)</label>
+                            <textarea class="form-control" id="description" name="description" rows="3">{{ tournament.description or '' }}</textarea>
+                        </div>
+                        
+                        <button type="submit" class="btn btn-primary">Update Tournament</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %} 
