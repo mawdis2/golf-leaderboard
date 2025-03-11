@@ -18,6 +18,11 @@ def clear_flash_messages():
     # Clear any existing flash messages
     get_flashed_messages(with_categories=True)
 
+def check_site_auth():
+    if not session.get('site_authenticated'):
+        return redirect(url_for('main.site_password'))
+    return None
+
 @bp.route("/test")
 def test():
     return "Test route is working!"
@@ -42,8 +47,9 @@ def site_password():
 
 @bp.route("/leaderboard")
 def leaderboard():
-    if not session.get('site_authenticated'):
-        return redirect(url_for('main.site_password'))
+    auth_check = check_site_auth()
+    if auth_check:
+        return auth_check
         
     current_year = datetime.now().year
     three_days_ago = datetime.now() - timedelta(days=3)
@@ -143,6 +149,8 @@ def leaderboard():
 
 @bp.route("/add_player", methods=["GET", "POST"])
 def add_player():
+    auth_check = check_site_auth()
+    if auth_check:
     if request.method == "POST":
         name = request.form["name"].strip()
         existing_player = Player.query.filter(func.lower(Player.name) == func.lower(name)).first()

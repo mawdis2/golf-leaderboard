@@ -36,12 +36,8 @@ with app.app_context():
             db_url = db_url.split('@')[1]
         print(f"  -> Using database: {db_url}")
         
-        # Drop all existing tables
-        print("  -> Dropping existing tables...")
-        db.drop_all()
-        
-        # Create all tables fresh
-        print("  -> Creating all tables...")
+        # Create tables if they don't exist
+        print("  -> Creating tables if they don't exist...")
         db.create_all()
         
         # Verify tables were created
@@ -81,4 +77,4 @@ with app.app_context():
 
 if __name__ == '__main__':
     with app.app_context():
-        init_db() 
+        init_db()
