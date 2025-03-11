@@ -13,54 +13,58 @@
         {% endif %}
     {% endwith %}
     
-    <form method="POST" action="{{ url_for('main.add_birdie') }}" class="form">
+    <form method="POST" onsubmit="return validateDate()">
         <div class="form-group">
             <label for="player_id">Player:</label>
-            <select name="player_id" id="player_id" required class="form-control">
+            <select name="player_id" id="player_id" required>
+                <option value="">Select a player</option>
                 {% for player in players %}
-                    <option value="{{ player.id }}">{{ player.name }}</option>
+                <option value="{{ player.id }}">{{ player.name }}</option>
                 {% endfor %}
             </select>
         </div>
         
         <div class="form-group">
             <label for="course_id">Course:</label>
-            <select name="course_id" id="course_id" required class="form-control">
-                {% if courses %}
-                    {% for course in courses %}
-                        <option value="{{ course.id }}">{{ course.name }}</option>
-                    {% endfor %}
-                {% else %}
-                    <option value="" disabled>No courses available - add one below</option>
-                {% endif %}
+            <select name="course_id" id="course_id" required>
+                <option value="">Select a course</option>
+                {% for course in courses %}
+                <option value="{{ course.id }}">{{ course.name }}</option>
+                {% endfor %}
             </select>
         </div>
         
         <div class="form-group">
             <label for="hole_number">Hole Number:</label>
-            <input type="number" name="hole_number" id="hole_number" required min="1" max="18" class="form-control">
+            <input type="number" name="hole_number" id="hole_number" min="1" max="18" required>
         </div>
         
         <div class="form-group">
             <label for="date">Date:</label>
-            <input type="date" name="date" id="date" min="{{ min_date }}" max="{{ max_date }}" required>
+            <input type="date" 
+                   name="date" 
+                   id="date" 
+                   min="{{ min_date }}" 
+                   max="{{ max_date }}" 
+                   required>
         </div>
         
         <div class="form-group">
             <label>
-                <input type="checkbox" name="is_eagle" value="true"> Eagle (check if this is an eagle)
+                <input type="checkbox" id="is_eagle" name="is_eagle" value="true">
+                Is this an eagle?
             </label>
         </div>
         
         <button type="submit" class="btn btn-primary">Add Score</button>
     </form>
     
-    <div class="mt-4">
-        <h3>Add New Course</h3>
-        <form method="POST" action="{{ url_for('main.add_course') }}" class="form">
+    <div class="add-course-form">
+        <h2>Add New Course</h2>
+        <form action="{{ url_for('main.add_course') }}" method="POST">
             <div class="form-group">
                 <label for="course_name">Course Name:</label>
-                <input type="text" name="course_name" id="course_name" required class="form-control">
+                <input type="text" name="course_name" id="course_name" required>
             </div>
             <button type="submit" class="btn btn-secondary">Add Course</button>
         </form>
@@ -72,52 +76,81 @@
 </div>
 
 <script>
-    // Get the date input element
+function validateDate() {
     const dateInput = document.getElementById('date');
+    const selectedDate = new Date(dateInput.value);
+    const today = new Date();
+    const startOfYear = new Date('{{ min_date }}');
     
-    // Set min and max dates
-    const today = new Date().toISOString().split('T')[0];
-    const startOfYear = new Date().getFullYear() + '-01-01';
+    // Reset hours to avoid time zone issues
+    selectedDate.setHours(0, 0, 0, 0);
+    today.setHours(0, 0, 0, 0);
+    startOfYear.setHours(0, 0, 0, 0);
     
-    // Apply restrictions
-    dateInput.setAttribute('min', startOfYear);
-    dateInput.setAttribute('max', today);
+    if (selectedDate > today) {
+        alert('Cannot select a future date');
+        return false;
+    }
     
-    // Add event listener to validate on change
-    dateInput.addEventListener('change', function() {
-        const selectedDate = new Date(this.value);
-        const minDate = new Date(startOfYear);
-        const maxDate = new Date(today);
-        
-        if (selectedDate < minDate) {
-            alert('Please select a date from this year');
-            this.value = '';
-        }
-        if (selectedDate > maxDate) {
-            alert('Cannot select future dates');
-            this.value = '';
-        }
-    });
+    if (selectedDate < startOfYear) {
+        alert('Please select a date from the current year');
+        return false;
+    }
+    
+    return true;
+}
+
+// Set default date to today
+document.addEventListener('DOMContentLoaded', function() {
+    const dateInput = document.getElementById('date');
+    dateInput.value = '{{ max_date }}';
+});
 </script>
 
 <style>
-    /* Style for the date input */
-    input[type="date"] {
-        padding: 8px;
-        border: 1px solid #ced4da;
-        border-radius: 4px;
-        width: 100%;
-    }
+.container {
+    max-width: 600px;
+    margin: 0 auto;
+    padding: 20px;
+}
 
-    /* Style for the calendar picker icon */
-    input[type="date"]::-webkit-calendar-picker-indicator {
-        cursor: pointer;
-        padding: 5px;
-    }
+.form-group {
+    margin-bottom: 15px;
+}
 
-    /* Remove default calendar icon in Edge */
-    input[type="date"]::-webkit-clear-button {
-        display: none;
-    }
+label {
+    display: block;
+    margin-bottom: 5px;
+}
+
+select, input[type="number"], input[type="date"], input[type="text"] {
+    width: 100%;
+    padding: 8px;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+}
+
+.btn {
+    padding: 10px 20px;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+}
+
+.btn-primary {
+    background-color: #007bff;
+    color: white;
+}
+
+.btn-secondary {
+    background-color: #6c757d;
+    color: white;
+}
+
+.add-course-form {
+    margin-top: 30px;
+    padding-top: 20px;
+    border-top: 1px solid #ddd;
+}
 </style>
 {% endblock %}

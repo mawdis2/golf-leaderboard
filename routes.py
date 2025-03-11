@@ -153,6 +153,24 @@ def add_birdie():
             date_str = request.form.get('date')
             is_eagle_raw = request.form.get('is_eagle')
             
+            # Parse and validate the date
+            try:
+                date = datetime.strptime(date_str, '%Y-%m-%d')
+                current_year = datetime.now().year
+                today = datetime.now().date()
+                
+                # Check if date is in current year and not in future
+                if date.year != current_year:
+                    flash('Please select a date from the current year.', 'error')
+                    return redirect(url_for('main.add_birdie'))
+                if date.date() > today:
+                    flash('Cannot select a future date.', 'error')
+                    return redirect(url_for('main.add_birdie'))
+                    
+            except ValueError:
+                flash('Invalid date format.', 'error')
+                return redirect(url_for('main.add_birdie'))
+            
             print("is_eagle raw value:", is_eagle_raw)
             is_eagle = True if is_eagle_raw == 'true' else False
             print("is_eagle after conversion:", is_eagle)
@@ -163,14 +181,6 @@ def add_birdie():
             print(f"Hole Number: {hole_number}")
             print(f"Date: {date_str}")
             print(f"Is Eagle: {is_eagle}")
-            
-            # Parse the date
-            date = datetime.strptime(date_str, '%Y-%m-%d')
-            print(f"Parsed date: {date}")
-            
-            # Get the current year
-            current_year = datetime.now().year
-            print(f"Current year: {current_year}")
             
             # Find the player
             player = Player.query.get(player_id)
@@ -220,7 +230,8 @@ def add_birdie():
             players=players, 
             courses=courses,
             min_date=start_of_year,
-            max_date=today
+            max_date=today,
+            current_year=datetime.now().year
         )
     except Exception as e:
         print(f"Error loading page: {e}")
