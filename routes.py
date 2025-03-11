@@ -151,6 +151,8 @@ def leaderboard():
 def add_player():
     auth_check = check_site_auth()
     if auth_check:
+        return auth_check
+        
     if request.method == "POST":
         name = request.form["name"].strip()
         existing_player = Player.query.filter(func.lower(Player.name) == func.lower(name)).first()
