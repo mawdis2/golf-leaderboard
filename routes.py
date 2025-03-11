@@ -528,11 +528,11 @@ def history():
             (Player.id == HistoricalTotal.player_id) & 
             (HistoricalTotal.year == selected_year)
         ).filter(
-            db.or_(
+            or_(
                 HistoricalTotal.birdies > 0,
                 HistoricalTotal.eagles > 0
             )
-        ).group_by(Player.id).all()
+        ).all()
 
     # Create initial leaderboard with totals
     leaderboard = []
@@ -599,7 +599,7 @@ def history():
             db.distinct(HistoricalTotal.year)
         ).filter(
             HistoricalTotal.year.isnot(None),
-            db.or_(
+            or_(
                 HistoricalTotal.birdies > 0,
                 HistoricalTotal.eagles > 0
             )
