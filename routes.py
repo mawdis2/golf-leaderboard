@@ -24,10 +24,27 @@ def test():
 
 @bp.route("/")
 def home():
+    if not session.get('site_authenticated'):
+        return redirect(url_for('main.site_password'))
     return redirect(url_for('main.leaderboard'))
+
+@bp.route("/site_password", methods=['GET', 'POST'])
+def site_password():
+    if request.method == 'POST':
+        password = request.form.get('password')
+        if password == 'shotgun':  # You can change this password
+            session['site_authenticated'] = True
+            session.permanent = True  # Make the session last longer
+            return redirect(url_for('main.leaderboard'))
+        else:
+            flash('Incorrect password', 'error')
+    return render_template('site_password.html')
 
 @bp.route("/leaderboard")
 def leaderboard():
+    if not session.get('site_authenticated'):
+        return redirect(url_for('main.site_password'))
+        
     current_year = datetime.now().year
     three_days_ago = datetime.now() - timedelta(days=3)
     players = Player.query.all()
