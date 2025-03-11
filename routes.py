@@ -343,15 +343,19 @@ def admin_dashboard():
         flash('You do not have permission to access the admin dashboard.')
         return redirect(url_for('main.leaderboard'))
     
-    # Get all scores (both birdies and eagles)
-    scores = Birdie.query.order_by(Birdie.date.desc()).all()
+    # Get all scores (both birdies and eagles) with joined Course and Player data
+    scores = Birdie.query.join(Course).join(Player).order_by(Birdie.date.desc()).all()
     
     # Get all players
     players = Player.query.all()
     
+    # Get all courses for the courses tab
+    courses = Course.query.all()
+    
     return render_template('admin_dashboard.html', 
                          scores=scores,
-                         players=players)
+                         players=players,
+                         courses=courses)
 
 @bp.route("/admin/player_birdies", methods=["GET"])
 def admin_player_birdies():
