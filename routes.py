@@ -268,19 +268,19 @@ def player_birdie_records(player_id):
     player = Player.query.get_or_404(player_id)
     current_year = datetime.now().year
     
-    # Get records grouped by course
+    # Get all records with date and hole number
     records = db.session.query(
         Course.name.label('course_name'),
-        func.count(case((Birdie.is_eagle == False, 1),)).label('birdie_count'),
-        func.count(case((Birdie.is_eagle == True, 1),)).label('eagle_count'),
-        func.count().label('total')
+        Birdie.date,
+        Birdie.hole_number,
+        Birdie.is_eagle
     ).join(
-        Birdie, Birdie.course_id == Course.id
+        Course, Course.id == Birdie.course_id
     ).filter(
         Birdie.player_id == player_id,
         Birdie.year == current_year
-    ).group_by(
-        Course.name
+    ).order_by(
+        Birdie.date.desc()
     ).all()
 
     return render_template(

@@ -9,28 +9,76 @@
 </head>
 <body>
     <div class="container">
-        <h1>{{ player.name }}'s Golf Stats {{ year }}</h1>
+        <h1>{{ player.name }}'s Records for {{ year }}</h1>
         
-        <table>
-            <tr>
-                <th>Course</th>
-                <th>Birdies</th>
-                <th>Eagles</th>
-                <th>Total</th>
-            </tr>
-            {% for record in records %}
-            <tr>
-                <td style="color: green;">{{ record.course_name }}</td>
-                <td>{{ record.birdie_count }}</td>
-                <td>{{ record.eagle_count }}</td>
-                <td>{{ record.total }}</td>
-            </tr>
-            {% endfor %}
+        <table class="table">
+            <thead>
+                <tr>
+                    <th>Date</th>
+                    <th>Course</th>
+                    <th>Hole</th>
+                    <th>Type</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for record in records %}
+                <tr>
+                    <td>{{ record.date.strftime('%Y-%m-%d') }}</td>
+                    <td>{{ record.course_name }}</td>
+                    <td>{{ record.hole_number }}</td>
+                    <td>{% if record.is_eagle %}Eagle{% else %}Birdie{% endif %}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
         </table>
 
-        <div class="button-container">
-            <a href="{{ url_for('main.leaderboard') }}" class="back-button">Back to Leaderboard</a>
+        <div class="mt-3">
+            <a href="{{ url_for('main.leaderboard') }}" class="btn btn-secondary">Back to Leaderboard</a>
         </div>
     </div>
+
+    <style>
+    .container {
+        max-width: 800px;
+        margin: 0 auto;
+        padding: 20px;
+    }
+
+    .table {
+        width: 100%;
+        border-collapse: collapse;
+        margin-top: 20px;
+    }
+
+    .table th, .table td {
+        padding: 12px;
+        text-align: left;
+        border-bottom: 1px solid #ddd;
+    }
+
+    .table th {
+        background-color: #f8f9fa;
+        font-weight: bold;
+    }
+
+    .table tr:hover {
+        background-color: #f5f5f5;
+    }
+
+    .btn {
+        display: inline-block;
+        padding: 10px 20px;
+        background-color: #6c757d;
+        color: white;
+        text-decoration: none;
+        border-radius: 4px;
+        border: none;
+    }
+
+    .btn:hover {
+        background-color: #5a6268;
+        color: white;
+    }
+    </style>
 </body>
 </html>
