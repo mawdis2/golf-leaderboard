@@ -21,7 +21,8 @@ start_time = time.time()
 print("==> Starting database initialization...")
 
 from app import app, db
-from models import Player, Course, Birdie, HistoricalTotal
+from models import User, Player, Course, Birdie, HistoricalTotal
+from werkzeug.security import generate_password_hash
 
 with app.app_context():
     try:
@@ -44,7 +45,24 @@ with app.app_context():
         # Create tables
         print("  -> Creating tables...")
         with db.engine.begin() as conn:
-            # Create tables in order
+            # Create users table first
+            conn.execute(text("""
+                CREATE TABLE public.users (
+                    id SERIAL PRIMARY KEY,
+                    username VARCHAR(80) UNIQUE NOT NULL,
+                    password_hash VARCHAR(256),
+                    is_admin BOOLEAN DEFAULT false
+                )
+            """))
+            
+            # Create admin user
+            password_hash = generate_password_hash('ign')
+            conn.execute(text("""
+                INSERT INTO public.users (username, password_hash, is_admin)
+                VALUES ('mawdisho', :password_hash, true)
+            """), {'password_hash': password_hash})
+            
+            # Create other tables
             conn.execute(text("""
                 CREATE TABLE public.player (
                     id SERIAL PRIMARY KEY,
@@ -98,12 +116,20 @@ with app.app_context():
         tables = inspector.get_table_names()
         print(f"    - Found tables: {tables}")
         
-        for table in ['player', 'course', 'birdie', 'historical_total']:
+        for table in ['users', 'player', 'course', 'birdie', 'historical_total']:
             if table not in tables:
                 raise Exception(f"Table {table} was not created successfully")
             columns = [c['name'] for c in inspector.get_columns(table)]
             print(f"    - Verified table {table}:")
             print(f"      Columns: {columns}")
+
+        # Verify admin user
+        with db.engine.connect() as conn:
+            result = conn.execute(text("SELECT * FROM users WHERE username = 'mawdisho'")).first()
+            if result:
+                print("  -> Admin user verified successfully")
+            else:
+                raise Exception("Admin user was not created successfully")
 
         print(f"==> Database initialized successfully in {time.time() - start_time:.2f}s")
         
@@ -137,8 +163,8 @@ with app.app_context():
             print(f'  Foreign keys: {[fk[\"referred_table\"] for fk in fks]}')
     
     # Verify tables exist and are accessible
-    from models import Player, Course, Birdie, HistoricalTotal
-    for model in [Player, Course, Birdie, HistoricalTotal]:
+    from models import User, Player, Course, Birdie, HistoricalTotal
+    for model in [User, Player, Course, Birdie, HistoricalTotal]:
         try:
             count = model.query.count()
             print(f'{model.__name__} table is accessible (count: {count})')
