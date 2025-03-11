@@ -622,8 +622,7 @@ def history():
             entry[2],  # birdies
             entry[3],  # player_id
             entry[4],  # trophy
-            entry[5],   # eagles
-            "🦅" if entry[5] > 0 else ""  # eagle emoji for display
+            entry[5]   # eagles
         ))
 
     # Get list of available years

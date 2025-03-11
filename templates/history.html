@@ -12,9 +12,9 @@
     </div>
     
     <div class="card">
-        <div class="card-header bg-primary text-white">
+        <div class="card-header bg-primary">
             <div class="d-flex justify-content-between align-items-center">
-                <h2 class="h4 mb-0">Leaderboard for {{ selected_year }}</h2>
+                <h2 class="h4 mb-0 text-white">Leaderboard for {{ selected_year }}</h2>
                 <div>
                     <form method="get" class="d-inline-block">
                         <select name="year" class="form-control" onchange="this.form.submit()">
@@ -43,7 +43,7 @@
                             <td>{{ rank }}</td>
                             <td>
                                 <a href="{{ url_for('main.player_birdie_records', player_id=player_id, year=selected_year) }}">
-                                    {{ name }} {{ trophy }} {{ eagle_emoji }}
+                                    {{ name }} {{ trophy }} {% if eagles > 0 %}{{ "🦅" * eagles }}{% endif %}
                                 </a>
                             </td>
                             <td>{{ birdies }}</td>
