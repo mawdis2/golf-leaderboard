@@ -82,7 +82,7 @@ def leaderboard():
         
         # Add one birdie emoji for each recent birdie
         if recent_birdies > 0:
-            emojis += "🐦" * recent_birdies
+            emojis += "🐤" * recent_birdies
             print(f"Found {recent_birdies} recent birdies for {player.name}")
             
         # Add eagle emojis for current year
@@ -343,14 +343,14 @@ def admin_dashboard():
         flash('You do not have permission to access the admin dashboard.')
         return redirect(url_for('main.leaderboard'))
     
-    # Get eagles using the Birdie model with is_eagle=True
-    eagles = Birdie.query.filter_by(is_eagle=True).order_by(Birdie.date.desc()).all()
+    # Get all scores (both birdies and eagles)
+    scores = Birdie.query.order_by(Birdie.date.desc()).all()
     
     # Get all players
     players = Player.query.all()
     
     return render_template('admin_dashboard.html', 
-                         eagles=eagles,
+                         scores=scores,
                          players=players)
 
 @bp.route("/admin/player_birdies", methods=["GET"])
@@ -850,23 +850,19 @@ def delete_trophy(player_id):
         flash(f'{player.name} does not have a trophy')
     return redirect(url_for('main.admin_dashboard'))
 
-@bp.route("/delete_score/<score_type>/<int:score_id>", methods=['POST'])
+@bp.route("/delete_score/<int:score_id>", methods=['POST'])
 @login_required
-def delete_score(score_type, score_id):
-    try:
-        if score_type == 'birdie':
-            score = Birdie.query.get_or_404(score_id)
-        elif score_type == 'eagle':
-            score = Eagle.query.get_or_404(score_id)
-        else:
-            flash('Invalid score type', 'error')
-            return redirect(url_for('main.admin_dashboard'))
+def delete_score(score_id):
+    if not current_user.is_admin:
+        flash('You do not have permission to delete scores.')
+        return redirect(url_for('main.leaderboard'))
         
+    try:
+        score = Birdie.query.get_or_404(score_id)
         db.session.delete(score)
         db.session.commit()
-        flash(f'{score_type.capitalize()} deleted successfully', 'success')
-        
+        flash('Score deleted successfully', 'success')
     except Exception as e:
-        flash(f'Error deleting {score_type}: {str(e)}', 'error')
+        flash(f'Error deleting score: {str(e)}', 'error')
     
     return redirect(url_for('main.admin_dashboard'))
