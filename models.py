@@ -31,9 +31,11 @@ class Player(db.Model):
     name = db.Column(db.String(80), unique=True, nullable=False)
     has_trophy = db.Column(db.Boolean, default=False)
     permanent_emojis = db.Column(db.String(50))
+    
+    # Define relationships
     birdies = db.relationship('Birdie', backref='player', lazy=True)
-    eagles = db.relationship('Eagle', backref='player', lazy=True)
     historical_totals = db.relationship('HistoricalTotal', backref='player', lazy=True)
+    eagles = db.relationship('Eagle', backref='player', lazy=True)
 
     def to_dict(self):
         return {
@@ -51,9 +53,9 @@ class Birdie(db.Model):
     date = db.Column(db.DateTime, nullable=False)
     is_eagle = db.Column(db.Boolean, default=False)
     
-    # Define relationships
-    player = db.relationship('Player', backref='birdies')
+    # Define relationships without duplicate backrefs
     course = db.relationship('Course', backref='birdies')
+    # The player relationship is already defined in the Player model
 
 class Course(db.Model):
     id = db.Column(db.Integer, primary_key=True)
