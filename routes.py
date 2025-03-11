@@ -330,7 +330,7 @@ def logout():
 def admin_dashboard():
     if not current_user.is_admin:
         flash('You do not have permission to access the admin dashboard.')
-        return redirect(url_for('leaderboard'))
+        return redirect(url_for('main.leaderboard'))
     
     # Get eagles using the Birdie model with is_eagle=True
     eagles = Birdie.query.filter_by(is_eagle=True).order_by(Birdie.date.desc()).all()
@@ -338,7 +338,7 @@ def admin_dashboard():
     # Get all players
     players = Player.query.all()
     
-    return render_template('admin.html', 
+    return render_template('admin_dashboard.html', 
                          eagles=eagles,
                          players=players)
 
