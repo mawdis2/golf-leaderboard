@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # Exit on error
-set -e
+set -o errexit
 
 # Set environment variables
 export FLASK_APP=app
@@ -141,37 +141,13 @@ with app.app_context():
         sys.exit(1)
 EOF
 
-# Initialize database
+# Initialize database (tables and admin user if they don't exist)
 echo "==> Initializing database..."
 python init_db.py
 
-# Verify final state
+# Verify final database state
 echo "==> Verifying final database state..."
-python -c "
-from app import app, db
-from sqlalchemy import inspect
-with app.app_context():
-    inspector = inspect(db.engine)
-    tables = inspector.get_table_names()
-    print('Available tables:', tables)
-    for table in tables:
-        columns = [c['name'] for c in inspector.get_columns(table)]
-        fks = inspector.get_foreign_keys(table)
-        print(f'Table {table}:')
-        print(f'  Columns: {columns}')
-        if fks:
-            print(f'  Foreign keys: {[fk[\"referred_table\"] for fk in fks]}')
-    
-    # Verify tables exist and are accessible
-    from models import User, Player, Course, Birdie, HistoricalTotal
-    for model in [User, Player, Course, Birdie, HistoricalTotal]:
-        try:
-            count = model.query.count()
-            print(f'{model.__name__} table is accessible (count: {count})')
-        except Exception as e:
-            print(f'Error accessing {model.__name__} table: {e}')
-            raise
-"
+python verify_db.py
 
 # Clean up
 rm -f init_db.py 

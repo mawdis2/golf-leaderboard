@@ -8,6 +8,9 @@ from app import create_app
 from extensions import db
 from models import User, Player, Course, Birdie, HistoricalTotal, Eagle
 from sqlalchemy import inspect, text
+from flask import Flask
+from werkzeug.security import generate_password_hash
+from datetime import datetime
 
 def verify_table_exists(table_name, inspector):
     tables = inspector.get_table_names()
@@ -55,34 +58,27 @@ with app.app_context():
                 print(f"  -> ERROR: Required table '{table}' is missing!")
                 raise Exception(f"Required table '{table}' was not created")
         
-        # Create admin user
-        print("\n==> Creating admin user...")
-        admin = User(username='mawdisho', is_admin=True)
-        admin.set_password('ign')
-        db.session.add(admin)
-        
-        try:
+        # Check if admin user exists
+        admin_user = User.query.filter_by(username='admin').first()
+        if not admin_user:
+            print("  -> Creating admin user...")
+            admin_user = User(
+                username='admin',
+                is_admin=True
+            )
+            admin_user.set_password('shotgun')  # You can change this password
+            db.session.add(admin_user)
             db.session.commit()
             print("  -> Admin user created successfully")
-            
-            # Verify admin user was created
-            admin_user = User.query.filter_by(username='mawdisho').first()
-            if admin_user:
-                print(f"  -> Verified admin user exists:")
-                print(f"     - Username: {admin_user.username}")
-                print(f"     - ID: {admin_user.id}")
-                print(f"     - Admin: {admin_user.is_admin}")
-            else:
-                print("  -> WARNING: Admin user not found after creation!")
-                raise Exception("Failed to create admin user")
-                
-        except Exception as e:
-            db.session.rollback()
-            print(f"  -> Error creating admin user: {e}")
-            raise
+        else:
+            print("  -> Admin user already exists")
         
         print(f"\n==> Database initialization completed in {time.time() - start_time:.2f}s")
         
     except Exception as e:
         print(f"==> Database initialization error: {e}")
-        sys.exit(1) 
+        sys.exit(1)
+
+if __name__ == '__main__':
+    with app.app_context():
+        init_db() 
