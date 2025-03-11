@@ -9,7 +9,7 @@ export PYTHONPATH=$PYTHONPATH:/opt/render/project/src
 
 # Install dependencies
 echo "==> Installing dependencies..."
-python -m pip install --no-cache-dir -r requirements.txt
+pip install -r requirements.txt
 
 # Create database initialization script
 cat > init_db.py << 'EOF'
