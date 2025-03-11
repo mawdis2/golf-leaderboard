@@ -328,17 +328,19 @@ def logout():
 @bp.route("/admin")
 @login_required
 def admin_dashboard():
+    if not current_user.is_admin:
+        flash('You do not have permission to access the admin dashboard.')
+        return redirect(url_for('leaderboard'))
+    
+    # Get eagles using the Birdie model with is_eagle=True
+    eagles = Birdie.query.filter_by(is_eagle=True).order_by(Birdie.date.desc()).all()
+    
+    # Get all players
     players = Player.query.all()
-    courses = Course.query.all()
-    # Print debug information
-    for player in players:
-        print(f"Player: {player.name}, Has Trophy: {player.has_trophy}")
     
-    # Add these lines to get birdies and eagles
-    birdies = Birdie.query.order_by(Birdie.date.desc()).all()
-    eagles = Eagle.query.order_by(Eagle.date.desc()).all()
-    
-    return render_template("admin_dashboard.html", players=players, courses=courses, birdies=birdies, eagles=eagles)
+    return render_template('admin.html', 
+                         eagles=eagles,
+                         players=players)
 
 @bp.route("/admin/player_birdies", methods=["GET"])
 def admin_player_birdies():
