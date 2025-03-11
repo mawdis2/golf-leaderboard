@@ -750,7 +750,7 @@ def add_historical_totals():
                     try:
                         player_id = int(key.split('_')[1])
                         birdies = int(value) if value else 0
-                        eagles = int(request.form.get(f'eagles_{player_id}', 0))
+                        eagles = int(request.form.get(f'eagles_{player_id}', 0) or 0)  # Handle empty string
                         has_trophy = request.form.get(f'trophy_{player_id}', 'off') == 'on'
                         
                         print(f"\nProcessing player {player_id}:")
@@ -781,6 +781,16 @@ def add_historical_totals():
                             )
                             db.session.add(historical_total)
                             print("New record added to session")
+                        
+                        # Update player's trophy status if needed
+                        if has_trophy:
+                            player = Player.query.get(player_id)
+                            if player:
+                                if not player.permanent_emojis:
+                                    player.permanent_emojis = "🏆"
+                                elif "🏆" not in player.permanent_emojis:
+                                    player.permanent_emojis += "🏆"
+                                print(f"Updated player trophy status: {player.permanent_emojis}")
                     except Exception as player_error:
                         print(f"Error processing player {player_id}: {str(player_error)}")
                         raise
@@ -788,6 +798,18 @@ def add_historical_totals():
             print("\nCommitting to database...")
             db.session.commit()
             print("Commit successful!")
+            
+            # Verify the data was saved correctly
+            for key, value in request.form.items():
+                if key.startswith('birdies_'):
+                    player_id = int(key.split('_')[1])
+                    historical = HistoricalTotal.query.filter_by(
+                        player_id=player_id,
+                        year=year
+                    ).first()
+                    if historical:
+                        print(f"Verified player {player_id}: Birdies={historical.birdies}, Eagles={historical.eagles}, Trophy={historical.has_trophy}")
+            
             flash(f"Historical totals updated for {year}", "success")
             return redirect(url_for("main.history", year=year))
 
