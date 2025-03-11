@@ -343,8 +343,11 @@ def admin_dashboard():
         flash('You do not have permission to access the admin dashboard.')
         return redirect(url_for('main.leaderboard'))
     
-    # Get all scores (both birdies and eagles) with joined Course and Player data
-    scores = Birdie.query.join(Course).join(Player).order_by(Birdie.date.desc()).all()
+    # Get all scores (both birdies and eagles) with eager loading of Course and Player
+    scores = Birdie.query.options(
+        db.joinedload(Birdie.course),
+        db.joinedload(Birdie.player)
+    ).order_by(Birdie.date.desc()).all()
     
     # Get all players
     players = Player.query.all()

@@ -50,6 +50,10 @@ class Birdie(db.Model):
     year = db.Column(db.Integer, nullable=False)
     date = db.Column(db.DateTime, nullable=False)
     is_eagle = db.Column(db.Boolean, default=False)
+    
+    # Define relationships
+    player = db.relationship('Player', backref='birdies')
+    course = db.relationship('Course', backref='birdies')
 
 class Course(db.Model):
     id = db.Column(db.Integer, primary_key=True)
