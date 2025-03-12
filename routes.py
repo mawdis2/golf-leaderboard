@@ -961,34 +961,34 @@ def delete_score(score_id):
 
 @bp.route("/tournaments")
 def tournaments():
-    auth_check = check_site_auth()
-    if auth_check:
-        return auth_check
+    # Check if site password is required
+    auth_redirect = check_site_auth()
+    if auth_redirect:
+        return auth_redirect
         
-    current_year = datetime.now().year
-    selected_year = request.args.get('year', current_year, type=int)
+    # Get the selected year (default to current year)
+    selected_year = request.args.get('year', datetime.now().year, type=int)
     
-    # Get all tournaments for the selected year
+    # Get all years that have tournaments
+    years_with_tournaments = db.session.query(
+        func.distinct(Tournament.year)
+    ).order_by(Tournament.year.desc()).all()
+    
+    years = [year[0] for year in years_with_tournaments]
+    
+    # If no tournaments exist yet, use current year
+    if not years:
+        years = [datetime.now().year]
+    
+    # If selected year is not in the list, use the first year
+    if selected_year not in years:
+        selected_year = years[0]
+    
+    # Get tournaments for the selected year
     tournaments = Tournament.query.filter_by(year=selected_year).order_by(Tournament.date.desc()).all()
     
-    # Get list of available years
-    tournament_years = db.session.query(
-        db.distinct(Tournament.year)
-    ).filter(
-        Tournament.year.isnot(None)
-    ).all()
-    
-    years = [year[0] for year in tournament_years]
-    
-    # Always include current year
-    if current_year not in years:
-        years.append(current_year)
-    
-    # Sort years in descending order
-    years = sorted(list(set(years)), reverse=True)
-    
     return render_template(
-        "tournaments.html",
+        'tournaments.html',
         tournaments=tournaments,
         selected_year=selected_year,
         years=years
@@ -996,17 +996,19 @@ def tournaments():
 
 @bp.route("/tournament/<int:tournament_id>")
 def tournament_details(tournament_id):
-    auth_check = check_site_auth()
-    if auth_check:
-        return auth_check
+    # Check if site password is required
+    auth_redirect = check_site_auth()
+    if auth_redirect:
+        return auth_redirect
         
+    # Get the tournament
     tournament = Tournament.query.get_or_404(tournament_id)
     
-    # Get results ordered by position
-    results = TournamentResult.query.filter_by(tournament_id=tournament_id).order_by(TournamentResult.position).all()
+    # Get results for this tournament
+    results = TournamentResult.query.filter_by(tournament_id=tournament.id).order_by(TournamentResult.position).all()
     
     return render_template(
-        "tournament_details.html",
+        'tournament_details.html',
         tournament=tournament,
         results=results
     )
