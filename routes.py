@@ -838,7 +838,7 @@ def add_historical_totals():
                     try:
                         player_id = int(key.split('_')[1])
                         birdies = int(value) if value else 0
-                        eagles = int(request.form.get(f'eagles_{player_id}', 0) or 0
+                        eagles = int(request.form.get(f'eagles_{player_id}', 0) or 0)
                         has_trophy = request.form.get(f'trophy_{player_id}', 'off') == 'on'
                         
                         print(f"\nProcessing player {player_id}:")
