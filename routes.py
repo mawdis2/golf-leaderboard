@@ -72,7 +72,7 @@ def leaderboard():
             Birdie.is_eagle == True
         ).count()
         
-        # Check for trophy
+        # Check for trophy from tournament wins or historical data
         has_trophy = HistoricalTotal.query.filter(
             HistoricalTotal.player_id == player.id,
             HistoricalTotal.year == current_year,
@@ -576,11 +576,21 @@ def history():
     for player_data in players:
         if selected_year == current_year:
             player, birdie_count, eagle_count = player_data
-            has_trophy = "🏆" in (player.permanent_emojis or "")
+            has_trophy = HistoricalTotal.query.filter_by(
+                player_id=player.id,
+                year=selected_year,
+                has_trophy=True
+            ).first() is not None
         else:
             player, birdie_count, eagle_count, has_trophy = player_data
         
         total = birdie_count + eagle_count
+        
+        # Count total trophies across all years
+        trophy_count = HistoricalTotal.query.filter_by(
+            player_id=player.id,
+            has_trophy=True
+        ).count()
         
         leaderboard.append((
             total,  # Store total for sorting
@@ -588,7 +598,8 @@ def history():
             birdie_count,
             player.id,
             "🏆" if has_trophy else "",
-            eagle_count
+            eagle_count,
+            trophy_count  # Add trophy count
         ))
     
     # Sort by total score (descending)
@@ -621,8 +632,9 @@ def history():
             entry[1],  # name
             entry[2],  # birdies
             entry[3],  # player_id
-            entry[4],  # trophy
-            entry[5]   # eagles
+            entry[4],  # trophy for current year
+            entry[5],  # eagles
+            entry[6]   # total trophy count
         ))
 
     # Get list of available years
@@ -1265,6 +1277,53 @@ def add_tournament_result(tournament_id):
                     position=position,
                     score=score
                 )
+                
+                db.session.add(result)
+                
+                # Award trophies to team members if they won (position 1)
+                if position == 1:
+                    team = Team.query.get(team_id)
+                    for member in team.team_members:
+                        player = member.player
+                        # Add trophy to player's permanent emojis
+                        if not player.permanent_emojis:
+                            player.permanent_emojis = "🏆"
+                        elif "🏆" not in player.permanent_emojis:
+                            player.permanent_emojis += "🏆"
+                        
+                        # Update or create historical total for current year
+                        current_year = tournament.date.year
+                        historical_total = HistoricalTotal.query.filter_by(
+                            player_id=player.id,
+                            year=current_year
+                        ).first()
+                        
+                        if not historical_total:
+                            # Count current year birdies and eagles
+                            birdie_count = Birdie.query.filter(
+                                Birdie.player_id == player.id,
+                                Birdie.year == current_year,
+                                Birdie.is_eagle == False
+                            ).count()
+                            
+                            eagle_count = Birdie.query.filter(
+                                Birdie.player_id == player.id,
+                                Birdie.year == current_year,
+                                Birdie.is_eagle == True
+                            ).count()
+                            
+                            historical_total = HistoricalTotal(
+                                player_id=player.id,
+                                year=current_year,
+                                birdies=birdie_count,
+                                eagles=eagle_count,
+                                has_trophy=True
+                            )
+                            db.session.add(historical_total)
+                        else:
+                            historical_total.has_trophy = True
+                    
+                    flash(f'Trophy awarded to all members of team {team.name}!', 'success')
             else:
                 player_id = request.form.get('player_id')
                 
@@ -1275,8 +1334,52 @@ def add_tournament_result(tournament_id):
                     position=position,
                     score=score
                 )
+                
+                db.session.add(result)
+                
+                # Award trophy to player if they won (position 1)
+                if position == 1:
+                    player = Player.query.get(player_id)
+                    # Add trophy to player's permanent emojis
+                    if not player.permanent_emojis:
+                        player.permanent_emojis = "🏆"
+                    elif "🏆" not in player.permanent_emojis:
+                        player.permanent_emojis += "🏆"
+                    
+                    # Update or create historical total for current year
+                    current_year = tournament.date.year
+                    historical_total = HistoricalTotal.query.filter_by(
+                        player_id=player_id,
+                        year=current_year
+                    ).first()
+                    
+                    if not historical_total:
+                        # Count current year birdies and eagles
+                        birdie_count = Birdie.query.filter(
+                            Birdie.player_id == player_id,
+                            Birdie.year == current_year,
+                            Birdie.is_eagle == False
+                        ).count()
+                        
+                        eagle_count = Birdie.query.filter(
+                            Birdie.player_id == player_id,
+                            Birdie.year == current_year,
+                            Birdie.is_eagle == True
+                        ).count()
+                        
+                        historical_total = HistoricalTotal(
+                            player_id=player_id,
+                            year=current_year,
+                            birdies=birdie_count,
+                            eagles=eagle_count,
+                            has_trophy=True
+                        )
+                        db.session.add(historical_total)
+                    else:
+                        historical_total.has_trophy = True
+                    
+                    flash(f'Trophy awarded to {player.name}!', 'success')
             
-            db.session.add(result)
             db.session.commit()
             
             flash('Tournament result added successfully!', 'success')

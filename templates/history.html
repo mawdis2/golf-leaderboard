@@ -1,59 +1,64 @@
 <!-- templates/history.html -->
 {% extends "base.html" %}
 
-{% block title %}Birdie History{% endblock %}
+{% block title %}Birdie History {{ selected_year }}{% endblock %}
 
 {% block content %}
 <div class="container">
-    <h1 class="text-center mb-4">Birdie History</h1>
+    <h1 class="text-center mb-4">Birdie History {{ selected_year }}</h1>
     
     <div class="text-center mb-3">
         <a href="{{ url_for('main.leaderboard') }}" class="btn btn-primary">Back to Leaderboard</a>
     </div>
     
-    <div class="card">
-        <div class="card-header bg-primary">
-            <div class="d-flex justify-content-between align-items-center">
-                <h2 class="h4 mb-0 text-white">Leaderboard for {{ selected_year }}</h2>
-                <div>
-                    <form method="get" class="d-inline-block">
-                        <select name="year" class="form-control" onchange="this.form.submit()">
-                            {% for year in years %}
-                                <option value="{{ year }}" {% if year == selected_year %}selected{% endif %}>{{ year }}</option>
-                            {% endfor %}
-                        </select>
-                    </form>
+    <div class="year-selector text-center mb-4">
+        <form method="get" class="d-inline-block">
+            <div class="input-group">
+                <select name="year" class="form-control" onchange="this.form.submit()">
+                    {% for year in years %}
+                        <option value="{{ year }}" {% if year == selected_year %}selected{% endif %}>{{ year }}</option>
+                    {% endfor %}
+                </select>
+                <div class="input-group-append">
+                    <button class="btn btn-primary" type="submit">View</button>
                 </div>
             </div>
-        </div>
-        <div class="card-body">
-            <table class="table table-striped">
-                <thead>
-                    <tr>
-                        <th>Rank</th>
-                        <th>Player</th>
-                        <th>Birdies</th>
-                        <th>Eagles</th>
-                        <th>Total</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {% for rank, name, birdies, player_id, trophy, eagles in leaderboard %}
-                        <tr>
-                            <td>{{ rank }}</td>
-                            <td>
-                                <a href="{{ url_for('main.player_birdie_records', player_id=player_id, year=selected_year) }}">
-                                    {{ name }} {{ trophy }} {% if eagles > 0 %}{{ "🦅" * eagles }}{% endif %}
-                                </a>
-                            </td>
-                            <td>{{ birdies }}</td>
-                            <td>{{ eagles }}</td>
-                            <td>{{ birdies + eagles }}</td>
-                        </tr>
-                    {% endfor %}
-                </tbody>
-            </table>
-        </div>
+        </form>
     </div>
+    
+    <table class="table table-striped">
+        <thead>
+            <tr>
+                <th>Rank</th>
+                <th>Player</th>
+                <th>Birdies</th>
+                <th>Eagles</th>
+                <th>Total</th>
+                <th>Trophies</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for rank, name, birdies, player_id, trophy, eagles, trophy_count in leaderboard %}
+                <tr>
+                    <td>{{ rank }}</td>
+                    <td>
+                        <a href="{{ url_for('main.player_birdie_records', player_id=player_id, year=selected_year) }}">
+                            {{ name }} {{ trophy }}
+                        </a>
+                    </td>
+                    <td>{{ birdies }}</td>
+                    <td>{{ eagles }}</td>
+                    <td>{{ birdies + eagles }}</td>
+                    <td>{{ trophy_count }} {% if trophy_count > 0 %}🏆{% endif %}</td>
+                </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    
+    {% if current_user.is_authenticated and current_user.is_admin %}
+        <div class="text-center mt-4">
+            <a href="{{ url_for('main.add_historical_totals') }}" class="btn btn-success">Add Historical Data</a>
+        </div>
+    {% endif %}
 </div>
 {% endblock %}
