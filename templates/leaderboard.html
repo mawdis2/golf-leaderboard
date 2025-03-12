@@ -63,17 +63,38 @@
         background-size: cover;
         background-attachment: fixed;
         background-position: center;
+        min-height: 100vh;
     }
     
     .container {
-        background-color: rgba(255, 255, 255, 0.9);
-        padding: 20px;
+        background-color: rgba(255, 255, 255, 0.8);
+        padding: 15px;
         border-radius: 10px;
-        margin-top: 20px;
+        margin-top: 10px;
+        max-width: 95%;
     }
     
     .table {
-        background-color: white;
+        background-color: rgba(255, 255, 255, 0.9);
+    }
+    
+    /* Mobile-specific adjustments */
+    @media (max-width: 768px) {
+        .container {
+            background-color: rgba(255, 255, 255, 0.7);
+            padding: 10px;
+            margin-top: 5px;
+        }
+        
+        body {
+            background-position: top center;
+        }
+        
+        .btn {
+            padding: 0.25rem 0.5rem;
+            font-size: 0.875rem;
+            margin-bottom: 5px;
+        }
     }
 </style>
 {% endblock %}
