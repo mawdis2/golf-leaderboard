@@ -73,14 +73,27 @@ def leaderboard():
         ).count()
         
         # Check for trophy from tournament wins or historical data
-        historical_total = HistoricalTotal.query.filter(
-            HistoricalTotal.player_id == player.id,
-            HistoricalTotal.year == current_year,
-            HistoricalTotal.has_trophy == True
-        ).first()
-        
-        has_trophy = historical_total is not None
-        trophy_count = getattr(historical_total, 'trophy_count', 0) if historical_total else 0
+        try:
+            # Try to get trophy_count from historical_total
+            historical_total = HistoricalTotal.query.filter(
+                HistoricalTotal.player_id == player.id,
+                HistoricalTotal.year == current_year,
+                HistoricalTotal.has_trophy == True
+            ).first()
+            
+            has_trophy = historical_total is not None
+            trophy_count = getattr(historical_total, 'trophy_count', 0) if historical_total else 0
+        except Exception as e:
+            # If trophy_count column doesn't exist yet, fall back to has_trophy
+            print(f"Error getting trophy_count, falling back to has_trophy: {e}")
+            historical_total = HistoricalTotal.query.filter(
+                HistoricalTotal.player_id == player.id,
+                HistoricalTotal.year == current_year,
+                HistoricalTotal.has_trophy == True
+            ).first()
+            
+            has_trophy = historical_total is not None
+            trophy_count = 1 if has_trophy else 0
         
         total = birdie_count + eagle_count
         player.birdie_count = birdie_count
@@ -563,22 +576,42 @@ def history():
             func.count(Birdie.id) > 0
         ).all()
     else:
-        players = db.session.query(
-            Player,
-            HistoricalTotal.birdies.label('birdie_count'),
-            HistoricalTotal.eagles.label('eagle_count'),
-            HistoricalTotal.has_trophy.label('has_trophy'),
-            HistoricalTotal.trophy_count.label('trophy_count')
-        ).join(
-            HistoricalTotal,
-            (Player.id == HistoricalTotal.player_id) & 
-            (HistoricalTotal.year == selected_year)
-        ).filter(
-            or_(
-                HistoricalTotal.birdies > 0,
-                HistoricalTotal.eagles > 0
-            )
-        ).all()
+        try:
+            # Try to include trophy_count in the query
+            players = db.session.query(
+                Player,
+                HistoricalTotal.birdies.label('birdie_count'),
+                HistoricalTotal.eagles.label('eagle_count'),
+                HistoricalTotal.has_trophy.label('has_trophy'),
+                HistoricalTotal.trophy_count.label('trophy_count')
+            ).join(
+                HistoricalTotal,
+                (Player.id == HistoricalTotal.player_id) & 
+                (HistoricalTotal.year == selected_year)
+            ).filter(
+                or_(
+                    HistoricalTotal.birdies > 0,
+                    HistoricalTotal.eagles > 0
+                )
+            ).all()
+        except Exception as e:
+            # If trophy_count column doesn't exist yet, fall back to has_trophy
+            print(f"Error getting trophy_count, falling back to has_trophy: {e}")
+            players = db.session.query(
+                Player,
+                HistoricalTotal.birdies.label('birdie_count'),
+                HistoricalTotal.eagles.label('eagle_count'),
+                HistoricalTotal.has_trophy.label('has_trophy')
+            ).join(
+                HistoricalTotal,
+                (Player.id == HistoricalTotal.player_id) & 
+                (HistoricalTotal.year == selected_year)
+            ).filter(
+                or_(
+                    HistoricalTotal.birdies > 0,
+                    HistoricalTotal.eagles > 0
+                )
+            ).all()
 
     # Create initial leaderboard with totals
     leaderboard = []
@@ -586,34 +619,57 @@ def history():
         if selected_year == current_year:
             player, birdie_count, eagle_count = player_data
             # Get trophy info from HistoricalTotal
-            historical = HistoricalTotal.query.filter_by(
-                player_id=player.id,
-                year=selected_year
-            ).first()
-            
-            has_trophy = False
-            year_trophy_count = 0
-            if historical:
-                has_trophy = historical.has_trophy
-                year_trophy_count = getattr(historical, 'trophy_count', 0) or 0
+            try:
+                historical = HistoricalTotal.query.filter_by(
+                    player_id=player.id,
+                    year=selected_year
+                ).first()
+                
+                has_trophy = False
+                year_trophy_count = 0
+                if historical:
+                    has_trophy = historical.has_trophy
+                    year_trophy_count = getattr(historical, 'trophy_count', 0) or 0
+            except Exception as e:
+                print(f"Error getting trophy_count, falling back to has_trophy: {e}")
+                historical = HistoricalTotal.query.filter_by(
+                    player_id=player.id,
+                    year=selected_year
+                ).first()
+                
+                has_trophy = False
+                year_trophy_count = 0
+                if historical:
+                    has_trophy = historical.has_trophy
+                    year_trophy_count = 1 if has_trophy else 0
         else:
             if len(player_data) >= 5:  # Check if trophy_count is included
                 player, birdie_count, eagle_count, has_trophy, year_trophy_count = player_data
             else:
                 player, birdie_count, eagle_count, has_trophy = player_data
-                year_trophy_count = 0
+                year_trophy_count = 1 if has_trophy else 0
         
         total = birdie_count + eagle_count
         
         # Count total trophies across all years
         all_years_trophy_count = 0
-        historical_records = HistoricalTotal.query.filter_by(
-            player_id=player.id,
-            has_trophy=True
-        ).all()
-        
-        for record in historical_records:
-            all_years_trophy_count += getattr(record, 'trophy_count', 0) or 1  # Default to 1 for old records
+        try:
+            historical_records = HistoricalTotal.query.filter_by(
+                player_id=player.id,
+                has_trophy=True
+            ).all()
+            
+            for record in historical_records:
+                all_years_trophy_count += getattr(record, 'trophy_count', 0) or 1  # Default to 1 for old records
+        except Exception as e:
+            print(f"Error getting all years trophy count: {e}")
+            # Count trophies based on has_trophy
+            historical_records = HistoricalTotal.query.filter_by(
+                player_id=player.id,
+                has_trophy=True
+            ).all()
+            
+            all_years_trophy_count = len(historical_records)
         
         # Create trophy display string based on count
         trophy_display = ""
@@ -782,7 +838,7 @@ def add_historical_totals():
                     try:
                         player_id = int(key.split('_')[1])
                         birdies = int(value) if value else 0
-                        eagles = int(request.form.get(f'eagles_{player_id}', 0) or 0)  # Handle empty string
+                        eagles = int(request.form.get(f'eagles_{player_id}', 0) or 0
                         has_trophy = request.form.get(f'trophy_{player_id}', 'off') == 'on'
                         
                         print(f"\nProcessing player {player_id}:")
@@ -1332,22 +1388,40 @@ def add_tournament_result(tournament_id):
                                 Birdie.is_eagle == True
                             ).count()
                             
-                            historical_total = HistoricalTotal(
-                                player_id=player.id,
-                                year=current_year,
-                                birdies=birdie_count,
-                                eagles=eagle_count,
-                                has_trophy=True,
-                                trophy_count=1  # First trophy
-                            )
-                            db.session.add(historical_total)
+                            # Try to create with trophy_count
+                            try:
+                                historical_total = HistoricalTotal(
+                                    player_id=player.id,
+                                    year=current_year,
+                                    birdies=birdie_count,
+                                    eagles=eagle_count,
+                                    has_trophy=True,
+                                    trophy_count=1  # First trophy
+                                )
+                                db.session.add(historical_total)
+                            except Exception as e:
+                                print(f"Error creating historical total with trophy_count: {e}")
+                                # Fall back to just has_trophy
+                                historical_total = HistoricalTotal(
+                                    player_id=player.id,
+                                    year=current_year,
+                                    birdies=birdie_count,
+                                    eagles=eagle_count,
+                                    has_trophy=True
+                                )
+                                db.session.add(historical_total)
                         else:
                             historical_total.has_trophy = True
-                            # Increment trophy count
-                            if hasattr(historical_total, 'trophy_count'):
-                                historical_total.trophy_count += 1
-                            else:
-                                historical_total.trophy_count = 1
+                            # Try to increment trophy_count
+                            try:
+                                if hasattr(historical_total, 'trophy_count'):
+                                    historical_total.trophy_count += 1
+                                else:
+                                    historical_total.trophy_count = 1
+                            except Exception as e:
+                                print(f"Error updating trophy_count: {e}")
+                                # If trophy_count doesn't exist, just set has_trophy
+                                historical_total.has_trophy = True
                     
                     flash(f'Trophy awarded to all members of team {team.name}!', 'success')
             else:
@@ -1393,22 +1467,40 @@ def add_tournament_result(tournament_id):
                             Birdie.is_eagle == True
                         ).count()
                         
-                        historical_total = HistoricalTotal(
-                            player_id=player_id,
-                            year=current_year,
-                            birdies=birdie_count,
-                            eagles=eagle_count,
-                            has_trophy=True,
-                            trophy_count=1  # First trophy
-                        )
-                        db.session.add(historical_total)
+                        # Try to create with trophy_count
+                        try:
+                            historical_total = HistoricalTotal(
+                                player_id=player_id,
+                                year=current_year,
+                                birdies=birdie_count,
+                                eagles=eagle_count,
+                                has_trophy=True,
+                                trophy_count=1  # First trophy
+                            )
+                            db.session.add(historical_total)
+                        except Exception as e:
+                            print(f"Error creating historical total with trophy_count: {e}")
+                            # Fall back to just has_trophy
+                            historical_total = HistoricalTotal(
+                                player_id=player_id,
+                                year=current_year,
+                                birdies=birdie_count,
+                                eagles=eagle_count,
+                                has_trophy=True
+                            )
+                            db.session.add(historical_total)
                     else:
                         historical_total.has_trophy = True
-                        # Increment trophy count
-                        if hasattr(historical_total, 'trophy_count'):
-                            historical_total.trophy_count += 1
-                        else:
-                            historical_total.trophy_count = 1
+                        # Try to increment trophy_count
+                        try:
+                            if hasattr(historical_total, 'trophy_count'):
+                                historical_total.trophy_count += 1
+                            else:
+                                historical_total.trophy_count = 1
+                        except Exception as e:
+                            print(f"Error updating trophy_count: {e}")
+                            # If trophy_count doesn't exist, just set has_trophy
+                            historical_total.has_trophy = True
                     
                     flash(f'Trophy awarded to {player.name}!', 'success')
             

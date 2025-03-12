@@ -11,6 +11,7 @@ from sqlalchemy import inspect, text
 from flask import Flask
 from werkzeug.security import generate_password_hash
 from datetime import datetime
+from sqlalchemy.exc import OperationalError, ProgrammingError
 
 def verify_table_exists(table_name, inspector):
     tables = inspector.get_table_names()
@@ -36,9 +37,34 @@ with app.app_context():
             db_url = db_url.split('@')[1]
         print(f"  -> Using database: {db_url}")
         
+        # Test database connection
+        print("  -> Testing database connection...")
+        try:
+            db.engine.connect()
+            print("  -> Database connection successful")
+        except OperationalError as e:
+            print(f"  -> Database connection failed: {e}")
+            sys.exit(1)
+        
         # Create tables if they don't exist
         print("  -> Creating tables if they don't exist...")
         db.create_all()
+        
+        # Check if trophy_count column exists in historical_total table
+        # If not, add it
+        print("  -> Checking for trophy_count column...")
+        try:
+            db.session.execute(text("SELECT trophy_count FROM historical_total LIMIT 1"))
+            print("  -> trophy_count column already exists")
+        except (OperationalError, ProgrammingError):
+            print("  -> Adding trophy_count column to historical_total table...")
+            try:
+                db.session.execute(text("ALTER TABLE historical_total ADD COLUMN trophy_count INTEGER DEFAULT 0"))
+                db.session.commit()
+                print("  -> trophy_count column added successfully")
+            except Exception as e:
+                db.session.rollback()
+                print(f"  -> Error adding trophy_count column: {e}")
         
         # Verify tables were created
         inspector = inspect(db.engine)
@@ -75,6 +101,23 @@ with app.app_context():
         print(f"==> Database initialization error: {e}")
         sys.exit(1)
 
+def verify_db():
+    print("==> Verifying final database state...")
+    app = create_app()
+    
+    with app.app_context():
+        tables = db.engine.table_names()
+        print(f"Tables in the database: {tables}")
+        
+        # Check if Birdie table exists
+        if 'birdie' in tables:
+            result = db.session.execute(text("SELECT COUNT(*) FROM birdie"))
+            count = result.scalar()
+            print(f"The Birdie table has {count} records.")
+        else:
+            print("The Birdie table does not exist in the database.")
+
 if __name__ == '__main__':
     with app.app_context():
         init_db()
+        verify_db()

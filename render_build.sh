@@ -150,4 +150,11 @@ echo "==> Verifying final database state..."
 python verify_db.py
 
 # Clean up
-rm -f init_db.py 
+rm -f init_db.py
+
+# Create migrations directory if it doesn't exist
+mkdir -p migrations
+
+# Run migration script to update trophy counts
+echo "==> Running migration to update trophy counts..."
+python migrations/update_trophy_counts.py 
