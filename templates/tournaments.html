@@ -42,8 +42,13 @@
                                     </h3>
                                 </div>
                                 <div class="card-body">
-                                    <p><strong>Date:</strong> {{ tournament.date.strftime('%B %d, %Y') }}</p>
-                                    <p><strong>Course:</strong> {{ tournament.course.name }}</p>
+                                    <p><strong>Start Date:</strong> {{ tournament.date.strftime('%B %d, %Y') }}</p>
+                                    {% if tournament.end_date %}
+                                        <p><strong>End Date:</strong> {{ tournament.end_date.strftime('%B %d, %Y') }}</p>
+                                    {% endif %}
+                                    {% if tournament.course %}
+                                        <p><strong>Course:</strong> {{ tournament.course.name }}</p>
+                                    {% endif %}
                                     {% if tournament.description %}
                                         <p><strong>Description:</strong> {{ tournament.description }}</p>
                                     {% endif %}

@@ -1040,18 +1040,21 @@ def add_tournament():
         try:
             name = request.form.get('name')
             date_str = request.form.get('date')
-            course_id = request.form.get('course_id')
+            end_date_str = request.form.get('end_date')
+            course_id = request.form.get('course_id') or None  # Make course optional
             is_team_event = request.form.get('is_team_event') == 'on'
             description = request.form.get('description')
             
-            # Parse date
+            # Parse dates
             date = datetime.strptime(date_str, '%Y-%m-%d')
+            end_date = datetime.strptime(end_date_str, '%Y-%m-%d') if end_date_str else None
             year = date.year
             
             # Create tournament
             tournament = Tournament(
                 name=name,
                 date=date,
+                end_date=end_date,
                 course_id=course_id,
                 is_team_event=is_team_event,
                 description=description,
@@ -1088,7 +1091,11 @@ def edit_tournament(tournament_id):
         try:
             tournament.name = request.form.get('name')
             tournament.date = datetime.strptime(request.form.get('date'), '%Y-%m-%d')
-            tournament.course_id = request.form.get('course_id')
+            
+            end_date_str = request.form.get('end_date')
+            tournament.end_date = datetime.strptime(end_date_str, '%Y-%m-%d') if end_date_str else None
+            
+            tournament.course_id = request.form.get('course_id') or None  # Make course optional
             tournament.is_team_event = request.form.get('is_team_event') == 'on'
             tournament.description = request.form.get('description')
             tournament.year = tournament.date.year

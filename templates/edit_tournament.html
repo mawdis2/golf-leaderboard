@@ -24,16 +24,21 @@
                         </div>
                         
                         <div class="mb-3">
-                            <label for="date" class="form-label">Date</label>
+                            <label for="date" class="form-label">Start Date</label>
                             <input type="date" class="form-control" id="date" name="date" value="{{ tournament.date.strftime('%Y-%m-%d') }}" required>
                         </div>
                         
                         <div class="mb-3">
-                            <label for="course_id" class="form-label">Course</label>
-                            <select class="form-control" id="course_id" name="course_id" required>
+                            <label for="end_date" class="form-label">End Date (Optional)</label>
+                            <input type="date" class="form-control" id="end_date" name="end_date" value="{{ tournament.end_date.strftime('%Y-%m-%d') if tournament.end_date else '' }}">
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label for="course_id" class="form-label">Course (Optional)</label>
+                            <select class="form-control" id="course_id" name="course_id">
                                 <option value="">Select a course</option>
                                 {% for course in courses %}
-                                    <option value="{{ course.id }}" {% if course.id == tournament.course_id %}selected{% endif %}>{{ course.name }}</option>
+                                    <option value="{{ course.id }}" {% if tournament.course_id and course.id == tournament.course_id %}selected{% endif %}>{{ course.name }}</option>
                                 {% endfor %}
                             </select>
                         </div>

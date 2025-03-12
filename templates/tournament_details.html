@@ -17,8 +17,13 @@
                     <h2 class="h4 mb-0">Tournament Info</h2>
                 </div>
                 <div class="card-body">
-                    <p><strong>Date:</strong> {{ tournament.date.strftime('%B %d, %Y') }}</p>
-                    <p><strong>Course:</strong> {{ tournament.course.name }}</p>
+                    <p><strong>Start Date:</strong> {{ tournament.date.strftime('%B %d, %Y') }}</p>
+                    {% if tournament.end_date %}
+                        <p><strong>End Date:</strong> {{ tournament.end_date.strftime('%B %d, %Y') }}</p>
+                    {% endif %}
+                    {% if tournament.course %}
+                        <p><strong>Course:</strong> {{ tournament.course.name }}</p>
+                    {% endif %}
                     <p><strong>Type:</strong> 
                         {% if tournament.is_team_event %}
                             <span class="badge bg-success">Team Event</span>

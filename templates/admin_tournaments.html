@@ -25,13 +25,18 @@
                         </div>
                         
                         <div class="mb-3">
-                            <label for="date" class="form-label">Date</label>
+                            <label for="date" class="form-label">Start Date</label>
                             <input type="date" class="form-control" id="date" name="date" required>
                         </div>
                         
                         <div class="mb-3">
-                            <label for="course_id" class="form-label">Course</label>
-                            <select class="form-control" id="course_id" name="course_id" required>
+                            <label for="end_date" class="form-label">End Date (Optional)</label>
+                            <input type="date" class="form-control" id="end_date" name="end_date">
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label for="course_id" class="form-label">Course (Optional)</label>
+                            <select class="form-control" id="course_id" name="course_id">
                                 <option value="">Select a course</option>
                                 {% for course in courses %}
                                     <option value="{{ course.id }}">{{ course.name }}</option>
@@ -76,7 +81,8 @@
                             <thead>
                                 <tr>
                                     <th>Name</th>
-                                    <th>Date</th>
+                                    <th>Start Date</th>
+                                    <th>End Date</th>
                                     <th>Course</th>
                                     <th>Type</th>
                                     <th>Actions</th>
@@ -87,7 +93,8 @@
                                     <tr>
                                         <td>{{ tournament.name }}</td>
                                         <td>{{ tournament.date.strftime('%Y-%m-%d') }}</td>
-                                        <td>{{ tournament.course.name }}</td>
+                                        <td>{{ tournament.end_date.strftime('%Y-%m-%d') if tournament.end_date else 'N/A' }}</td>
+                                        <td>{{ tournament.course.name if tournament.course else 'N/A' }}</td>
                                         <td>
                                             {% if tournament.is_team_event %}
                                                 <span class="badge bg-success">Team</span>
