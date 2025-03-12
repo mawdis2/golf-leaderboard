@@ -565,7 +565,8 @@ def history():
     selected_year = request.args.get('year', current_year, type=int)
     
     if selected_year == current_year:
-        players = db.session.query(
+        # For current year, get players with birdies/eagles
+        players_with_scores = db.session.query(
             Player,
             func.count(Birdie.id).label('birdie_count'),
             func.sum(case((Birdie.is_eagle == True, 1), else_=0)).label('eagle_count')
@@ -575,6 +576,30 @@ def history():
         ).group_by(Player.id).having(
             func.count(Birdie.id) > 0
         ).all()
+        
+        # Also get players with trophies but no birdies/eagles
+        players_with_trophies = db.session.query(
+            Player,
+            HistoricalTotal.birdies.label('birdie_count'),
+            HistoricalTotal.eagles.label('eagle_count'),
+            HistoricalTotal.has_trophy.label('has_trophy'),
+            HistoricalTotal.trophy_count.label('trophy_count')
+        ).join(
+            HistoricalTotal,
+            (Player.id == HistoricalTotal.player_id) & 
+            (HistoricalTotal.year == selected_year)
+        ).filter(
+            HistoricalTotal.has_trophy == True
+        ).all()
+        
+        # Combine both sets of players
+        players = players_with_scores
+        
+        # Add players with trophies but no scores if they're not already in the list
+        player_ids = [p[0].id for p in players]
+        for trophy_player in players_with_trophies:
+            if trophy_player[0].id not in player_ids:
+                players.append(trophy_player)
     else:
         try:
             # Try to include trophy_count in the query
@@ -591,7 +616,8 @@ def history():
             ).filter(
                 or_(
                     HistoricalTotal.birdies > 0,
-                    HistoricalTotal.eagles > 0
+                    HistoricalTotal.eagles > 0,
+                    HistoricalTotal.has_trophy == True  # Include players with trophies
                 )
             ).all()
         except Exception as e:
@@ -609,14 +635,15 @@ def history():
             ).filter(
                 or_(
                     HistoricalTotal.birdies > 0,
-                    HistoricalTotal.eagles > 0
+                    HistoricalTotal.eagles > 0,
+                    HistoricalTotal.has_trophy == True  # Include players with trophies
                 )
             ).all()
 
     # Create initial leaderboard with totals
     leaderboard = []
     for player_data in players:
-        if selected_year == current_year:
+        if selected_year == current_year and len(player_data) == 3:
             player, birdie_count, eagle_count = player_data
             # Get trophy info from HistoricalTotal
             try:
@@ -649,6 +676,9 @@ def history():
                 player, birdie_count, eagle_count, has_trophy = player_data
                 year_trophy_count = 1 if has_trophy else 0
         
+        # Ensure birdie_count and eagle_count are integers (not None)
+        birdie_count = birdie_count or 0
+        eagle_count = eagle_count or 0
         total = birdie_count + eagle_count
         
         # Count total trophies across all years
@@ -732,11 +762,7 @@ def history():
         db.session.query(
             db.distinct(HistoricalTotal.year)
         ).filter(
-            HistoricalTotal.year.isnot(None),
-            or_(
-                HistoricalTotal.birdies > 0,
-                HistoricalTotal.eagles > 0
-            )
+            HistoricalTotal.year.isnot(None)
         )
     ).all()
     
@@ -838,7 +864,7 @@ def add_historical_totals():
                     try:
                         player_id = int(key.split('_')[1])
                         birdies = int(value) if value else 0
-                        eagles = int(request.form.get(f'eagles_{player_id}', 0) or 0)
+                        eagles = int(request.form.get(f'eagles_{player_id}', 0) or 0
                         has_trophy = request.form.get(f'trophy_{player_id}', 'off') == 'on'
                         
                         print(f"\nProcessing player {player_id}:")
