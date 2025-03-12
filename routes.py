@@ -849,27 +849,38 @@ def history():
             entry[6]   # year trophy count
         ))
 
-    # Get list of available years
-    db_years = db.session.query(
+    # Get list of available years by checking all sources of data
+    # 1. Years with birdies/eagles
+    birdie_years = db.session.query(
         db.distinct(Birdie.year)
     ).filter(
         Birdie.year.isnot(None)
-    ).union(
-        db.session.query(
-            db.distinct(HistoricalTotal.year)
-        ).filter(
-            HistoricalTotal.year.isnot(None)
-        )
     ).all()
     
-    years = [year[0] for year in db_years]
+    # 2. Years with historical totals (including trophies)
+    historical_years = db.session.query(
+        db.distinct(HistoricalTotal.year)
+    ).filter(
+        HistoricalTotal.year.isnot(None)
+    ).all()
+    
+    # 3. Years with tournaments
+    tournament_years = db.session.query(
+        db.distinct(Tournament.year)
+    ).filter(
+        Tournament.year.isnot(None)
+    ).all()
+    
+    # Combine all years
+    all_years = set()
+    for year_tuple in birdie_years + historical_years + tournament_years:
+        all_years.add(year_tuple[0])
     
     # Always include current year
-    if current_year not in years:
-        years.append(current_year)
+    all_years.add(current_year)
     
     # Sort years in descending order
-    years = sorted(list(set(years)), reverse=True)
+    years = sorted(list(all_years), reverse=True)
 
     return render_template(
         "history.html",
