@@ -849,38 +849,46 @@ def history():
             entry[6]   # year trophy count
         ))
 
-    # Get list of available years by checking all sources of data
-    # 1. Years with birdies/eagles
-    birdie_years = db.session.query(
-        db.distinct(Birdie.year)
-    ).filter(
-        Birdie.year.isnot(None)
-    ).all()
+    # Check for years with data directly from the database tables
+    print("Checking for years with data...")
     
-    # 2. Years with historical totals (including trophies)
-    historical_years = db.session.query(
-        db.distinct(HistoricalTotal.year)
-    ).filter(
-        HistoricalTotal.year.isnot(None)
-    ).all()
+    # 1. Check for years with trophies directly
+    trophy_years_query = """
+    SELECT DISTINCT year FROM historical_total 
+    WHERE has_trophy = true
+    ORDER BY year DESC
+    """
+    trophy_years_result = db.session.execute(trophy_years_query)
+    trophy_years = [row[0] for row in trophy_years_result]
+    print(f"Years with trophies: {trophy_years}")
     
-    # 3. Years with tournaments
-    tournament_years = db.session.query(
-        db.distinct(Tournament.year)
-    ).filter(
-        Tournament.year.isnot(None)
-    ).all()
+    # 2. Check for years with birdies/eagles
+    birdie_years_query = """
+    SELECT DISTINCT year FROM birdie
+    ORDER BY year DESC
+    """
+    birdie_years_result = db.session.execute(birdie_years_query)
+    birdie_years = [row[0] for row in birdie_years_result]
+    print(f"Years with birdies: {birdie_years}")
+    
+    # 3. Check for years with tournaments
+    tournament_years_query = """
+    SELECT DISTINCT year FROM tournament
+    ORDER BY year DESC
+    """
+    tournament_years_result = db.session.execute(tournament_years_query)
+    tournament_years = [row[0] for row in tournament_years_result]
+    print(f"Years with tournaments: {tournament_years}")
     
     # Combine all years
-    all_years = set()
-    for year_tuple in birdie_years + historical_years + tournament_years:
-        all_years.add(year_tuple[0])
+    all_years = set(trophy_years + birdie_years + tournament_years)
     
     # Always include current year
     all_years.add(current_year)
     
     # Sort years in descending order
     years = sorted(list(all_years), reverse=True)
+    print(f"Final years list: {years}")
 
     return render_template(
         "history.html",
@@ -971,7 +979,7 @@ def add_historical_totals():
                     try:
                         player_id = int(key.split('_')[1])
                         birdies = int(value) if value else 0
-                        eagles = int(request.form.get(f'eagles_{player_id}', 0) or 0)
+                        eagles = int(request.form.get(f'eagles_{player_id}', 0) or 0
                         has_trophy = request.form.get(f'trophy_{player_id}', 'off') == 'on'
                         
                         print(f"\nProcessing player {player_id}:")

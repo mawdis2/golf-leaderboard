@@ -1,91 +1,132 @@
 <!-- templates/history.html -->
 {% extends "base.html" %}
 
-{% block title %}Birdie History{% endblock %}
+{% block title %}Birdie History - {{ selected_year }}{% endblock %}
 
 {% block content %}
-<div class="container">
-    <div class="row">
-        <div class="col-12 text-center">
-            <h1 class="mb-4">Birdie History {{ selected_year }}</h1>
-        </div>
-    </div>
-    
-    <div class="row mb-3">
-        <div class="col-12 d-flex justify-content-between">
-            <a href="{{ url_for('main.leaderboard') }}" class="btn btn-primary">Back to Leaderboard</a>
-            
-            <!-- Year selector -->
-            <div class="dropdown">
-                <button class="btn btn-secondary dropdown-toggle" type="button" id="yearDropdown" data-bs-toggle="dropdown" aria-expanded="false">
-                    {{ selected_year }}
-                </button>
-                <ul class="dropdown-menu" aria-labelledby="yearDropdown">
-                    {% for year in years %}
-                    <li><a class="dropdown-item {% if year == selected_year %}active{% endif %}" href="{{ url_for('main.history', year=year) }}">{{ year }}</a></li>
-                    {% endfor %}
-                </ul>
-            </div>
-        </div>
-    </div>
-    
-    <div class="row">
-        <div class="col-12">
-            <table class="table table-striped">
-                <thead>
-                    <tr>
-                        <th>Rank</th>
-                        <th>Player</th>
-                        <th>Birdies</th>
-                        <th>Eagles</th>
-                        <th>Total</th>
-                        <th>Trophies</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {% for rank, name, birdies, player_id, trophy_display, eagles, trophy_count in leaderboard %}
-                    <tr>
-                        <td>{{ rank }}</td>
-                        <td>
-                            <a href="{{ url_for('main.player_birdie_records', player_id=player_id) }}" class="text-success">
-                                {{ name }} {{ trophy_display }}
-                            </a>
-                        </td>
-                        <td>{{ birdies }}</td>
-                        <td>{{ eagles }}</td>
-                        <td>{{ birdies + eagles }}</td>
-                        <td>{{ trophy_count }}</td>
-                    </tr>
-                    {% endfor %}
-                </tbody>
-            </table>
-        </div>
-    </div>
-    
-    <div class="row mt-3">
-        <div class="col-12 text-center">
-            <a href="{{ url_for('main.add_historical_totals') }}" class="btn btn-primary">Add Historical Totals</a>
-        </div>
-    </div>
-</div>
-
 <style>
     body {
         background-image: url('/static/background.jpg');
         background-size: cover;
         background-attachment: fixed;
         background-position: center;
+        min-height: 100vh;
     }
     
     .container {
-        background-color: rgba(255, 255, 255, 0.9);
-        padding: 20px;
+        background-color: transparent;
+        padding: 15px;
         border-radius: 10px;
-        margin-top: 20px;
+        margin-top: 10px;
+        max-width: 95%;
+    }
+    
+    .table-container {
+        background-color: rgba(255, 255, 255, 0.9);
+        border-radius: 8px;
+        padding: 15px;
+        margin-bottom: 20px;
     }
     
     .table {
-        background-color: white;
+        background-color: transparent !important;
+    }
+    
+    .table-striped tbody tr:nth-of-type(odd) {
+        background-color: rgba(0, 0, 0, 0.05);
+    }
+    
+    .table-striped tbody tr:nth-of-type(even) {
+        background-color: transparent;
+    }
+    
+    .admin-login {
+        position: absolute;
+        top: 10px;
+        right: 20px;
+    }
+    
+    /* Mobile-specific adjustments */
+    @media (max-width: 768px) {
+        .container {
+            padding: 10px;
+            margin-top: 5px;
+        }
+        
+        body {
+            background-position: top center;
+        }
+        
+        .btn {
+            padding: 0.25rem 0.5rem;
+            font-size: 0.875rem;
+            margin-bottom: 5px;
+        }
+        
+        .admin-login {
+            top: 5px;
+            right: 10px;
+        }
     }
 </style>
+
+<div class="admin-login">
+    <a href="{{ url_for('main.login') }}" class="btn btn-sm btn-secondary">Admin</a>
+</div>
+
+<div class="container">
+    <h1 class="text-center mb-4">Birdie History - {{ selected_year }}</h1>
+    
+    <div class="row mb-4">
+        <div class="col-md-6 text-center text-md-start">
+            <a href="{{ url_for('main.leaderboard') }}" class="btn btn-primary">Back to Leaderboard</a>
+        </div>
+        <div class="col-md-6 text-center text-md-end">
+            <form class="d-inline-block">
+                <div class="input-group">
+                    <select name="year" class="form-control" onchange="this.form.submit()">
+                        {% for year in years %}
+                        <option value="{{ year }}" {% if year == selected_year %}selected{% endif %}>{{ year }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+            </form>
+        </div>
+    </div>
+    
+    <div class="row">
+        <div class="col-12">
+            <div class="table-container">
+                <table class="table table-striped">
+                    <thead>
+                        <tr>
+                            <th>Rank</th>
+                            <th>Player</th>
+                            <th>Birdies</th>
+                            <th>Eagles</th>
+                            <th>Total</th>
+                            <th>Trophies</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for rank, name, birdies, player_id, trophy_display, eagles, trophy_count in leaderboard %}
+                        <tr>
+                            <td>{{ rank }}</td>
+                            <td>
+                                <a href="{{ url_for('main.player_birdie_records', player_id=player_id, year=selected_year) }}" class="text-success">
+                                    {{ name }}
+                                </a>
+                            </td>
+                            <td>{{ birdies }}</td>
+                            <td>{{ eagles }}</td>
+                            <td>{{ birdies + eagles }}</td>
+                            <td>{{ trophy_display }}</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
 {% endblock %}
