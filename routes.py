@@ -83,6 +83,37 @@ def leaderboard():
             
             has_trophy = historical_total is not None
             trophy_count = getattr(historical_total, 'trophy_count', 0) if historical_total else 0
+            
+            # Double-check trophy count by counting tournament wins directly
+            if has_trophy:
+                # Count individual tournament wins
+                individual_wins = TournamentResult.query.join(Tournament).filter(
+                    TournamentResult.player_id == player.id,
+                    TournamentResult.position == 1,
+                    extract('year', Tournament.date) == current_year
+                ).count()
+                
+                # Count team tournament wins
+                team_wins = 0
+                teams = Team.query.join(TeamMember).filter(TeamMember.player_id == player.id).all()
+                for team in teams:
+                    team_wins += TournamentResult.query.join(Tournament).filter(
+                        TournamentResult.team_id == team.id,
+                        TournamentResult.position == 1,
+                        extract('year', Tournament.date) == current_year
+                    ).count()
+                
+                # Use the direct count if it's different from the stored count
+                actual_trophy_count = individual_wins + team_wins
+                if actual_trophy_count != trophy_count and actual_trophy_count > 0:
+                    print(f"Trophy count mismatch for {player.name}: DB={trophy_count}, Actual={actual_trophy_count}")
+                    trophy_count = actual_trophy_count
+                    
+                    # Update the historical total with the correct count
+                    if historical_total:
+                        historical_total.trophy_count = actual_trophy_count
+                        db.session.commit()
+            
         except Exception as e:
             # If trophy_count column doesn't exist yet, fall back to has_trophy
             print(f"Error getting trophy_count, falling back to has_trophy: {e}")
@@ -657,6 +688,36 @@ def history():
                 if historical:
                     has_trophy = historical.has_trophy
                     year_trophy_count = getattr(historical, 'trophy_count', 0) or 0
+                    
+                    # Double-check trophy count by counting tournament wins directly
+                    if has_trophy:
+                        # Count individual tournament wins
+                        individual_wins = TournamentResult.query.join(Tournament).filter(
+                            TournamentResult.player_id == player.id,
+                            TournamentResult.position == 1,
+                            extract('year', Tournament.date) == selected_year
+                        ).count()
+                        
+                        # Count team tournament wins
+                        team_wins = 0
+                        teams = Team.query.join(TeamMember).filter(TeamMember.player_id == player.id).all()
+                        for team in teams:
+                            team_wins += TournamentResult.query.join(Tournament).filter(
+                                TournamentResult.team_id == team.id,
+                                TournamentResult.position == 1,
+                                extract('year', Tournament.date) == selected_year
+                            ).count()
+                        
+                        # Use the direct count if it's different from the stored count
+                        actual_trophy_count = individual_wins + team_wins
+                        if actual_trophy_count != year_trophy_count and actual_trophy_count > 0:
+                            print(f"Trophy count mismatch for {player.name}: DB={year_trophy_count}, Actual={actual_trophy_count}")
+                            year_trophy_count = actual_trophy_count
+                            
+                            # Update the historical total with the correct count
+                            if historical:
+                                historical.trophy_count = actual_trophy_count
+                                db.session.commit()
             except Exception as e:
                 print(f"Error getting trophy_count, falling back to has_trophy: {e}")
                 historical = HistoricalTotal.query.filter_by(
@@ -672,6 +733,40 @@ def history():
         else:
             if len(player_data) >= 5:  # Check if trophy_count is included
                 player, birdie_count, eagle_count, has_trophy, year_trophy_count = player_data
+                
+                # Double-check trophy count by counting tournament wins directly
+                if has_trophy:
+                    # Count individual tournament wins
+                    individual_wins = TournamentResult.query.join(Tournament).filter(
+                        TournamentResult.player_id == player.id,
+                        TournamentResult.position == 1,
+                        extract('year', Tournament.date) == selected_year
+                    ).count()
+                    
+                    # Count team tournament wins
+                    team_wins = 0
+                    teams = Team.query.join(TeamMember).filter(TeamMember.player_id == player.id).all()
+                    for team in teams:
+                        team_wins += TournamentResult.query.join(Tournament).filter(
+                            TournamentResult.team_id == team.id,
+                            TournamentResult.position == 1,
+                            extract('year', Tournament.date) == selected_year
+                        ).count()
+                    
+                    # Use the direct count if it's different from the stored count
+                    actual_trophy_count = individual_wins + team_wins
+                    if actual_trophy_count != year_trophy_count and actual_trophy_count > 0:
+                        print(f"Trophy count mismatch for {player.name}: DB={year_trophy_count}, Actual={actual_trophy_count}")
+                        year_trophy_count = actual_trophy_count
+                        
+                        # Update the historical total with the correct count
+                        historical = HistoricalTotal.query.filter_by(
+                            player_id=player.id,
+                            year=selected_year
+                        ).first()
+                        if historical:
+                            historical.trophy_count = actual_trophy_count
+                            db.session.commit()
             else:
                 player, birdie_count, eagle_count, has_trophy = player_data
                 year_trophy_count = 1 if has_trophy else 0
@@ -690,7 +785,8 @@ def history():
             ).all()
             
             for record in historical_records:
-                all_years_trophy_count += getattr(record, 'trophy_count', 0) or 1  # Default to 1 for old records
+                record_trophy_count = getattr(record, 'trophy_count', 0) or 1  # Default to 1 for old records
+                all_years_trophy_count += record_trophy_count
         except Exception as e:
             print(f"Error getting all years trophy count: {e}")
             # Count trophies based on has_trophy
@@ -715,7 +811,7 @@ def history():
             player.id,
             trophy_display,
             eagle_count,
-            all_years_trophy_count  # Total trophy count across all years
+            year_trophy_count  # Use year trophy count instead of all years
         ))
     
     # Sort by total score (descending)
@@ -750,7 +846,7 @@ def history():
             entry[3],  # player_id
             entry[4],  # trophy display for current year
             entry[5],  # eagles
-            entry[6]   # total trophy count across all years
+            entry[6]   # year trophy count
         ))
 
     # Get list of available years
