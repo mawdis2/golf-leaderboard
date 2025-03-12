@@ -1200,10 +1200,10 @@ def tournaments():
     
     # Get all years that have tournaments
     years_with_tournaments = db.session.query(
-        func.distinct(Tournament.year)
-    ).order_by(Tournament.year.desc()).all()
+        extract('year', Tournament.date).label('year')
+    ).distinct().order_by(db.desc('year')).all()
     
-    years = [year[0] for year in years_with_tournaments]
+    years = [int(year[0]) for year in years_with_tournaments]
     
     # If no tournaments exist yet, use current year
     if not years:
@@ -1211,10 +1211,12 @@ def tournaments():
     
     # If selected year is not in the list, use the first year
     if selected_year not in years:
-        selected_year = years[0]
+        selected_year = years[0] if years else datetime.now().year
     
     # Get tournaments for the selected year
-    tournaments = Tournament.query.filter_by(year=selected_year).order_by(Tournament.date.desc()).all()
+    tournaments = Tournament.query.filter(
+        extract('year', Tournament.date) == selected_year
+    ).order_by(Tournament.date.desc()).all()
     
     return render_template(
         'tournaments.html',
