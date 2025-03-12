@@ -124,6 +124,11 @@
             <a href="{{ url_for('main.login') }}" class="btn btn-secondary btn-sm admin-login">Admin Login</a>
         </div>
         
+        <div class="text-center mb-3">
+            <a href="{{ url_for('main.history') }}" class="btn btn-primary">History</a>
+            <a href="{{ url_for('main.tournaments') }}" class="btn btn-success">Tournaments</a>
+        </div>
+        
         <table>
             <tr>
                 <th>Rank</th>
@@ -156,7 +161,6 @@
             <a href="{{ url_for('main.add_birdie') }}" class="button">Add Birdie</a>
             <a href="{{ url_for('main.add_course') }}" class="button">Add Course</a>
             <a href="{{ url_for('main.add_player') }}" class="button">Add Player</a>
-            <a href="{{ url_for('main.history') }}" class="button">View History</a>
         </div>
     </div>
 </body>
