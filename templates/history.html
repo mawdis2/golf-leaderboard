@@ -49,7 +49,13 @@
                     <td>{{ birdies }}</td>
                     <td>{{ eagles }}</td>
                     <td>{{ birdies + eagles }}</td>
-                    <td>{{ trophy_count }} {% if trophy_count > 0 %}🏆{% endif %}</td>
+                    <td>
+                        {% if trophy_count > 0 %}
+                            {{ trophy_count }} 🏆
+                        {% else %}
+                            0
+                        {% endif %}
+                    </td>
                 </tr>
             {% endfor %}
         </tbody>

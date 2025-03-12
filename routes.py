@@ -73,24 +73,32 @@ def leaderboard():
         ).count()
         
         # Check for trophy from tournament wins or historical data
-        has_trophy = HistoricalTotal.query.filter(
+        historical_total = HistoricalTotal.query.filter(
             HistoricalTotal.player_id == player.id,
             HistoricalTotal.year == current_year,
             HistoricalTotal.has_trophy == True
-        ).first() is not None
+        ).first()
+        
+        has_trophy = historical_total is not None
+        trophy_count = getattr(historical_total, 'trophy_count', 0) if historical_total else 0
         
         total = birdie_count + eagle_count
         player.birdie_count = birdie_count
         player.eagle_count = eagle_count
         player.total = total
         player.has_trophy = has_trophy
+        player.trophy_count = trophy_count
         
         # Initialize emojis string
         emojis = ""
         
-        # Add trophy if player has one for current year
-        if has_trophy:
-            emojis += "🏆"
+        # Add trophies if player has won tournaments this year
+        if has_trophy and trophy_count > 0:
+            # Show up to 3 trophies on the leaderboard
+            visible_trophies = min(trophy_count, 3)
+            emojis += "🏆" * visible_trophies
+            if trophy_count > 3:
+                emojis += f"({trophy_count})"
         
         # Check for recent birdies (within last 3 days)
         recent_birdies = Birdie.query.filter(
@@ -113,7 +121,7 @@ def leaderboard():
             emojis += "🦅" * eagle_count
         
         player.emojis = emojis
-        print(f"Final emojis for {player.name}: {emojis} (Recent birdies: {recent_birdies}, Eagles: {eagle_count}, Trophy: {has_trophy})")
+        print(f"Final emojis for {player.name}: {emojis} (Recent birdies: {recent_birdies}, Eagles: {eagle_count}, Trophy: {has_trophy}, Trophy count: {trophy_count})")
         
         player_scores.append(player)
     
@@ -559,7 +567,8 @@ def history():
             Player,
             HistoricalTotal.birdies.label('birdie_count'),
             HistoricalTotal.eagles.label('eagle_count'),
-            HistoricalTotal.has_trophy.label('has_trophy')
+            HistoricalTotal.has_trophy.label('has_trophy'),
+            HistoricalTotal.trophy_count.label('trophy_count')
         ).join(
             HistoricalTotal,
             (Player.id == HistoricalTotal.player_id) & 
@@ -576,30 +585,51 @@ def history():
     for player_data in players:
         if selected_year == current_year:
             player, birdie_count, eagle_count = player_data
-            has_trophy = HistoricalTotal.query.filter_by(
+            # Get trophy info from HistoricalTotal
+            historical = HistoricalTotal.query.filter_by(
                 player_id=player.id,
-                year=selected_year,
-                has_trophy=True
-            ).first() is not None
+                year=selected_year
+            ).first()
+            
+            has_trophy = False
+            year_trophy_count = 0
+            if historical:
+                has_trophy = historical.has_trophy
+                year_trophy_count = getattr(historical, 'trophy_count', 0) or 0
         else:
-            player, birdie_count, eagle_count, has_trophy = player_data
+            if len(player_data) >= 5:  # Check if trophy_count is included
+                player, birdie_count, eagle_count, has_trophy, year_trophy_count = player_data
+            else:
+                player, birdie_count, eagle_count, has_trophy = player_data
+                year_trophy_count = 0
         
         total = birdie_count + eagle_count
         
         # Count total trophies across all years
-        trophy_count = HistoricalTotal.query.filter_by(
+        all_years_trophy_count = 0
+        historical_records = HistoricalTotal.query.filter_by(
             player_id=player.id,
             has_trophy=True
-        ).count()
+        ).all()
+        
+        for record in historical_records:
+            all_years_trophy_count += getattr(record, 'trophy_count', 0) or 1  # Default to 1 for old records
+        
+        # Create trophy display string based on count
+        trophy_display = ""
+        if has_trophy and year_trophy_count > 0:
+            trophy_display = "🏆" * min(year_trophy_count, 5)  # Limit to 5 visible trophies
+            if year_trophy_count > 5:
+                trophy_display += f" ({year_trophy_count})"
         
         leaderboard.append((
             total,  # Store total for sorting
             player.name,
             birdie_count,
             player.id,
-            "🏆" if has_trophy else "",
+            trophy_display,
             eagle_count,
-            trophy_count  # Add trophy count
+            all_years_trophy_count  # Total trophy count across all years
         ))
     
     # Sort by total score (descending)
@@ -632,9 +662,9 @@ def history():
             entry[1],  # name
             entry[2],  # birdies
             entry[3],  # player_id
-            entry[4],  # trophy for current year
+            entry[4],  # trophy display for current year
             entry[5],  # eagles
-            entry[6]   # total trophy count
+            entry[6]   # total trophy count across all years
         ))
 
     # Get list of available years
@@ -672,70 +702,60 @@ def history():
 
 @bp.route("/add_trophy", methods=["GET", "POST"])
 def add_trophy():
-    if not session.get("is_admin"):
-        flash("You do not have access to this page", "error")
-        return redirect(url_for("main.login"))
-
     if request.method == "POST":
-        try:
-            player_id = request.form.get("player_id")
-            year = int(request.form.get("year", datetime.now().year))
-            print(f"\nAdding trophy - Player ID: {player_id}, Year: {year}")
+        player_id = request.form.get("player_id")
+        year = int(request.form.get("year", datetime.now().year))
+        print(f"\nAdding trophy - Player ID: {player_id}, Year: {year}")
+        
+        player = Player.query.get(player_id)
+        print(f"Found player: {player.name if player else None}")
+        print(f"Player before update - permanent_emojis: {player.permanent_emojis}")
+        
+        if player:
+            # Get or create historical total
+            historical_total = HistoricalTotal.query.filter_by(
+                player_id=player_id,
+                year=year
+            ).first()
             
-            player = Player.query.get(player_id)
-            print(f"Found player: {player.name if player else None}")
-            print(f"Player before update - permanent_emojis: {player.permanent_emojis}")
-            
-            if player:
-                # Get or create historical total
-                historical_total = HistoricalTotal.query.filter_by(
+            if not historical_total:
+                print("Creating new historical total")
+                historical_total = HistoricalTotal(
                     player_id=player_id,
-                    year=year
-                ).first()
-                
-                if not historical_total:
-                    print("Creating new historical total")
-                    historical_total = HistoricalTotal(
-                        player_id=player_id,
-                        year=year,
-                        birdies=0,
-                        eagles=0,
-                        has_trophy=True
-                    )
-                    db.session.add(historical_total)
-                else:
-                    print("Updating existing historical total")
-                    historical_total.has_trophy = True
-                
-                # Update player's trophy status regardless of current emojis
-                if not player.permanent_emojis:
-                    player.permanent_emojis = "🏆"
-                elif "🏆" not in player.permanent_emojis:
-                    player.permanent_emojis += "🏆"
-                
-                try:
-                    db.session.commit()
-                    print("Changes committed to database")
-                    # Verify changes after commit
-                    db.session.refresh(player)
-                    db.session.refresh(historical_total)
-                    print(f"Player after commit - permanent_emojis: {player.permanent_emojis}")
-                    print(f"Historical total after commit - has_trophy: {historical_total.has_trophy}")
-                except Exception as commit_error:
-                    print(f"Error during commit: {commit_error}")
-                    db.session.rollback()
-                    raise
-                
-                flash(f"Trophy added to {player.name}!", "success")
+                    year=year,
+                    birdies=0,
+                    eagles=0,
+                    has_trophy=True
+                )
+                db.session.add(historical_total)
             else:
-                flash("Player not found!", "error")
+                print("Updating existing historical total")
+                historical_total.has_trophy = True
             
-            return redirect(url_for("main.admin_dashboard"))
-        except Exception as e:
-            print(f"Error adding trophy: {e}")
-            flash("An error occurred while adding the trophy.", "error")
-            db.session.rollback()
-            return redirect(url_for("main.admin_dashboard"))
+            # Update player's trophy status regardless of current emojis
+            if not player.permanent_emojis:
+                player.permanent_emojis = "🏆"
+            elif "🏆" not in player.permanent_emojis:
+                player.permanent_emojis += "🏆"
+            
+            try:
+                db.session.commit()
+                print("Changes committed to database")
+                # Verify changes after commit
+                db.session.refresh(player)
+                db.session.refresh(historical_total)
+                print(f"Player after commit - permanent_emojis: {player.permanent_emojis}")
+                print(f"Historical total after commit - has_trophy: {historical_total.has_trophy}")
+            except Exception as commit_error:
+                print(f"Error during commit: {commit_error}")
+                db.session.rollback()
+                raise
+            
+            flash(f"Trophy added to {player.name}!", "success")
+        else:
+            flash("Player not found!", "error")
+        
+        return redirect(url_for("main.admin_dashboard"))
     
     players = Player.query.all()
     return render_template("add_trophy.html", players=players)
@@ -1285,7 +1305,7 @@ def add_tournament_result(tournament_id):
                     team = Team.query.get(team_id)
                     for member in team.team_members:
                         player = member.player
-                        # Add trophy to player's permanent emojis
+                        # Add trophy to player's permanent emojis if they don't have one yet
                         if not player.permanent_emojis:
                             player.permanent_emojis = "🏆"
                         elif "🏆" not in player.permanent_emojis:
@@ -1317,11 +1337,17 @@ def add_tournament_result(tournament_id):
                                 year=current_year,
                                 birdies=birdie_count,
                                 eagles=eagle_count,
-                                has_trophy=True
+                                has_trophy=True,
+                                trophy_count=1  # First trophy
                             )
                             db.session.add(historical_total)
                         else:
                             historical_total.has_trophy = True
+                            # Increment trophy count
+                            if hasattr(historical_total, 'trophy_count'):
+                                historical_total.trophy_count += 1
+                            else:
+                                historical_total.trophy_count = 1
                     
                     flash(f'Trophy awarded to all members of team {team.name}!', 'success')
             else:
@@ -1340,7 +1366,7 @@ def add_tournament_result(tournament_id):
                 # Award trophy to player if they won (position 1)
                 if position == 1:
                     player = Player.query.get(player_id)
-                    # Add trophy to player's permanent emojis
+                    # Add trophy to player's permanent emojis if they don't have one yet
                     if not player.permanent_emojis:
                         player.permanent_emojis = "🏆"
                     elif "🏆" not in player.permanent_emojis:
@@ -1372,11 +1398,17 @@ def add_tournament_result(tournament_id):
                             year=current_year,
                             birdies=birdie_count,
                             eagles=eagle_count,
-                            has_trophy=True
+                            has_trophy=True,
+                            trophy_count=1  # First trophy
                         )
                         db.session.add(historical_total)
                     else:
                         historical_total.has_trophy = True
+                        # Increment trophy count
+                        if hasattr(historical_total, 'trophy_count'):
+                            historical_total.trophy_count += 1
+                        else:
+                            historical_total.trophy_count = 1
                     
                     flash(f'Trophy awarded to {player.name}!', 'success')
             

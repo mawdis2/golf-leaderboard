@@ -66,6 +66,7 @@ class HistoricalTotal(db.Model):
     birdies = db.Column(db.Integer, default=0)
     eagles = db.Column(db.Integer, default=0)
     has_trophy = db.Column(db.Boolean, default=False)
+    trophy_count = db.Column(db.Integer, default=0)
 
 class Eagle(db.Model):
     __tablename__ = 'eagle'
