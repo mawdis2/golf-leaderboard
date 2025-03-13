@@ -1236,48 +1236,51 @@ def tournaments():
     # Get the selected year (default to current year)
     selected_year = request.args.get('year', datetime.now().year, type=int)
     
-    # Debug: Print all tournaments with their dates
-    all_tournaments = Tournament.query.all()
-    print("All tournaments in database:")
-    for t in all_tournaments:
-        print(f"ID: {t.id}, Name: {t.name}, Date: {t.date}, Year field: {t.year}")
+    # Get all years that have tournaments
+    tournament_years_query = """
+    SELECT DISTINCT EXTRACT(YEAR FROM date) as year
+    FROM tournament
+    ORDER BY year DESC
+    """
+    tournament_years_result = db.session.execute(tournament_years_query)
+    tournament_years = [int(row[0]) for row in tournament_years_result]
     
-    # Get all years from tournament dates
-    years = []
-    for tournament in all_tournaments:
-        if tournament.date:
-            year = tournament.date.year
-            if year not in years:
-                years.append(year)
+    # Get all years that have trophies
+    trophy_years_query = """
+    SELECT DISTINCT year
+    FROM historical_total
+    WHERE trophy_count > 0
+    ORDER BY year DESC
+    """
+    trophy_years_result = db.session.execute(trophy_years_query)
+    trophy_years = [int(row[0]) for row in trophy_years_result]
     
-    # Add current year if not already in the list
-    current_year = datetime.now().year
-    if current_year not in years:
-        years.append(current_year)
+    # Combine and deduplicate years
+    all_years = sorted(set(tournament_years + trophy_years), reverse=True)
     
-    # Sort years in descending order
-    years.sort(reverse=True)
+    # Debug output
+    print(f"Tournament years: {tournament_years}")
+    print(f"Trophy years: {trophy_years}")
+    print(f"Combined years: {all_years}")
     
-    print(f"Years extracted from tournament dates: {years}")
+    # If no years found, use current year
+    if not all_years:
+        all_years = [datetime.now().year]
     
     # If selected year is not in the list, use the first year
-    if selected_year not in years and years:
-        selected_year = years[0]
+    if selected_year not in all_years and all_years:
+        selected_year = all_years[0]
     
     # Get tournaments for the selected year
-    tournaments = []
-    for tournament in all_tournaments:
-        if tournament.date and tournament.date.year == selected_year:
-            tournaments.append(tournament)
-    
-    # Sort tournaments by date (descending)
-    tournaments.sort(key=lambda x: x.date, reverse=True)
+    tournaments = Tournament.query.filter(
+        extract('year', Tournament.date) == selected_year
+    ).order_by(Tournament.date.desc()).all()
     
     return render_template(
         'tournaments.html',
         tournaments=tournaments,
         selected_year=selected_year,
-        years=years
+        years=all_years
     )
 
 @bp.route("/tournament/<int:tournament_id>")
