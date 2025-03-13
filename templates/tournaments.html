@@ -9,16 +9,15 @@
     <div class="mb-4">
         <a href="{{ url_for('main.leaderboard') }}" class="btn btn-secondary">Back to Leaderboard</a>
         
-        <!-- Year selector -->
-        <div class="dropdown d-inline-block ml-2">
-            <button class="btn btn-primary dropdown-toggle" type="button" id="yearDropdown" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
-                {{ selected_year }}
-            </button>
-            <div class="dropdown-menu" aria-labelledby="yearDropdown">
-                {% for year in years %}
-                    <a class="dropdown-item {% if year == selected_year %}active{% endif %}" href="{{ url_for('main.tournaments', year=year) }}">{{ year }}</a>
-                {% endfor %}
-            </div>
+        <!-- Year selector using direct links instead of dropdown -->
+        <div class="d-inline-block ml-2">
+            <span class="mr-2">Year:</span>
+            {% for year in years %}
+                <a href="{{ url_for('main.tournaments', year=year) }}" 
+                   class="btn btn-sm {% if year == selected_year %}btn-primary{% else %}btn-outline-primary{% endif %} mr-1">
+                    {{ year }}
+                </a>
+            {% endfor %}
         </div>
         
         <!-- Debug info to help troubleshoot -->
