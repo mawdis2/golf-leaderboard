@@ -979,7 +979,7 @@ def add_historical_totals():
                     try:
                         player_id = int(key.split('_')[1])
                         birdies = int(value) if value else 0
-                        eagles = int(request.form.get(f'eagles_{player_id}', 0) or 0)
+                        eagles = int(request.form.get(f'eagles_{player_id}', 0) or 0
                         has_trophy = request.form.get(f'trophy_{player_id}', 'off') == 'on'
                         
                         print(f"\nProcessing player {player_id}:")
@@ -1188,6 +1188,43 @@ def delete_score(score_id):
     
     return redirect(url_for('main.admin_dashboard'))
 
+@bp.route("/debug_tournaments")
+def debug_tournaments():
+    # Get all tournaments
+    tournaments = Tournament.query.all()
+    
+    result = []
+    for t in tournaments:
+        result.append({
+            'id': t.id,
+            'name': t.name,
+            'date': str(t.date),
+            'year': t.year,
+            'date_year': t.date.year if t.date else None
+        })
+    
+    # Also try direct SQL
+    sql_years_query = """
+    SELECT id, name, date, year, EXTRACT(YEAR FROM date) as date_year
+    FROM tournament
+    ORDER BY date DESC
+    """
+    sql_result = db.session.execute(sql_years_query)
+    sql_tournaments = []
+    for row in sql_result:
+        sql_tournaments.append({
+            'id': row[0],
+            'name': row[1],
+            'date': str(row[2]),
+            'year': row[3],
+            'date_year': int(row[4]) if row[4] else None
+        })
+    
+    return jsonify({
+        'orm_tournaments': result,
+        'sql_tournaments': sql_tournaments
+    })
+
 @bp.route("/tournaments")
 def tournaments():
     # Check if site password is required
@@ -1198,40 +1235,42 @@ def tournaments():
     # Get the selected year (default to current year)
     selected_year = request.args.get('year', datetime.now().year, type=int)
     
-    # Get all years that have tournaments using direct SQL
-    years_query = """
-    SELECT DISTINCT EXTRACT(YEAR FROM date) as year
-    FROM tournament
-    ORDER BY year DESC
-    """
-    years_result = db.session.execute(years_query)
-    years = [int(row[0]) for row in years_result]
+    # Debug: Print all tournaments with their dates
+    all_tournaments = Tournament.query.all()
+    print("All tournaments in database:")
+    for t in all_tournaments:
+        print(f"ID: {t.id}, Name: {t.name}, Date: {t.date}, Year field: {t.year}")
     
-    # Debug output
-    print(f"Tournament years found: {years}")
+    # Get all years from tournament dates
+    years = []
+    for tournament in all_tournaments:
+        if tournament.date:
+            year = tournament.date.year
+            if year not in years:
+                years.append(year)
     
-    # If no tournaments exist yet, use current year
-    if not years:
-        years = [datetime.now().year]
+    # Add current year if not already in the list
+    current_year = datetime.now().year
+    if current_year not in years:
+        years.append(current_year)
+    
+    # Sort years in descending order
+    years.sort(reverse=True)
+    
+    print(f"Years extracted from tournament dates: {years}")
     
     # If selected year is not in the list, use the first year
-    if selected_year not in years:
-        selected_year = years[0] if years else datetime.now().year
+    if selected_year not in years and years:
+        selected_year = years[0]
     
-    # Get tournaments for the selected year using direct SQL
-    tournaments_query = """
-    SELECT * FROM tournament
-    WHERE EXTRACT(YEAR FROM date) = :year
-    ORDER BY date DESC
-    """
-    tournaments_result = db.session.execute(tournaments_query, {"year": selected_year})
-    
-    # Convert result to Tournament objects
+    # Get tournaments for the selected year
     tournaments = []
-    for row in tournaments_result:
-        tournament = Tournament.query.get(row[0])  # Assuming first column is id
-        if tournament:
+    for tournament in all_tournaments:
+        if tournament.date and tournament.date.year == selected_year:
             tournaments.append(tournament)
+    
+    # Sort tournaments by date (descending)
+    tournaments.sort(key=lambda x: x.date, reverse=True)
     
     return render_template(
         'tournaments.html',
