@@ -1809,3 +1809,19 @@ def debug_all_data():
         'trophy_years': trophy_years,
         'combined_years': all_years
     })
+
+@bp.route('/admin/fix_trophies', methods=['GET'])
+@login_required
+def admin_fix_trophies():
+    if not current_user.is_admin:
+        flash('You do not have permission to access this page.', 'danger')
+        return redirect(url_for('main.leaderboard'))
+    
+    try:
+        from fix_trophies import fix_trophy_records
+        fix_trophy_records()
+        flash('Trophy records have been synchronized with tournament results.', 'success')
+    except Exception as e:
+        flash(f'Error synchronizing trophy records: {str(e)}', 'danger')
+    
+    return redirect(url_for('main.admin_dashboard'))

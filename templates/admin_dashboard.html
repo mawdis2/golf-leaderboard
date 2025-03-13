@@ -429,6 +429,22 @@
                 </div>
             </div>
         </div>
+
+        <div class="row mt-4">
+            <div class="col-md-12">
+                <div class="card">
+                    <div class="card-header">
+                        <h5>Maintenance</h5>
+                    </div>
+                    <div class="card-body">
+                        <a href="{{ url_for('main.admin_fix_trophies') }}" class="btn btn-warning" onclick="return confirm('This will synchronize trophy records with tournament results. Continue?');">
+                            Synchronize Trophy Records
+                        </a>
+                        <p class="text-muted mt-2">Use this if you've deleted tournaments and need to update trophy records.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
     </div>
 
     <script>
