@@ -197,7 +197,10 @@ def leaderboard():
         prev_total = player.total
         print(f"{player.name}: Birdies={player.birdie_count}, Eagles={player.eagle_count}, Emojis={player.emojis}, Rank={player.rank}")
     
-    return render_template("leaderboard.html", players=player_scores, year=current_year)
+    # Check if any player has a trophy
+    show_trophy = any(player.has_trophy for player in player_scores)
+    
+    return render_template("leaderboard.html", players=player_scores, show_trophy=show_trophy, current_year=current_year)
 
 @bp.route("/add_player", methods=["GET", "POST"])
 def add_player():
