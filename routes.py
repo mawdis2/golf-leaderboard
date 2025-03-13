@@ -1198,12 +1198,17 @@ def tournaments():
     # Get the selected year (default to current year)
     selected_year = request.args.get('year', datetime.now().year, type=int)
     
-    # Get all years that have tournaments
-    years_with_tournaments = db.session.query(
-        extract('year', Tournament.date).label('year')
-    ).distinct().order_by(db.desc('year')).all()
+    # Get all years that have tournaments using direct SQL
+    years_query = """
+    SELECT DISTINCT EXTRACT(YEAR FROM date) as year
+    FROM tournament
+    ORDER BY year DESC
+    """
+    years_result = db.session.execute(years_query)
+    years = [int(row[0]) for row in years_result]
     
-    years = [int(year[0]) for year in years_with_tournaments]
+    # Debug output
+    print(f"Tournament years found: {years}")
     
     # If no tournaments exist yet, use current year
     if not years:
@@ -1213,10 +1218,20 @@ def tournaments():
     if selected_year not in years:
         selected_year = years[0] if years else datetime.now().year
     
-    # Get tournaments for the selected year
-    tournaments = Tournament.query.filter(
-        extract('year', Tournament.date) == selected_year
-    ).order_by(Tournament.date.desc()).all()
+    # Get tournaments for the selected year using direct SQL
+    tournaments_query = """
+    SELECT * FROM tournament
+    WHERE EXTRACT(YEAR FROM date) = :year
+    ORDER BY date DESC
+    """
+    tournaments_result = db.session.execute(tournaments_query, {"year": selected_year})
+    
+    # Convert result to Tournament objects
+    tournaments = []
+    for row in tournaments_result:
+        tournament = Tournament.query.get(row[0])  # Assuming first column is id
+        if tournament:
+            tournaments.append(tournament)
     
     return render_template(
         'tournaments.html',
