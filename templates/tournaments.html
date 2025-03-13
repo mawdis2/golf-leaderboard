@@ -3,74 +3,66 @@
 {% block title %}Tournaments{% endblock %}
 
 {% block content %}
-<div class="container">
-    <div class="row">
-        <div class="col-12 text-center">
-            <h1 class="mb-4 text-white">Tournaments {{ selected_year }}</h1>
-        </div>
-    </div>
+<div class="container mt-4">
+    <h1 class="text-center mb-4">Tournaments</h1>
     
-    <div class="row mb-3">
-        <div class="col-12 d-flex justify-content-between">
-            <a href="{{ url_for('main.leaderboard') }}" class="btn btn-primary">Back to Leaderboard</a>
-            
-            <!-- Year selector -->
-            <div class="dropdown">
-                <button class="btn btn-secondary dropdown-toggle" type="button" id="yearDropdown" data-bs-toggle="dropdown" aria-expanded="false">
-                    {{ selected_year }}
-                </button>
-                <ul class="dropdown-menu" aria-labelledby="yearDropdown">
-                    {% for year in years %}
-                    <li><a class="dropdown-item {% if year == selected_year %}active{% endif %}" href="{{ url_for('main.tournaments', year=year) }}">{{ year }}</a></li>
-                    {% endfor %}
-                </ul>
+    <div class="mb-4">
+        <a href="{{ url_for('main.leaderboard') }}" class="btn btn-secondary">Back to Leaderboard</a>
+        
+        <!-- Year selector -->
+        <div class="dropdown d-inline-block ml-2">
+            <button class="btn btn-primary dropdown-toggle" type="button" id="yearDropdown" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+                {{ selected_year }}
+            </button>
+            <div class="dropdown-menu" aria-labelledby="yearDropdown">
+                {% for year in years %}
+                    <a class="dropdown-item {% if year == selected_year %}active{% endif %}" href="{{ url_for('main.tournaments', year=year) }}">{{ year }}</a>
+                {% endfor %}
             </div>
+        </div>
+        
+        <!-- Debug info to help troubleshoot -->
+        <div class="small text-muted mt-2">
+            Available years: {{ years|join(', ') }}
         </div>
     </div>
     
     {% if tournaments %}
-    <div class="row">
-        <div class="col-12">
-            <div class="list-group">
-                {% for tournament in tournaments %}
-                <a href="{{ url_for('main.tournament_details', tournament_id=tournament.id) }}" class="list-group-item list-group-item-action tournament-item mb-2">
-                    <div class="d-flex w-100 justify-content-between">
-                        <h5 class="mb-1 tournament-title">{{ tournament.name }}</h5>
-                        <small>
-                            {% if tournament.end_date %}
-                                {{ tournament.date.strftime('%b %d') }} - {{ tournament.end_date.strftime('%b %d, %Y') }}
-                            {% else %}
-                                {{ tournament.date.strftime('%b %d, %Y') }}
-                            {% endif %}
-                        </small>
+        <div class="row">
+            {% for tournament in tournaments %}
+                <div class="col-md-4 mb-4">
+                    <div class="card">
+                        <div class="card-body">
+                            <h5 class="card-title">{{ tournament.name }}</h5>
+                            <p class="card-text">
+                                <strong>Date:</strong> {{ tournament.date.strftime('%Y-%m-%d') }}<br>
+                                {% if tournament.end_date %}
+                                    <strong>End Date:</strong> {{ tournament.end_date.strftime('%Y-%m-%d') }}<br>
+                                {% endif %}
+                                {% if tournament.course %}
+                                    <strong>Course:</strong> {{ tournament.course.name }}<br>
+                                {% endif %}
+                                <strong>Type:</strong> {{ "Team Event" if tournament.is_team_event else "Individual Event" }}
+                            </p>
+                            <a href="{{ url_for('main.tournament_details', tournament_id=tournament.id) }}" class="btn btn-primary">View Details</a>
+                        </div>
                     </div>
-                    <p class="mb-1">
-                        {% if tournament.is_team_event %}
-                            <span class="badge bg-primary">Team Event</span>
-                        {% else %}
-                            <span class="badge bg-info">Individual Event</span>
-                        {% endif %}
-                        
-                        {% if tournament.course %}
-                            <span class="badge bg-secondary">{{ tournament.course.name }}</span>
-                        {% endif %}
-                    </p>
-                    {% if tournament.description %}
-                    <small class="tournament-description">{{ tournament.description }}</small>
-                    {% endif %}
-                </a>
-                {% endfor %}
-            </div>
+                </div>
+            {% endfor %}
         </div>
-    </div>
     {% else %}
-    <div class="row">
-        <div class="col-12 text-center">
-            <div class="alert alert-info">
-                No tournaments found for {{ selected_year }}
-            </div>
+        <div class="alert alert-info">
+            No tournaments found for {{ selected_year }}. 
+            {% if years|length > 1 %}
+                Try selecting a different year from the dropdown.
+            {% endif %}
         </div>
-    </div>
+    {% endif %}
+    
+    {% if current_user.is_authenticated and current_user.is_admin %}
+        <div class="mt-4">
+            <a href="{{ url_for('main.admin_tournaments') }}" class="btn btn-success">Manage Tournaments</a>
+        </div>
     {% endif %}
 </div>
 
