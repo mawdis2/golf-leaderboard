@@ -1724,3 +1724,88 @@ def add_tournament_result(tournament_id):
         players=players,
         teams=teams
     )
+
+@bp.route("/debug_all_data")
+def debug_all_data():
+    # Debug tournaments
+    tournaments = Tournament.query.all()
+    tournament_data = []
+    for t in tournaments:
+        tournament_data.append({
+            'id': t.id,
+            'name': t.name,
+            'date': str(t.date),
+            'year': t.year,
+            'date_year': t.date.year if t.date else None
+        })
+    
+    # Debug historical totals with trophies
+    trophy_data = []
+    trophy_years_query = """
+    SELECT player_id, year, has_trophy, trophy_count 
+    FROM historical_total 
+    WHERE has_trophy = true OR trophy_count > 0
+    ORDER BY year DESC, player_id
+    """
+    trophy_results = db.session.execute(trophy_years_query)
+    for row in trophy_results:
+        player = Player.query.get(row[0])
+        trophy_data.append({
+            'player_id': row[0],
+            'player_name': player.name if player else 'Unknown',
+            'year': row[1],
+            'has_trophy': row[2],
+            'trophy_count': row[3] if len(row) > 3 else None
+        })
+    
+    # Debug tournament results
+    results_data = []
+    results = TournamentResult.query.filter_by(position=1).all()  # Winners only
+    for result in results:
+        tournament = Tournament.query.get(result.tournament_id) if result.tournament_id else None
+        player = Player.query.get(result.player_id) if result.player_id else None
+        team = Team.query.get(result.team_id) if result.team_id else None
+        
+        results_data.append({
+            'id': result.id,
+            'tournament_id': result.tournament_id,
+            'tournament_name': tournament.name if tournament else None,
+            'tournament_date': str(tournament.date) if tournament and tournament.date else None,
+            'tournament_year': tournament.year if tournament else None,
+            'player_id': result.player_id,
+            'player_name': player.name if player else None,
+            'team_id': result.team_id,
+            'team_name': team.name if team else None,
+            'position': result.position,
+            'score': result.score
+        })
+    
+    # Debug direct SQL queries for years
+    tournament_years_query = """
+    SELECT DISTINCT EXTRACT(YEAR FROM date) as year
+    FROM tournament
+    ORDER BY year DESC
+    """
+    tournament_years_result = db.session.execute(tournament_years_query)
+    tournament_years = [int(row[0]) for row in tournament_years_result]
+    
+    trophy_years_query = """
+    SELECT DISTINCT year
+    FROM historical_total
+    WHERE trophy_count > 0 OR has_trophy = true
+    ORDER BY year DESC
+    """
+    trophy_years_result = db.session.execute(trophy_years_query)
+    trophy_years = [int(row[0]) for row in trophy_years_result]
+    
+    # Combine and deduplicate years
+    all_years = sorted(set(tournament_years + trophy_years), reverse=True)
+    
+    return jsonify({
+        'tournaments': tournament_data,
+        'trophy_records': trophy_data,
+        'tournament_results': results_data,
+        'tournament_years': tournament_years,
+        'trophy_years': trophy_years,
+        'combined_years': all_years
+    })
