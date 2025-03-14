@@ -807,12 +807,19 @@ def history():
             if year_trophy_count > 5:
                 trophy_display += f" ({year_trophy_count})"
         
+        # Add eagle emojis for historical data
+        eagle_display = ""
+        if eagle_count > 0:
+            eagle_display = "🦅" * min(eagle_count, 5)  # Limit to 5 visible eagles
+            if eagle_count > 5:
+                eagle_display += f" ({eagle_count})"
+        
         leaderboard.append((
             total,  # Store total for sorting
             player.name,
             birdie_count,
             player.id,
-            trophy_display,
+            trophy_display + eagle_display,  # Combine trophy and eagle emojis
             eagle_count,
             year_trophy_count  # Use year trophy count instead of all years
         ))
