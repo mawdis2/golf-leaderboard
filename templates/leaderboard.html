@@ -22,10 +22,12 @@
     }
     
     .table-container {
-        background-color: rgba(255, 255, 255, 0.9);
+        background-color: rgba(108, 117, 125, 0.15);
         border-radius: 8px;
         padding: 15px;
         margin-bottom: 20px;
+        width: 100%;
+        overflow-x: auto;
     }
     
     .table {
@@ -49,8 +51,17 @@
     /* Mobile-specific adjustments */
     @media (max-width: 768px) {
         .container {
-            padding: 10px;
+            padding: 10px 5px;
             margin-top: 5px;
+            max-width: 100%;
+        }
+        
+        .table-container {
+            padding: 10px 5px;
+            border-radius: 6px;
+            margin-left: -5px;
+            margin-right: -5px;
+            width: calc(100% + 10px);
         }
         
         body {
