@@ -117,25 +117,23 @@
         width: 100%;
     }
     
-    /* Desktop view - show full column names */
+    /* Hide abbreviated column names on desktop */
     @media (min-width: 769px) {
-        .mobile-friendly-table thead th:nth-child(3):before {
-            content: "Birdies";
+        .mobile-friendly-table .mobile-only {
+            display: none;
         }
-        .mobile-friendly-table thead th:nth-child(4):before {
-            content: "Eagles";
+        .mobile-friendly-table .desktop-only {
+            display: inline;
         }
-        .mobile-friendly-table thead th:nth-child(5):before {
-            content: "Total";
+    }
+    
+    /* Hide full column names on mobile */
+    @media (max-width: 768px) {
+        .mobile-friendly-table .desktop-only {
+            display: none;
         }
-        .mobile-friendly-table thead th:nth-child(6):before {
-            content: "Trophies";
-        }
-        .mobile-friendly-table thead th:nth-child(3),
-        .mobile-friendly-table thead th:nth-child(4),
-        .mobile-friendly-table thead th:nth-child(5),
-        .mobile-friendly-table thead th:nth-child(6) {
-            font-size: 1rem;
+        .mobile-friendly-table .mobile-only {
+            display: inline;
         }
     }
 </style>
@@ -172,10 +170,10 @@
                         <tr>
                             <th>#</th>
                             <th>Player</th>
-                            <th>B</th>
-                            <th>E</th>
-                            <th>Tot</th>
-                            <th>🏆</th>
+                            <th><span class="desktop-only">Birdies</span><span class="mobile-only">B</span></th>
+                            <th><span class="desktop-only">Eagles</span><span class="mobile-only">E</span></th>
+                            <th><span class="desktop-only">Total</span><span class="mobile-only">Tot</span></th>
+                            <th><span class="desktop-only">Trophies</span><span class="mobile-only">🏆</span></th>
                         </tr>
                     </thead>
                     <tbody>
