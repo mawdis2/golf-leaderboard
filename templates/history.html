@@ -84,11 +84,59 @@
             top: 70px;
             right: 10px;
         }
+        
+        /* Mobile table optimizations */
+        .table {
+            font-size: 0.85rem;
+        }
+        
+        .table th, .table td {
+            padding: 0.5rem 0.3rem;
+        }
+        
+        /* Reduce width of specific columns on mobile */
+        .table th:nth-child(1), .table td:nth-child(1) {
+            width: 10%;
+            min-width: 40px;
+        }
+        
+        .table th:nth-child(3), .table td:nth-child(3),
+        .table th:nth-child(4), .table td:nth-child(4),
+        .table th:nth-child(5), .table td:nth-child(5) {
+            width: 15%;
+            min-width: 40px;
+        }
     }
     
     .leaderboard-title {
         color: #00008B; /* Dark blue color */
         text-shadow: 1px 1px 2px rgba(255, 255, 255, 0.5); /* Subtle text shadow for better visibility */
+    }
+    
+    .mobile-friendly-table {
+        width: 100%;
+    }
+    
+    /* Desktop view - show full column names */
+    @media (min-width: 769px) {
+        .mobile-friendly-table thead th:nth-child(3):before {
+            content: "Birdies";
+        }
+        .mobile-friendly-table thead th:nth-child(4):before {
+            content: "Eagles";
+        }
+        .mobile-friendly-table thead th:nth-child(5):before {
+            content: "Total";
+        }
+        .mobile-friendly-table thead th:nth-child(6):before {
+            content: "Trophies";
+        }
+        .mobile-friendly-table thead th:nth-child(3),
+        .mobile-friendly-table thead th:nth-child(4),
+        .mobile-friendly-table thead th:nth-child(5),
+        .mobile-friendly-table thead th:nth-child(6) {
+            font-size: 1rem;
+        }
     }
 </style>
 
@@ -119,15 +167,15 @@
     <div class="row">
         <div class="col-12">
             <div class="table-container">
-                <table class="table table-striped">
+                <table class="table table-striped mobile-friendly-table">
                     <thead>
                         <tr>
-                            <th>Rank</th>
+                            <th>#</th>
                             <th>Player</th>
-                            <th>Birdies</th>
-                            <th>Eagles</th>
-                            <th>Total</th>
-                            <th>Trophies</th>
+                            <th>B</th>
+                            <th>E</th>
+                            <th>Tot</th>
+                            <th>🏆</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -135,7 +183,7 @@
                         <tr>
                             <td>{{ rank }}</td>
                             <td>
-                                <a href="{{ url_for('main.player_birdie_records', player_id=player_id, year=selected_year) }}" class="text-success">
+                                <a href="{{ url_for('main.player_birdie_records', player_id=player_id, year=selected_year) }}">
                                     {{ name }}
                                 </a>
                             </td>
