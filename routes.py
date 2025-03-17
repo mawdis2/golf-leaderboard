@@ -223,6 +223,7 @@ def add_player():
     return render_template("add_player.html")
 
 @bp.route("/add_birdie", methods=['GET', 'POST'])
+@login_required
 def add_birdie():
     if request.method == 'POST':
         try:
@@ -302,18 +303,21 @@ def add_birdie():
     # For GET requests, just render the template
     try:
         players = Player.query.all()
-        courses = Course.query.all()
+        courses = Course.query.order_by(Course.name.asc()).all()
         
-        # Get date restrictions
-        today = datetime.now().strftime('%Y-%m-%d')
-        start_of_year = f"{datetime.now().year}-01-01"
+        # Update this part to use today's date instead of tomorrow
+        today = datetime.now().date()
+        
+        # Set default date to today instead of tomorrow
+        default_date = today
         
         return render_template('add_birdie.html', 
             players=players, 
             courses=courses,
-            min_date=start_of_year,
-            max_date=today,
-            current_year=datetime.now().year
+            min_date=today.strftime('%Y-%m-%d'),
+            max_date=today.strftime('%Y-%m-%d'),
+            current_year=datetime.now().year,
+            default_date=default_date.strftime('%Y-%m-%d')
         )
     except Exception as e:
         print(f"Error loading page: {e}")
@@ -1320,7 +1324,7 @@ def admin_tournaments():
         return redirect(url_for('main.leaderboard'))
     
     tournaments = Tournament.query.order_by(Tournament.date.desc()).all()
-    courses = Course.query.all()
+    courses = Course.query.order_by(Course.name.asc()).all()
     
     return render_template(
         "admin_tournaments.html",
@@ -1371,7 +1375,7 @@ def add_tournament():
             print(f"Error adding tournament: {e}")
             flash('Error adding tournament. Please try again.', 'error')
     
-    courses = Course.query.all()
+    courses = Course.query.order_by(Course.name.asc()).all()
     return render_template(
         "add_tournament.html",
         courses=courses
@@ -1409,7 +1413,7 @@ def edit_tournament(tournament_id):
             print(f"Error updating tournament: {e}")
             flash('Error updating tournament. Please try again.', 'error')
     
-    courses = Course.query.all()
+    courses = Course.query.order_by(Course.name.asc()).all()
     return render_template(
         "edit_tournament.html",
         tournament=tournament,
