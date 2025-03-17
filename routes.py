@@ -300,9 +300,9 @@ def add_course():
         course_name = request.form.get("course_name")
         if course_name:
             try:
-            course = Course(name=course_name)
-            db.session.add(course)
-            db.session.commit()
+                course = Course(name=course_name)
+                db.session.add(course)
+                db.session.commit()
                 flash(f'Course "{course_name}" added successfully!', 'success')
             except Exception as e:
                 db.session.rollback()
@@ -330,15 +330,15 @@ def player_birdie_records(player_id):
     # Check if we're looking at historical data or current year
     if selected_year == current_year:
         # Get current year records from Birdie table
-    records = db.session.query(
-        Course.name.label('course_name'),
+        records = db.session.query(
+            Course.name.label('course_name'),
             Birdie.date,
             Birdie.hole_number,
             Birdie.is_eagle
-    ).join(
+        ).join(
             Course, Course.id == Birdie.course_id
-    ).filter(
-        Birdie.player_id == player_id,
+        ).filter(
+            Birdie.player_id == player_id,
             Birdie.year == selected_year
         ).order_by(
             Birdie.date.desc()
@@ -357,7 +357,7 @@ def player_birdie_records(player_id):
             Birdie.year == selected_year
         ).order_by(
             Birdie.date.desc()
-    ).all()
+        ).all()
         
         # If no individual records exist, get the summary from HistoricalTotal
         if not records:
@@ -744,94 +744,94 @@ def history():
                         if historical:
                             historical.trophy_count = actual_trophy_count
                             db.session.commit()
-        else:
-            player, birdie_count, eagle_count, has_trophy = player_data
+            else:
+                player, birdie_count, eagle_count, has_trophy = player_data
                 year_trophy_count = 1 if has_trophy else 0
-        
-        # Ensure birdie_count and eagle_count are integers (not None)
-        birdie_count = birdie_count or 0
-        eagle_count = eagle_count or 0
-        total = birdie_count + eagle_count
-        
-        # Count total trophies across all years
-        all_years_trophy_count = 0
-        try:
-            historical_records = HistoricalTotal.query.filter_by(
-                player_id=player.id,
-                has_trophy=True
-            ).all()
             
-            for record in historical_records:
-                record_trophy_count = getattr(record, 'trophy_count', 0) or 1  # Default to 1 for old records
-                all_years_trophy_count += record_trophy_count
-        except Exception as e:
-            print(f"Error getting all years trophy count: {e}")
-            # Count trophies based on has_trophy
-            historical_records = HistoricalTotal.query.filter_by(
-                player_id=player.id,
-                has_trophy=True
-            ).all()
+            # Ensure birdie_count and eagle_count are integers (not None)
+            birdie_count = birdie_count or 0
+            eagle_count = eagle_count or 0
+            total = birdie_count + eagle_count
             
-            all_years_trophy_count = len(historical_records)
+            # Count total trophies across all years
+            all_years_trophy_count = 0
+            try:
+                historical_records = HistoricalTotal.query.filter_by(
+                    player_id=player.id,
+                    has_trophy=True
+                ).all()
+                
+                for record in historical_records:
+                    record_trophy_count = getattr(record, 'trophy_count', 0) or 1  # Default to 1 for old records
+                    all_years_trophy_count += record_trophy_count
+            except Exception as e:
+                print(f"Error getting all years trophy count: {e}")
+                # Count trophies based on has_trophy
+                historical_records = HistoricalTotal.query.filter_by(
+                    player_id=player.id,
+                    has_trophy=True
+                ).all()
+                
+                all_years_trophy_count = len(historical_records)
+            
+            # Create trophy display string based on count
+            trophy_display = ""
+            if has_trophy and year_trophy_count > 0:
+                trophy_display = "🏆" * min(year_trophy_count, 5)  # Limit to 5 visible trophies
+                if year_trophy_count > 5:
+                    trophy_display += f" ({year_trophy_count})"
+            
+            # Add eagle emojis for historical data
+            eagle_display = ""
+            if eagle_count > 0:
+                eagle_display = "🦅" * min(eagle_count, 5)  # Limit to 5 visible eagles
+                if eagle_count > 5:
+                    eagle_display += f" ({eagle_count})"
+            
+            leaderboard.append((
+                total,  # Store total for sorting
+                player.name,
+                birdie_count,
+                player.id,
+                trophy_display + eagle_display,  # Combine trophy and eagle emojis
+                eagle_count,
+                year_trophy_count  # Use year trophy count instead of all years
+            ))
         
-        # Create trophy display string based on count
-        trophy_display = ""
-        if has_trophy and year_trophy_count > 0:
-            trophy_display = "🏆" * min(year_trophy_count, 5)  # Limit to 5 visible trophies
-            if year_trophy_count > 5:
-                trophy_display += f" ({year_trophy_count})"
+        # Sort by total score (descending)
+        sorted_leaderboard = sorted(leaderboard, key=lambda x: x[0], reverse=True)
         
-        # Add eagle emojis for historical data
-        eagle_display = ""
-        if eagle_count > 0:
-            eagle_display = "🦅" * min(eagle_count, 5)  # Limit to 5 visible eagles
-            if eagle_count > 5:
-                eagle_display += f" ({eagle_count})"
+        # Create final leaderboard with ranks
+        final_leaderboard = []
+        prev_total = None
+        current_rank = 0
+        players_at_rank = 1
         
-        leaderboard.append((
-            total,  # Store total for sorting
-            player.name,
-            birdie_count,
-            player.id,
-            trophy_display + eagle_display,  # Combine trophy and eagle emojis
-            eagle_count,
-            year_trophy_count  # Use year trophy count instead of all years
-        ))
-    
-    # Sort by total score (descending)
-    sorted_leaderboard = sorted(leaderboard, key=lambda x: x[0], reverse=True)
-    
-    # Create final leaderboard with ranks
-    final_leaderboard = []
-    prev_total = None
-    current_rank = 0
-    players_at_rank = 1
-    
-    for idx, entry in enumerate(sorted_leaderboard):
-        total = entry[0]
-        
-        if total != prev_total:
-            current_rank = idx + 1
-            players_at_rank = 1
-        else:
-            players_at_rank += 1
-            # If this is the second player at this rank, also update the previous player
-            if players_at_rank == 2 and final_leaderboard:
-                prev_entry = final_leaderboard[-1]
-                final_leaderboard[-1] = (f"T{current_rank}", *prev_entry[1:])
-        
-        rank_display = f"T{current_rank}" if players_at_rank > 1 else str(current_rank)
-        prev_total = total
-        
-        final_leaderboard.append((
-            rank_display,
-            entry[1],  # name
-            entry[2],  # birdies
-            entry[3],  # player_id
-            entry[4],  # trophy display for current year
-            entry[5],  # eagles
-            entry[6]   # year trophy count
-        ))
+        for idx, entry in enumerate(sorted_leaderboard):
+            total = entry[0]
+            
+            if total != prev_total:
+                current_rank = idx + 1
+                players_at_rank = 1
+            else:
+                players_at_rank += 1
+                # If this is the second player at this rank, also update the previous player
+                if players_at_rank == 2 and final_leaderboard:
+                    prev_entry = final_leaderboard[-1]
+                    final_leaderboard[-1] = (f"T{current_rank}", *prev_entry[1:])
+            
+            rank_display = f"T{current_rank}" if players_at_rank > 1 else str(current_rank)
+            prev_total = total
+            
+            final_leaderboard.append((
+                rank_display,
+                entry[1],  # name
+                entry[2],  # birdies
+                entry[3],  # player_id
+                entry[4],  # trophy display for current year
+                entry[5],  # eagles
+                entry[6]   # year trophy count
+            ))
 
     # Check for years with data directly from the database tables
     print("Checking for years with data...")
@@ -1162,17 +1162,17 @@ def delete_score(score_id):
     if not current_user.is_admin:
         flash('You do not have permission to delete scores.')
         return redirect(url_for('main.leaderboard'))
-        
+    
     try:
-            score = Birdie.query.get_or_404(score_id)
+        score = Birdie.query.get_or_404(score_id)
         db.session.delete(score)
         db.session.commit()
         flash('Score deleted successfully', 'success')
     except Exception as e:
         flash(f'Error deleting score: {str(e)}', 'error')
     
-            return redirect(url_for('main.admin_dashboard'))
-        
+    return redirect(url_for('main.admin_dashboard'))
+
 @bp.route("/debug_tournaments")
 def debug_tournaments():
     # Get all tournaments
@@ -1335,12 +1335,12 @@ def add_tournament():
             )
             
             db.session.add(tournament)
-        db.session.commit()
+            db.session.commit()
             
             flash(f'Tournament "{name}" added successfully!', 'success')
             return redirect(url_for('main.admin_tournaments'))
-        
-    except Exception as e:
+            
+        except Exception as e:
             db.session.rollback()
             print(f"Error adding tournament: {e}")
             flash('Error adding tournament. Please try again.', 'error')
