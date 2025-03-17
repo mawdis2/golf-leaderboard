@@ -226,8 +226,8 @@ def add_player():
 def add_birdie():
     if request.method == 'POST':
         try:
-        print("Form data received:")
-        print(request.form)
+            print("Form data received:")
+            print(request.form)
             
             player_id = request.form.get('player_id')
             course_id = request.form.get('course_id')
@@ -267,27 +267,22 @@ def add_birdie():
             # Find the player
             player = Player.query.get(player_id)
             if player:
-            print(f"Player found: {player.name}")
-            
+                print(f"Player found: {player.name}")
+                
                 # Create new birdie record
                 new_record = Birdie(
-                player_id=player_id, 
-                course_id=course_id, 
+                    player_id=player_id, 
+                    course_id=course_id, 
                     hole_number=hole_number,
-                year=current_year,
+                    year=current_year,
                     date=date,
-                is_eagle=is_eagle
-            )
+                    is_eagle=is_eagle
+                )
                 print(f"Created record: player={player.name}, is_eagle={is_eagle}")
                 
-                try:
-                    db.session.add(new_record)
-            db.session.commit()
-                    flash('Score added successfully!', 'success')
-                except Exception as e:
-                    db.session.rollback()
-                    print(f"Error adding score: {e}")
-                    flash('Error adding score. Please try again.', 'error')
+                db.session.add(new_record)
+                db.session.commit()
+                flash('Score added successfully!', 'success')
             else:
                 flash('Player not found.', 'error')
                 
@@ -298,31 +293,6 @@ def add_birdie():
             print(f"Error: {e}")
             flash('Error processing request. Please try again.', 'error')
             return redirect(url_for('main.add_birdie'))
-    
-    # For GET requests, just render the template
-    try:
-        players = Player.query.all()
-        courses = Course.query.order_by(Course.name.asc()).all()
-        
-        # Get today's date in Pacific Time (Render's timezone)
-        pacific_tz = datetime.now(timezone(timedelta(hours=-7)))  # -7 hours for Pacific Time
-        today = pacific_tz.date()
-        
-        # Set default date to today
-        default_date = today
-        
-        return render_template('add_birdie.html', 
-            players=players, 
-            courses=courses,
-            min_date=today.strftime('%Y-%m-%d'),
-            max_date=today.strftime('%Y-%m-%d'),
-            current_year=today.year,
-            default_date=default_date.strftime('%Y-%m-%d')
-        )
-    except Exception as e:
-        print(f"Error loading page: {e}")
-        flash('Error loading page. Please try again.', 'error')
-        return redirect(url_for('main.leaderboard'))
 
 @bp.route("/add_course", methods=["GET", "POST"])
 def add_course():
