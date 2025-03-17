@@ -4,7 +4,7 @@ print("=== SECOND TEST - CONFIRMED FILE ACCESS ===")
 from flask import Blueprint, render_template, request, redirect, url_for, jsonify, flash, get_flashed_messages, session
 from flask_login import current_user, login_required, login_user, logout_user
 from sqlalchemy.sql import func, case, and_, or_, extract
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from models import db, User, Player, Birdie, Course, HistoricalTotal, Eagle, Tournament, Team, TeamMember, TournamentResult
 
 print("TEST LINE WITH RELATIVE PATH - " + str(datetime.now()))
@@ -163,10 +163,10 @@ def leaderboard():
         # Add eagle emojis for current year
         if eagle_count > 0:
             emojis += "🦅" * eagle_count
-        
+            
         player.emojis = emojis
         print(f"Final emojis for {player.name}: {emojis} (Recent birdies: {recent_birdies}, Eagles: {eagle_count}, Trophy: {has_trophy}, Trophy count: {trophy_count})")
-        
+            
         player_scores.append(player)
     
     # Sort players by total score (descending)
@@ -226,8 +226,8 @@ def add_player():
 def add_birdie():
     if request.method == 'POST':
         try:
-            print("Form data received:")
-            print(request.form)
+        print("Form data received:")
+        print(request.form)
             
             player_id = request.form.get('player_id')
             course_id = request.form.get('course_id')
@@ -267,22 +267,22 @@ def add_birdie():
             # Find the player
             player = Player.query.get(player_id)
             if player:
-                print(f"Player found: {player.name}")
-                
+            print(f"Player found: {player.name}")
+            
                 # Create new birdie record
                 new_record = Birdie(
-                    player_id=player_id,
-                    course_id=course_id,
+                player_id=player_id, 
+                course_id=course_id, 
                     hole_number=hole_number,
-                    year=current_year,
+                year=current_year,
                     date=date,
-                    is_eagle=is_eagle
-                )
+                is_eagle=is_eagle
+            )
                 print(f"Created record: player={player.name}, is_eagle={is_eagle}")
                 
                 try:
                     db.session.add(new_record)
-                    db.session.commit()
+            db.session.commit()
                     flash('Score added successfully!', 'success')
                 except Exception as e:
                     db.session.rollback()
@@ -304,8 +304,9 @@ def add_birdie():
         players = Player.query.all()
         courses = Course.query.order_by(Course.name.asc()).all()
         
-        # Get today's date without any time component
-        today = datetime.now().replace(hour=0, minute=0, second=0, microsecond=0).date()
+        # Get today's date in Pacific Time (Render's timezone)
+        pacific_tz = datetime.now(timezone(timedelta(hours=-7)))  # -7 hours for Pacific Time
+        today = pacific_tz.date()
         
         # Set default date to today
         default_date = today
@@ -315,7 +316,7 @@ def add_birdie():
             courses=courses,
             min_date=today.strftime('%Y-%m-%d'),
             max_date=today.strftime('%Y-%m-%d'),
-            current_year=datetime.now().year,
+            current_year=today.year,
             default_date=default_date.strftime('%Y-%m-%d')
         )
     except Exception as e:
@@ -329,9 +330,9 @@ def add_course():
         course_name = request.form.get("course_name")
         if course_name:
             try:
-                course = Course(name=course_name)
-                db.session.add(course)
-                db.session.commit()
+            course = Course(name=course_name)
+            db.session.add(course)
+            db.session.commit()
                 flash(f'Course "{course_name}" added successfully!', 'success')
             except Exception as e:
                 db.session.rollback()
@@ -339,7 +340,7 @@ def add_course():
                 flash('Error adding course. Please try again.', 'error')
         else:
             flash('Course name is required.', 'error')
-        return redirect(url_for('main.add_birdie'))
+            return redirect(url_for('main.add_birdie'))
     return redirect(url_for('main.add_birdie'))
 
 @bp.route("/players")
@@ -359,15 +360,15 @@ def player_birdie_records(player_id):
     # Check if we're looking at historical data or current year
     if selected_year == current_year:
         # Get current year records from Birdie table
-        records = db.session.query(
-            Course.name.label('course_name'),
+    records = db.session.query(
+        Course.name.label('course_name'),
             Birdie.date,
             Birdie.hole_number,
             Birdie.is_eagle
-        ).join(
+    ).join(
             Course, Course.id == Birdie.course_id
-        ).filter(
-            Birdie.player_id == player_id,
+    ).filter(
+        Birdie.player_id == player_id,
             Birdie.year == selected_year
         ).order_by(
             Birdie.date.desc()
@@ -386,7 +387,7 @@ def player_birdie_records(player_id):
             Birdie.year == selected_year
         ).order_by(
             Birdie.date.desc()
-        ).all()
+    ).all()
         
         # If no individual records exist, get the summary from HistoricalTotal
         if not records:
@@ -660,21 +661,21 @@ def history():
         except Exception as e:
             # If trophy_count column doesn't exist yet, fall back to has_trophy
             print(f"Error getting trophy_count, falling back to has_trophy: {e}")
-            players = db.session.query(
-                Player,
-                HistoricalTotal.birdies.label('birdie_count'),
-                HistoricalTotal.eagles.label('eagle_count'),
-                HistoricalTotal.has_trophy.label('has_trophy')
-            ).join(
-                HistoricalTotal,
-                (Player.id == HistoricalTotal.player_id) & 
-                (HistoricalTotal.year == selected_year)
-            ).filter(
+        players = db.session.query(
+            Player,
+            HistoricalTotal.birdies.label('birdie_count'),
+            HistoricalTotal.eagles.label('eagle_count'),
+            HistoricalTotal.has_trophy.label('has_trophy')
+        ).join(
+            HistoricalTotal,
+            (Player.id == HistoricalTotal.player_id) & 
+            (HistoricalTotal.year == selected_year)
+        ).filter(
                 or_(
-                    HistoricalTotal.birdies > 0,
+                HistoricalTotal.birdies > 0,
                     HistoricalTotal.eagles > 0,
                     HistoricalTotal.has_trophy == True  # Include players with trophies
-                )
+            )
             ).all()
 
     # Create initial leaderboard with totals
@@ -773,8 +774,8 @@ def history():
                         if historical:
                             historical.trophy_count = actual_trophy_count
                             db.session.commit()
-            else:
-                player, birdie_count, eagle_count, has_trophy = player_data
+        else:
+            player, birdie_count, eagle_count, has_trophy = player_data
                 year_trophy_count = 1 if has_trophy else 0
         
         # Ensure birdie_count and eagle_count are integers (not None)
@@ -913,59 +914,59 @@ def history():
 @bp.route("/add_trophy", methods=["GET", "POST"])
 def add_trophy():
     if request.method == "POST":
-        player_id = request.form.get("player_id")
-        year = int(request.form.get("year", datetime.now().year))
-        print(f"\nAdding trophy - Player ID: {player_id}, Year: {year}")
-        
-        player = Player.query.get(player_id)
-        print(f"Found player: {player.name if player else None}")
-        print(f"Player before update - permanent_emojis: {player.permanent_emojis}")
-        
-        if player:
-            # Get or create historical total
-            historical_total = HistoricalTotal.query.filter_by(
-                player_id=player_id,
-                year=year
-            ).first()
+            player_id = request.form.get("player_id")
+            year = int(request.form.get("year", datetime.now().year))
+            print(f"\nAdding trophy - Player ID: {player_id}, Year: {year}")
             
-            if not historical_total:
-                print("Creating new historical total")
-                historical_total = HistoricalTotal(
+            player = Player.query.get(player_id)
+            print(f"Found player: {player.name if player else None}")
+            print(f"Player before update - permanent_emojis: {player.permanent_emojis}")
+            
+            if player:
+                # Get or create historical total
+                historical_total = HistoricalTotal.query.filter_by(
                     player_id=player_id,
-                    year=year,
-                    birdies=0,
-                    eagles=0,
-                    has_trophy=True
-                )
-                db.session.add(historical_total)
+                    year=year
+                ).first()
+                
+                if not historical_total:
+                    print("Creating new historical total")
+                    historical_total = HistoricalTotal(
+                        player_id=player_id,
+                        year=year,
+                        birdies=0,
+                        eagles=0,
+                        has_trophy=True
+                    )
+                    db.session.add(historical_total)
+                else:
+                    print("Updating existing historical total")
+                    historical_total.has_trophy = True
+                
+                # Update player's trophy status regardless of current emojis
+                if not player.permanent_emojis:
+                    player.permanent_emojis = "🏆"
+                elif "🏆" not in player.permanent_emojis:
+                    player.permanent_emojis += "🏆"
+                
+                try:
+                    db.session.commit()
+                    print("Changes committed to database")
+                    # Verify changes after commit
+                    db.session.refresh(player)
+                    db.session.refresh(historical_total)
+                    print(f"Player after commit - permanent_emojis: {player.permanent_emojis}")
+                    print(f"Historical total after commit - has_trophy: {historical_total.has_trophy}")
+                except Exception as commit_error:
+                    print(f"Error during commit: {commit_error}")
+                    db.session.rollback()
+                    raise
+                
+                flash(f"Trophy added to {player.name}!", "success")
             else:
-                print("Updating existing historical total")
-                historical_total.has_trophy = True
+                flash("Player not found!", "error")
             
-            # Update player's trophy status regardless of current emojis
-            if not player.permanent_emojis:
-                player.permanent_emojis = "🏆"
-            elif "🏆" not in player.permanent_emojis:
-                player.permanent_emojis += "🏆"
-            
-            try:
-                db.session.commit()
-                print("Changes committed to database")
-                # Verify changes after commit
-                db.session.refresh(player)
-                db.session.refresh(historical_total)
-                print(f"Player after commit - permanent_emojis: {player.permanent_emojis}")
-                print(f"Historical total after commit - has_trophy: {historical_total.has_trophy}")
-            except Exception as commit_error:
-                print(f"Error during commit: {commit_error}")
-                db.session.rollback()
-                raise
-            
-            flash(f"Trophy added to {player.name}!", "success")
-        else:
-            flash("Player not found!", "error")
-        
-        return redirect(url_for("main.admin_dashboard"))
+            return redirect(url_for("main.admin_dashboard"))
     
     players = Player.query.all()
     return render_template("add_trophy.html", players=players)
@@ -1193,15 +1194,15 @@ def delete_score(score_id):
         return redirect(url_for('main.leaderboard'))
         
     try:
-        score = Birdie.query.get_or_404(score_id)
+            score = Birdie.query.get_or_404(score_id)
         db.session.delete(score)
         db.session.commit()
         flash('Score deleted successfully', 'success')
     except Exception as e:
         flash(f'Error deleting score: {str(e)}', 'error')
     
-    return redirect(url_for('main.admin_dashboard'))
-
+            return redirect(url_for('main.admin_dashboard'))
+        
 @bp.route("/debug_tournaments")
 def debug_tournaments():
     # Get all tournaments
@@ -1364,12 +1365,12 @@ def add_tournament():
             )
             
             db.session.add(tournament)
-            db.session.commit()
+        db.session.commit()
             
             flash(f'Tournament "{name}" added successfully!', 'success')
             return redirect(url_for('main.admin_tournaments'))
-            
-        except Exception as e:
+        
+    except Exception as e:
             db.session.rollback()
             print(f"Error adding tournament: {e}")
             flash('Error adding tournament. Please try again.', 'error')
