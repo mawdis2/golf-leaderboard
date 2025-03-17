@@ -293,6 +293,27 @@ def add_birdie():
             print(f"Error: {e}")
             flash('Error processing request. Please try again.', 'error')
             return redirect(url_for('main.add_birdie'))
+    
+    # For GET requests, just render the template
+    try:
+        players = Player.query.all()
+        courses = Course.query.all()
+        
+        # Get date restrictions
+        today = datetime.now().strftime('%Y-%m-%d')
+        start_of_year = f"{datetime.now().year}-01-01"
+        
+        return render_template('add_birdie.html', 
+            players=players, 
+            courses=courses,
+            min_date=start_of_year,
+            max_date=today,
+            current_year=datetime.now().year
+        )
+    except Exception as e:
+        print(f"Error loading page: {e}")
+        flash('Error loading page. Please try again.', 'error')
+        return redirect(url_for('main.leaderboard'))
 
 @bp.route("/add_course", methods=["GET", "POST"])
 def add_course():
@@ -1294,7 +1315,7 @@ def admin_tournaments():
         return redirect(url_for('main.leaderboard'))
     
     tournaments = Tournament.query.order_by(Tournament.date.desc()).all()
-    courses = Course.query.order_by(Course.name.asc()).all()
+    courses = Course.query.all()
     
     return render_template(
         "admin_tournaments.html",
@@ -1345,7 +1366,7 @@ def add_tournament():
             print(f"Error adding tournament: {e}")
             flash('Error adding tournament. Please try again.', 'error')
     
-    courses = Course.query.order_by(Course.name.asc()).all()
+    courses = Course.query.all()
     return render_template(
         "add_tournament.html",
         courses=courses
@@ -1383,7 +1404,7 @@ def edit_tournament(tournament_id):
             print(f"Error updating tournament: {e}")
             flash('Error updating tournament. Please try again.', 'error')
     
-    courses = Course.query.order_by(Course.name.asc()).all()
+    courses = Course.query.all()
     return render_template(
         "edit_tournament.html",
         tournament=tournament,
