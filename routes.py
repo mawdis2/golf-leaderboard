@@ -223,6 +223,7 @@ def add_player():
     return render_template("add_player.html")
 
 @bp.route("/add_birdie", methods=['GET', 'POST'])
+@login_required
 def add_birdie():
     if request.method == 'POST':
         try:
