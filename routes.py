@@ -304,10 +304,10 @@ def add_birdie():
         players = Player.query.all()
         courses = Course.query.order_by(Course.name.asc()).all()
         
-        # Update this part to use today's date instead of tomorrow
-        today = datetime.now().date()
+        # Get today's date without any time component
+        today = datetime.now().replace(hour=0, minute=0, second=0, microsecond=0).date()
         
-        # Set default date to today instead of tomorrow
+        # Set default date to today
         default_date = today
         
         return render_template('add_birdie.html', 
