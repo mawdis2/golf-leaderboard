@@ -1279,6 +1279,12 @@ def tournaments():
         years=all_years
     )
 
+@bp.route("/tournament/<int:tournament_id>")
+def tournament_details(tournament_id):
+    tournament = Tournament.query.get_or_404(tournament_id)
+    results = TournamentResult.query.filter_by(tournament_id=tournament_id).order_by(TournamentResult.position).all()
+    return render_template('tournament_details.html', tournament=tournament, results=results)
+
 @bp.route("/tournament/<int:tournament_id>/matches")
 def tournament_matches(tournament_id):
     tournament = Tournament.query.get_or_404(tournament_id)
