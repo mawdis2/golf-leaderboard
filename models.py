@@ -84,12 +84,14 @@ class Tournament(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(100), nullable=False)
     date = db.Column(db.DateTime, nullable=False)
+    course_id = db.Column(db.Integer, db.ForeignKey('course.id'), nullable=True)
     has_individual_matches = db.Column(db.Boolean, default=False)
     is_active = db.Column(db.Boolean, default=True)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     
     # Relationships
     results = db.relationship('TournamentResult', backref='tournament', lazy=True)
+    course = db.relationship('Course', backref='tournaments')
     
     def __repr__(self):
         return f'<Tournament: {self.name}>'
