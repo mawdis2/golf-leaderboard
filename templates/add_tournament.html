@@ -1,0 +1,60 @@
+{% extends "base.html" %}
+
+{% block title %}Add Tournament{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <h1>Add Tournament</h1>
+    
+    <form method="POST" class="mt-4">
+        {{ form.csrf_token }}
+        
+        <div class="mb-3">
+            {{ form.name.label(class="form-label") }}
+            {{ form.name(class="form-control") }}
+            {% if form.name.errors %}
+                {% for error in form.name.errors %}
+                    <div class="text-danger">{{ error }}</div>
+                {% endfor %}
+            {% endif %}
+        </div>
+        
+        <div class="mb-3">
+            {{ form.date.label(class="form-label") }}
+            {{ form.date(class="form-control", type="date") }}
+            {% if form.date.errors %}
+                {% for error in form.date.errors %}
+                    <div class="text-danger">{{ error }}</div>
+                {% endfor %}
+            {% endif %}
+        </div>
+        
+        <div class="mb-3">
+            {{ form.course.label(class="form-label") }}
+            {{ form.course(class="form-control") }}
+            {% if form.course.errors %}
+                {% for error in form.course.errors %}
+                    <div class="text-danger">{{ error }}</div>
+                {% endfor %}
+            {% endif %}
+        </div>
+        
+        <div class="mb-3">
+            <div class="form-check">
+                {{ form.has_individual_matches(class="form-check-input") }}
+                {{ form.has_individual_matches.label(class="form-check-label") }}
+            </div>
+            {% if form.has_individual_matches.errors %}
+                {% for error in form.has_individual_matches.errors %}
+                    <div class="text-danger">{{ error }}</div>
+                {% endfor %}
+            {% endif %}
+        </div>
+        
+        <div class="mb-3">
+            <button type="submit" class="btn btn-primary">Create Tournament</button>
+            <a href="{{ url_for('main.tournaments') }}" class="btn btn-secondary">Cancel</a>
+        </div>
+    </form>
+</div>
+{% endblock %} 

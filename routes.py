@@ -5,7 +5,7 @@ from flask import Blueprint, render_template, request, redirect, url_for, jsonif
 from flask_login import current_user, login_required, login_user, logout_user
 from sqlalchemy.sql import func, case, and_, or_, extract
 from datetime import datetime, timedelta, timezone
-from models import db, User, Player, Birdie, Course, HistoricalTotal, Eagle, Tournament, Team, TeamMember, TournamentResult
+from models import db, User, Player, Birdie, Course, HistoricalTotal, Eagle, Tournament, Team, TeamMember, TournamentResult, Match
 
 print("TEST LINE WITH RELATIVE PATH - " + str(datetime.now()))
 
@@ -1233,79 +1233,82 @@ def debug_tournaments():
 
 @bp.route("/tournaments")
 def tournaments():
-    # Check if site password is required
-    auth_redirect = check_site_auth()
-    if auth_redirect:
-        return auth_redirect
-        
-    # Get the selected year (default to current year)
-    selected_year = request.args.get('year', datetime.now().year, type=int)
-    
-    # Get all years that have tournaments
-    tournament_years_query = """
-    SELECT DISTINCT EXTRACT(YEAR FROM date) as year
-    FROM tournament
-    ORDER BY year DESC
-    """
-    tournament_years_result = db.session.execute(tournament_years_query)
-    tournament_years = [int(row[0]) for row in tournament_years_result]
-    
-    # Get all years that have trophies
-    trophy_years_query = """
-    SELECT DISTINCT year
-    FROM historical_total
-    WHERE trophy_count > 0
-    ORDER BY year DESC
-    """
-    trophy_years_result = db.session.execute(trophy_years_query)
-    trophy_years = [int(row[0]) for row in trophy_years_result]
-    
-    # Combine and deduplicate years
-    all_years = sorted(set(tournament_years + trophy_years), reverse=True)
-    
-    # Debug output
-    print(f"Tournament years: {tournament_years}")
-    print(f"Trophy years: {trophy_years}")
-    print(f"Combined years: {all_years}")
-    
-    # If no years found, use current year
-    if not all_years:
-        all_years = [datetime.now().year]
-    
-    # If selected year is not in the list, use the first year
-    if selected_year not in all_years and all_years:
-        selected_year = all_years[0]
-    
-    # Get tournaments for the selected year
-    tournaments = Tournament.query.filter(
-        extract('year', Tournament.date) == selected_year
-    ).order_by(Tournament.date.desc()).all()
-    
-    return render_template(
-        'tournaments.html',
-        tournaments=tournaments,
-        selected_year=selected_year,
-        years=all_years
-    )
+    tournaments = Tournament.query.order_by(Tournament.date.desc()).all()
+    return render_template('tournaments.html', tournaments=tournaments)
 
-@bp.route("/tournament/<int:tournament_id>")
-def tournament_details(tournament_id):
-    # Check if site password is required
-    auth_redirect = check_site_auth()
-    if auth_redirect:
-        return auth_redirect
-        
-    # Get the tournament
+@bp.route("/tournament/<int:tournament_id>/matches")
+def tournament_matches(tournament_id):
+    tournament = Tournament.query.get_or_404(tournament_id)
+    players = Player.query.order_by(Player.name).all()
+    matches = Match.query.filter_by(tournament_id=tournament_id).order_by(Match.date.desc()).all()
+    standings = tournament.get_standings()
+    return render_template('tournament_matches.html', 
+                         tournament=tournament,
+                         players=players,
+                         matches=matches,
+                         standings=standings)
+
+@bp.route("/tournament/<int:tournament_id>/add_match", methods=['POST'])
+@login_required
+def add_match(tournament_id):
     tournament = Tournament.query.get_or_404(tournament_id)
     
-    # Get results for this tournament
-    results = TournamentResult.query.filter_by(tournament_id=tournament.id).order_by(TournamentResult.position).all()
+    player1_id = request.form.get('player1_id')
+    player2_id = request.form.get('player2_id')
+    result = request.form.get('result')
     
-    return render_template(
-        'tournament_details.html',
-        tournament=tournament,
-        results=results
+    if not all([player1_id, player2_id, result]):
+        flash('All fields are required.', 'error')
+        return redirect(url_for('main.tournament_matches', tournament_id=tournament_id))
+    
+    match = Match(
+        tournament_id=tournament_id,
+        player1_id=player1_id,
+        player2_id=player2_id
     )
+    
+    if result == 'tie':
+        match.is_tie = True
+    elif result == 'player1':
+        match.winner_id = player1_id
+    elif result == 'player2':
+        match.winner_id = player2_id
+    
+    db.session.add(match)
+    db.session.commit()
+    
+    flash('Match added successfully!', 'success')
+    return redirect(url_for('main.tournament_matches', tournament_id=tournament_id))
+
+@bp.route("/edit_match/<int:match_id>", methods=['POST'])
+@login_required
+def edit_match(match_id):
+    match = Match.query.get_or_404(match_id)
+    
+    player1_id = request.form.get('player1_id')
+    player2_id = request.form.get('player2_id')
+    result = request.form.get('result')
+    
+    if not all([player1_id, player2_id, result]):
+        flash('All fields are required.', 'error')
+        return redirect(url_for('main.tournament_matches', tournament_id=match.tournament_id))
+    
+    match.player1_id = player1_id
+    match.player2_id = player2_id
+    match.winner_id = None
+    match.is_tie = False
+    
+    if result == 'tie':
+        match.is_tie = True
+    elif result == 'player1':
+        match.winner_id = player1_id
+    elif result == 'player2':
+        match.winner_id = player2_id
+    
+    db.session.commit()
+    
+    flash('Match updated successfully!', 'success')
+    return redirect(url_for('main.tournament_matches', tournament_id=match.tournament_id))
 
 @bp.route("/admin/tournaments")
 @login_required
@@ -1323,54 +1326,25 @@ def admin_tournaments():
         courses=courses
     )
 
-@bp.route("/admin/add_tournament", methods=['GET', 'POST'])
+@bp.route("/add_tournament", methods=['GET', 'POST'])
 @login_required
 def add_tournament():
-    if not current_user.is_admin:
-        flash('You do not have permission to access this page.')
-        return redirect(url_for('main.leaderboard'))
+    form = TournamentForm()
+    form.course.choices = [(c.id, c.name) for c in Course.query.order_by(Course.name).all()]
     
-    if request.method == 'POST':
-        try:
-            name = request.form.get('name')
-            date_str = request.form.get('date')
-            end_date_str = request.form.get('end_date')
-            course_id = request.form.get('course_id') or None  # Make course optional
-            is_team_event = request.form.get('is_team_event') == 'on'
-            description = request.form.get('description')
-            
-            # Parse dates
-            date = datetime.strptime(date_str, '%Y-%m-%d')
-            end_date = datetime.strptime(end_date_str, '%Y-%m-%d') if end_date_str else None
-            year = date.year
-            
-            # Create tournament
-            tournament = Tournament(
-                name=name,
-                date=date,
-                end_date=end_date,
-                course_id=course_id,
-                is_team_event=is_team_event,
-                description=description,
-                year=year
-            )
-            
-            db.session.add(tournament)
-            db.session.commit()
-            
-            flash(f'Tournament "{name}" added successfully!', 'success')
-            return redirect(url_for('main.admin_tournaments'))
-            
-        except Exception as e:
-            db.session.rollback()
-            print(f"Error adding tournament: {e}")
-            flash('Error adding tournament. Please try again.', 'error')
+    if form.validate_on_submit():
+        tournament = Tournament(
+            name=form.name.data,
+            date=form.date.data,
+            course_id=form.course.data,
+            has_individual_matches=form.has_individual_matches.data
+        )
+        db.session.add(tournament)
+        db.session.commit()
+        flash('Tournament added successfully!', 'success')
+        return redirect(url_for('main.tournaments'))
     
-    courses = Course.query.all()
-    return render_template(
-        "add_tournament.html",
-        courses=courses
-    )
+    return render_template('add_tournament.html', form=form)
 
 @bp.route("/admin/edit_tournament/<int:tournament_id>", methods=['GET', 'POST'])
 @login_required

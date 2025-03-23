@@ -102,39 +102,46 @@
         </div>
     </div>
     
-    {% if tournaments %}
-        <div class="row">
-            {% for tournament in tournaments %}
-                <div class="col-md-4 mb-4">
-                    <div class="card">
-                        <div class="card-header">
-                            <h5 class="card-title mb-0">{{ tournament.name }}</h5>
-                        </div>
-                        <div class="card-body">
-                            <p class="card-text">
-                                <strong>Date:</strong> {{ tournament.date.strftime('%Y-%m-%d') }}<br>
-                                {% if tournament.end_date %}
-                                    <strong>End Date:</strong> {{ tournament.end_date.strftime('%Y-%m-%d') }}<br>
-                                {% endif %}
-                                {% if tournament.course %}
-                                    <strong>Course:</strong> {{ tournament.course.name }}<br>
-                                {% endif %}
-                                <strong>Type:</strong> {{ "Team Event" if tournament.is_team_event else "Individual Event" }}
-                            </p>
-                            <a href="{{ url_for('main.tournament_details', tournament_id=tournament.id) }}" class="btn btn-primary">View Details</a>
-                        </div>
-                    </div>
-                </div>
-            {% endfor %}
+    <div class="row mb-4">
+        <div class="col">
+            <a href="{{ url_for('main.add_tournament') }}" class="btn btn-primary">Add Tournament</a>
         </div>
-    {% else %}
-        <div class="alert alert-info">
-            No tournaments found for {{ selected_year }}. 
-            {% if years|length > 1 %}
-                Try selecting a different year.
-            {% endif %}
-        </div>
-    {% endif %}
+    </div>
+
+    <div class="table-responsive">
+        <table class="table table-striped">
+            <thead>
+                <tr>
+                    <th>Date</th>
+                    <th>Name</th>
+                    <th>Type</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for tournament in tournaments %}
+                <tr>
+                    <td>{{ tournament.date.strftime('%Y-%m-%d') }}</td>
+                    <td>{{ tournament.name }}</td>
+                    <td>
+                        {% if tournament.has_individual_matches %}
+                            Individual Matches
+                        {% else %}
+                            Regular Tournament
+                        {% endif %}
+                    </td>
+                    <td>
+                        {% if tournament.has_individual_matches %}
+                            <a href="{{ url_for('main.tournament_matches', tournament_id=tournament.id) }}" class="btn btn-sm btn-info">View Matches</a>
+                        {% else %}
+                            <a href="{{ url_for('main.tournament_details', tournament_id=tournament.id) }}" class="btn btn-sm btn-info">View Results</a>
+                        {% endif %}
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
     
     {% if current_user.is_authenticated and current_user.is_admin %}
         <div class="mt-4">
