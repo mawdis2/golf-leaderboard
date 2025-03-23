@@ -126,6 +126,7 @@ python init_db.py
 echo "==> Running migrations..."
 python migrations/add_has_individual_matches.py
 python migrations/add_is_active.py
+python migrations/add_created_at.py
 
 # Create migrations directory if it doesn't exist
 mkdir -p migrations/versions
