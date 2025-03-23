@@ -122,6 +122,10 @@ EOF
 echo "==> Initializing database..."
 python init_db.py
 
+# Run database migrations
+echo "==> Running database migrations..."
+python run_migration.py
+
 # Create migrations directory if it doesn't exist
 mkdir -p migrations
 
