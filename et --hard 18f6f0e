@@ -1,0 +1,173 @@
+[33mb9f28ea[m[33m ([m[1;36mHEAD[m[33m -> [m[1;32mmaster[m[33m, [m[1;31morigin/master[m[33m)[m Add CSRF protection and improve hot streak toggle functionality
+[33m8850c53[m Simplify hot streak to use session storage instead of database
+[33m2c537f6[m Add Flask-WTF and CSRF protection
+[33m6fc845a[m Fix CSRF token issue and add Flask-WTF dependency
+[33mf539739[m Fix hot streak toggle functionality and add CSRF protection
+[33m85790e9[m Move hot streak feature to dedicated page and improve UI
+[33m4c2632a[m Add hot streak feature and update leaderboard UI
+[33m2ec701f[m Add hot streak feature and update leaderboard UI
+[33m18f6f0e[m Revert "Ensure courses are sorted alphabetically in all dropdowns"
+[33m96a63b3[m removed login for birdies
+[33m8a6d496[m Revert "fixed login issue for birdies"
+[33m77151e1[m Fix indents
+[33m8e5ac40[m Fix indent bug in routes
+[33me21a278[m Fix date timezone issue for Render server in Oregon
+[33m1daa7e6[m Fix default date on add birdie page to show current date
+[33ma406f0e[m fixed login issue for birdies
+[33mbdc9570[m Ensure courses are sorted alphabetically in all dropdowns
+[33m8770c90[m Fix table headers to display correctly on both desktop and mobile
+[33m2763da5[m Update tournaments page with consistent styling and better background
+[33m67932a3[m Optimize history table for mobile viewing to avoid horizontal scrolling
+[33m5ec3ab0[m Move admin button further down on mobile view
+[33m7782d0b[m Make table background white
+[33m7f8629a[m Make table background non-transparent with better contrast
+[33m532c33f[m Fix table container width on mobile devices
+[33m744b581[m Update trophy fix script to ensure Carlo's 2024 tournament win is reflected
+[33mc53096b[m Add eagle emojis to historical data display
+[33mee9e40a[m Update leaderboard title to dark blue and add current year
+[33m157ad5b[m Add trophy synchronization tool to fix trophy records when tournaments are deleted
+[33m0a66054[m Replace year buttons with select dropdown for better scalability
+[33m11d9dec[m Replace dropdown with direct links for year selection
+[33m237e4b3[m Update tournaments template to display all years
+[33m2b05558[m Add comprehensive debug route
+[33m56968fe[m Update tournaments route to include years with trophies
+[33m36f06ea[m Fix syntax error in routes.py
+[33m6442e39[m Add debug route and fix tournaments page year dropdown
+[33m83b7c12[m Fix tournaments route to show all years using direct SQL
+[33m6aa9bf2[m Fix tournaments route to show all years with tournaments
+[33mb188f62[m Fix syntax error in add_historical_totals function
+[33mc6b8b2c[m Fix year selection, add white background only behind table, restore admin button
+[33mf21d363[m Remove white background from leaderboard and improve year selection in history page
+[33m7cc2561[m Fix syntax error in add_historical_totals function
+[33me952154[m Fix trophy count display by adding missing extract import and running fix_trophy_counts script
+[33ma495e97[m Fix trophy count inconsistency between leaderboard and history page
+[33m027e332[m Improve background visibility on mobile screens
+[33mc41edc6[m Restore background image and admin login button on leaderboard page
+[33m4bcc865[m Center leaderboard title and improve tournament page readability
+[33m5bd4d54[m Update history page to show players with trophies but no birdies
+[33mef1b173[m Fix syntax error and update build script
+[33mec52dbe[m Fix trophy_count column issue
+[33mebc7da8[m Add support for multiple trophies per player
+[33m59aee0c[m Add trophy system for tournament winners
+[33mfdcccee[m Add end date to tournaments and make course optional
+[33mc3299da[m Add Tournaments button to leaderboard page
+[33m27227e6[m Make tournament history accessible to all users
+[33mf94c500[m Add tournament history feature
+[33meccfa83[m Fix history page display and improve historical data handling
+[33m6436282[m Improve historical data handling and trophy status
+[33mdac9526[m Fix history page: improve title visibility and show correct number of eagle emojis
+[33m7191eed[m Update player records to show data for selected year instead of current year
+[33mc9d39c8[m Fix SQL grouping error in history route
+[33mae2b2fd[m Fix indentation error and import statement
+[33m40bbea6[m Restore site password protection and fix database initialization
+[33m6291f6d[m Update database initialization to preserve existing data
+[33m2467a3d[m Restore site password protection
+[33m68f9d1d[m Fix model relationships to avoid duplicate backrefs
+[33m220708f[m Fix admin dashboard: add proper model relationships and eager loading
+[33m20e7def[m Fix admin dashboard: add proper model joins for scores
+[33mf4c6e05[m Fix admin dashboard header color
+[33mb989f04[m Fix admin dashboard table header styling
+[33m4a34b47[m Fix admin dashboard: show all scores and fix delete functionality
+[33m679f0c8[m Fix admin dashboard: show all scores and fix delete functionality
+[33m3168bea[m Update player records to show individual records with date and hole number
+[33mf8e3d88[m Fix date validation for iPhone calendar picker
+[33m64f6a48[m Fix date validation for mobile devices
+[33mbb38152[m Fix admin dashboard template name
+[33maccf38e[m Fix admin dashboard eagle query to use Birdie model
+[33mec631fb[m Add users table and admin user creation
+[33m1756f0b[m Fix deployment configuration
+[33m550ba2f[m Add user loader to extensions
+[33m093a6c0[m Fix circular imports and improve database initialization
+[33m4d49cf2[m Fix User model and database initialization
+[33mfdbacb4[m Fix user table creation and improve database initialization
+[33mce7e9ee[m Fix app initialization and login manager scope
+[33mfa6c7ae[m Fix database initialization and User model setup
+[33m52b8392[m Fix User model and database initialization to ensure users table is created
+[33mfc3aa52[m Fix database initialization and User model configuration
+[33m65423ed[m Fix User model and database initialization
+[33m8aeb909[m Multiple updates: Fix database persistence, improve mobile UI, and fix calendar popup
+[33m3b8cd4b[m Improve database initialization to preserve data between deployments
+[33m7943e4d[m Enhance date input restrictions with JavaScript validation and styling
+[33m114e435[m Simplify database initialization process
+[33mcd776a3[m Fix 500 error by adding recent_birdies attribute to player objects
+[33md38a896[m Update birdie date restrictions and multiple birdie emoji display
+[33md14e784[m Remove duplicate routes file
+[33mc32f5ce[m Fix recent birdie emoji display in leaderboard
+[33m2c8d8be[m Fix birdie emoji display by moving recent birdie check before permanent emojis
+[33m18096db[m Simplify database setup with direct table creation
+[33md8855f0[m Fix alembic_version table creation with proper transaction handling
+[33me3a7511[m Fix alembic_version table creation and migration issues
+[33me8dffd6[m Fix migration issues with proper alembic_version table handling
+[33mcc213d5[m Fix migration dependencies and table ordering
+[33ma18c510[m Fix table persistence with improved migration handling and verification
+[33me3f0f9c[m Fix migration handling with proper table dependencies and CASCADE
+[33mb1da8aa[m Fix table dependencies and improve migration handling
+[33mafc7bb7[m Add explicit model registration and enhanced table creation debugging
+[33m0c3288f[m Add extensive debugging and improve table creation reliability
+[33m3433273[m Fix table persistence using SQLAlchemy's native table creation and improved migrations
+[33m2901697[m Fix database initialization with proper transaction handling and schema setup
+[33m2a0427b[m Improve database initialization with robust transaction handling and table verification
+[33m3721bc3[m Fix database schema and migrations
+[33me06b924[m Fix database permissions and environment configuration
+[33m0129ce6[m Make scripts executable
+[33m0f84133[m Separate build and start processes
+[33mfbded4e[m Simplify deployment process
+[33ma881a3c[m Add health check and improve process management
+[33m9120cd0[m Fix Gunicorn configuration flags
+[33mef72b18[m Simplify server startup and prevent build loops
+[33ma2bc07a[m Fix build process and Gunicorn configuration
+[33mdede657[m Fix Gunicorn configuration and process management
+[33m5182b14[m Add timeouts and diagnostics to render_build.sh
+[33mb888133[m Optimize render_build.sh for faster deployment
+[33mcbf43a8[m Fix module imports and path handling in render_build.sh
+[33m2b7fd62[m Update render_build.sh to match app structure
+[33ma036dff[m Fix application context in render_build.sh
+[33m0de5573[m Optimize render_build.sh for faster and more reliable deployments
+[33ma37d2e5[m Fix course addition and display in add_birdie form
+[33m7b9c02c[m Add base template and fix add_birdie route
+[33mbed6ee6[m Add hole number field and improve error handling for birdie/eagle tracking
+[33mbead80a[m Add user_loader for Flask-Login configuration
+[33md94886b[m Update render_build.sh with explicit table drop order and improved migration handling
+[33mba96ab0[m Update render_build.sh to use DROP SCHEMA CASCADE for clean database reset
+[33mb6f4734[m Update render_build.sh with proper table dependency order
+[33mb204e32[m Update render_build.sh to use standard Flask-Migrate syntax
+[33mf0a08d6[m Update render_build.sh with proper table name quoting
+[33m668dec8[m Update render_build.sh with explicit table drops and clean migrations
+[33me1c9fa3[m Update render_build.sh with proper table dependency handling
+[33m5672cb9[m Update render_build.sh with complete schema reset and fresh migrations
+[33m3e50d12[m Update render_build.sh with proper schema reset and migration handling
+[33m70e159a[m Update render_build.sh with improved database initialization
+[33md41a7ef[m Update render_build.sh to properly handle database initialization
+[33m65864f4[m Restructure application to use proper package structure
+[33me8e0d18[m Fix imports and database migrations
+[33m8a57960[m Add is_eagle field and update birdie counting logic
+[33meb470ae[m fix add player route
+[33m9575050[m Add user_loader function for Flask-Login
+[33m40210a4[m Fix import errors and update build script
+[33mbc6d142[m Fix imports and build script
+[33m5b46176[m Add render build script for database migrations
+[33m922c291[m Import models before creating database tables
+[33mc922cf3[m Update psycopg2-binary version and fix database URL handling
+[33m2363684[m Add database initialization and fix PostgreSQL connection
+[33m9d1e113[m Fix blueprint registration in app.py
+[33m36922fa[m Update app routing and wsgi configuration
+[33mcdebf55[m Add Flask-Migrate to requirements
+[33m9897fa1[m Fix relative import in models.py
+[33m2c5f93b[m Fix sqlalchemy verstion
+[33m10d8fba[m Updated complete app.py config
+[33m6a04a1f[m Fixed relative imports
+[33m16b6ee4[m Fixed werkzeug version
+[33m37cfa22[m Fixed app.py error
+[33mdd5d4a3[m Updated database name
+[33me2556eb[m Updated database config for production
+[33m5c60d82[m Backup on 2025-02-28 Added Site Password
+[33m3e79e28[m Backup on 2025-02-28
+[33mcb9ae36[m Backup on 2025-02-28 Added a birdie delete button
+[33mba019a8[m Backup on 2025-02-19 WIP-Fixing Admin Totals
+[33m164fa2b[m Backup on 2025-02-19 Updated Admin Page
+[33mbead05c[m Backup on 2025-02-09 Updated Trophys
+[33m1e31953[m Backup on 2025-02-09 Updated Rankings
+[33mb34175d[m Backup on 2025-02-08
+[33m75cc348[m 2025-02-06 End of day commit - Flask migrations and historical totals WIP
+[33m2add334[m Backup on 2025-02-02 rev2
+[33m409507a[m Backup on 2025-02-02

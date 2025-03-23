@@ -82,20 +82,35 @@ class Eagle(db.Model):
 class Tournament(db.Model):
     __tablename__ = 'tournament'
     id = db.Column(db.Integer, primary_key=True)
-    name = db.Column(db.String(128), nullable=False)
+    name = db.Column(db.String(100), nullable=False)
     date = db.Column(db.DateTime, nullable=False)
-    end_date = db.Column(db.DateTime, nullable=True)
-    course_id = db.Column(db.Integer, db.ForeignKey('course.id'), nullable=True)
-    is_team_event = db.Column(db.Boolean, default=False)
-    description = db.Column(db.Text, nullable=True)
-    year = db.Column(db.Integer, nullable=False)
+    has_individual_matches = db.Column(db.Boolean, default=False)
+    is_active = db.Column(db.Boolean, default=True)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
     
     # Relationships
-    course = db.relationship('Course', backref='tournaments')
-    results = db.relationship('TournamentResult', backref='tournament', cascade='all, delete-orphan')
+    results = db.relationship('TournamentResult', backref='tournament', lazy=True)
     
     def __repr__(self):
-        return f'<Tournament {self.name} - {self.date.strftime("%Y-%m-%d")}>'
+        return f'<Tournament: {self.name}>'
+    
+    def get_standings(self):
+        if self.has_individual_matches:
+            # Calculate standings based on match results
+            standings = {}
+            for match in self.matches:
+                if match.is_tie:
+                    standings[match.player1_id] = standings.get(match.player1_id, 0) + 0.5
+                    standings[match.player2_id] = standings.get(match.player2_id, 0) + 0.5
+                elif match.winner_id:
+                    standings[match.winner_id] = standings.get(match.winner_id, 0) + 1
+            
+            # Convert to list of tuples (player_id, points) and sort
+            sorted_standings = sorted(standings.items(), key=lambda x: x[1], reverse=True)
+            return [(Player.query.get(player_id), points) for player_id, points in sorted_standings]
+        else:
+            # Use regular tournament results
+            return sorted(self.results, key=lambda x: x.position)
 
 class Team(db.Model):
     __tablename__ = 'team'
@@ -138,3 +153,18 @@ class TournamentResult(db.Model):
             return f'<Result: Tournament {self.tournament.name} - Team {self.team.name} - Position {self.position}>'
         else:
             return f'<Result: Tournament {self.tournament.name} - Player {self.player.name} - Position {self.position}>'
+
+class Match(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    tournament_id = db.Column(db.Integer, db.ForeignKey('tournament.id'), nullable=False)
+    player1_id = db.Column(db.Integer, db.ForeignKey('player.id'), nullable=False)
+    player2_id = db.Column(db.Integer, db.ForeignKey('player.id'), nullable=False)
+    winner_id = db.Column(db.Integer, db.ForeignKey('player.id'), nullable=True)
+    is_tie = db.Column(db.Boolean, default=False)
+    date = db.Column(db.DateTime, default=datetime.utcnow)
+    
+    # Relationships
+    tournament = db.relationship('Tournament', backref=db.backref('matches', lazy=True))
+    player1 = db.relationship('Player', foreign_keys=[player1_id], backref='matches_as_player1')
+    player2 = db.relationship('Player', foreign_keys=[player2_id], backref='matches_as_player2')
+    winner = db.relationship('Player', foreign_keys=[winner_id], backref='matches_won')

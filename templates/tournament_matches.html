@@ -1,0 +1,221 @@
+{% extends "base.html" %}
+
+{% block title %}Tournament Matches{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <h1>{{ tournament.name }} - Matches</h1>
+    
+    <div class="row mb-4">
+        <div class="col">
+            <a href="{{ url_for('main.tournaments') }}" class="btn btn-secondary">Back to Tournaments</a>
+            <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#addMatchModal">
+                Add Match
+            </button>
+        </div>
+    </div>
+
+    <!-- Current Standings -->
+    <div class="card mb-4">
+        <div class="card-header">
+            <h3>Current Standings</h3>
+        </div>
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="table table-striped">
+                    <thead>
+                        <tr>
+                            <th>Position</th>
+                            <th>Player</th>
+                            <th>Points</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for player, points in standings %}
+                        <tr>
+                            <td>{{ loop.index }}</td>
+                            <td>{{ player.name }}</td>
+                            <td>{{ "%.1f"|format(points) }}</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- Match History -->
+    <div class="card">
+        <div class="card-header">
+            <h3>Match History</h3>
+        </div>
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="table table-striped">
+                    <thead>
+                        <tr>
+                            <th>Date</th>
+                            <th>Player 1</th>
+                            <th>Player 2</th>
+                            <th>Result</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for match in matches %}
+                        <tr>
+                            <td>{{ match.date.strftime('%Y-%m-%d %H:%M') }}</td>
+                            <td>{{ match.player1.name }}</td>
+                            <td>{{ match.player2.name }}</td>
+                            <td>
+                                {% if match.is_tie %}
+                                    Tied
+                                {% elif match.winner %}
+                                    {{ match.winner.name }} won
+                                {% else %}
+                                    Not completed
+                                {% endif %}
+                            </td>
+                            <td>
+                                <button class="btn btn-sm btn-primary edit-match" 
+                                        data-match-id="{{ match.id }}"
+                                        data-player1-id="{{ match.player1_id }}"
+                                        data-player2-id="{{ match.player2_id }}"
+                                        data-winner-id="{{ match.winner_id }}"
+                                        data-is-tie="{{ match.is_tie|lower }}">
+                                    Edit
+                                </button>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Add Match Modal -->
+<div class="modal fade" id="addMatchModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Add Match</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <form id="addMatchForm" method="POST" action="{{ url_for('main.add_match', tournament_id=tournament.id) }}">
+                    <div class="mb-3">
+                        <label class="form-label">Player 1</label>
+                        <select name="player1_id" class="form-select" required>
+                            <option value="">Select Player</option>
+                            {% for player in players %}
+                            <option value="{{ player.id }}">{{ player.name }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Player 2</label>
+                        <select name="player2_id" class="form-select" required>
+                            <option value="">Select Player</option>
+                            {% for player in players %}
+                            <option value="{{ player.id }}">{{ player.name }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Result</label>
+                        <select name="result" class="form-select" required>
+                            <option value="">Select Result</option>
+                            <option value="player1">Player 1 Won</option>
+                            <option value="player2">Player 2 Won</option>
+                            <option value="tie">Tied</option>
+                        </select>
+                    </div>
+                    <button type="submit" class="btn btn-primary">Add Match</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Edit Match Modal -->
+<div class="modal fade" id="editMatchModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Edit Match</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <form id="editMatchForm" method="POST">
+                    <input type="hidden" name="match_id" id="editMatchId">
+                    <div class="mb-3">
+                        <label class="form-label">Player 1</label>
+                        <select name="player1_id" id="editPlayer1" class="form-select" required>
+                            <option value="">Select Player</option>
+                            {% for player in players %}
+                            <option value="{{ player.id }}">{{ player.name }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Player 2</label>
+                        <select name="player2_id" id="editPlayer2" class="form-select" required>
+                            <option value="">Select Player</option>
+                            {% for player in players %}
+                            <option value="{{ player.id }}">{{ player.name }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Result</label>
+                        <select name="result" id="editResult" class="form-select" required>
+                            <option value="">Select Result</option>
+                            <option value="player1">Player 1 Won</option>
+                            <option value="player2">Player 2 Won</option>
+                            <option value="tie">Tied</option>
+                        </select>
+                    </div>
+                    <button type="submit" class="btn btn-primary">Update Match</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Handle edit match button clicks
+    document.querySelectorAll('.edit-match').forEach(button => {
+        button.addEventListener('click', function() {
+            const matchId = this.dataset.matchId;
+            const player1Id = this.dataset.player1Id;
+            const player2Id = this.dataset.player2Id;
+            const winnerId = this.dataset.winnerId;
+            const isTie = this.dataset.isTie === 'true';
+            
+            // Set form values
+            document.getElementById('editMatchId').value = matchId;
+            document.getElementById('editPlayer1').value = player1Id;
+            document.getElementById('editPlayer2').value = player2Id;
+            
+            // Set result
+            if (isTie) {
+                document.getElementById('editResult').value = 'tie';
+            } else if (winnerId === player1Id) {
+                document.getElementById('editResult').value = 'player1';
+            } else if (winnerId === player2Id) {
+                document.getElementById('editResult').value = 'player2';
+            }
+            
+            // Set form action
+            document.getElementById('editMatchForm').action = `/edit_match/${matchId}`;
+            
+            // Show modal
+            new bootstrap.Modal(document.getElementById('editMatchModal')).show();
+        });
+    });
+});
+</script>
+{% endblock %} 
