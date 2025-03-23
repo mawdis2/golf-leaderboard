@@ -254,4 +254,4 @@ rm -f init_db.py
 
 # Start the application
 echo "==> Starting application..."
-exec gunicorn app:app --bind 0.0.0.0:$PORT 
+gunicorn app:app --bind 0.0.0.0:$PORT --workers 1 --timeout 120 
