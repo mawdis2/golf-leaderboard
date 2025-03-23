@@ -64,7 +64,7 @@ def init_db():
                     conn.execute(text("SELECT trophy_count FROM historical_total LIMIT 1"))
                 print("  -> trophy_count column already exists")
             except Exception:
-                print("  -> Adding trophy_count column...")
+                print("  -> Adding trophy_count column to historical_total table...")
                 try:
                     with engine.connect() as conn:
                         conn.execute(text("ALTER TABLE historical_total ADD COLUMN trophy_count INTEGER DEFAULT 0"))
@@ -79,7 +79,7 @@ def init_db():
                     conn.execute(text("SELECT has_individual_matches FROM tournament LIMIT 1"))
                 print("  -> has_individual_matches column already exists")
             except Exception:
-                print("  -> Adding has_individual_matches column...")
+                print("  -> Adding has_individual_matches column to tournament table...")
                 try:
                     with engine.connect() as conn:
                         conn.execute(text("ALTER TABLE tournament ADD COLUMN has_individual_matches BOOLEAN DEFAULT FALSE"))
