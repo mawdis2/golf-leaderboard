@@ -1830,3 +1830,8 @@ def admin_fix_trophies():
         flash(f'Error synchronizing trophy records: {str(e)}', 'danger')
     
     return redirect(url_for('main.admin_dashboard'))
+
+@bp.route("/hot_streaks")
+def hot_streaks():
+    players = Player.query.order_by(Player.name).all()
+    return render_template('hot_streaks.html', players=players)

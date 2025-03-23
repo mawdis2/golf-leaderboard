@@ -122,7 +122,10 @@
                             <td>{{ player.rank }}</td>
                             <td>
                                 <a href="{{ url_for('main.player_birdie_records', player_id=player.id) }}" class="text-success">
-                                    {{ player.name }} {% if player.emojis %}{{ player.emojis }}{% endif %}
+                                    <span class="player-name" data-player-id="{{ player.id }}">{{ player.name }}</span>
+                                    {% if player.emojis %}
+                                        <span class="ms-2">{{ player.emojis }}</span>
+                                    {% endif %}
                                 </a>
                             </td>
                             <td>{{ player.birdie_count }}</td>
@@ -136,6 +139,35 @@
         </div>
     </div>
 </div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Get hot streaks from localStorage
+    const hotStreaks = JSON.parse(localStorage.getItem('hotStreaks') || '{}');
+    
+    // Add fire emojis to players on hot streaks
+    document.querySelectorAll('.player-name').forEach(nameSpan => {
+        const playerId = nameSpan.dataset.playerId;
+        if (hotStreaks[playerId]) {
+            // Check if there's already a fire emoji
+            let nextElement = nameSpan.nextElementSibling;
+            let hasFireEmoji = false;
+            
+            if (nextElement && nextElement.classList.contains('ms-2')) {
+                if (!nextElement.textContent.includes('🔥')) {
+                    nextElement.textContent = '🔥 ' + nextElement.textContent;
+                }
+            } else {
+                // Create new emoji span
+                const emojiSpan = document.createElement('span');
+                emojiSpan.className = 'ms-2';
+                emojiSpan.textContent = '🔥';
+                nameSpan.parentNode.insertBefore(emojiSpan, nameSpan.nextSibling);
+            }
+        }
+    });
+});
+</script>
 
 <style>
     .leaderboard-title {

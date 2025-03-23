@@ -1,0 +1,70 @@
+{% extends "base.html" %}
+
+{% block title %}Hot Streaks{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <h1>Hot Streaks</h1>
+    <div class="table-responsive">
+        <table class="table table-striped">
+            <thead>
+                <tr>
+                    <th>Player</th>
+                    <th>Action</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for player in players %}
+                <tr>
+                    <td>{{ player.name }}</td>
+                    <td>
+                        <button class="btn btn-primary hot-streak-toggle" data-player-id="{{ player.id }}" data-player-name="{{ player.name }}">
+                            Start Hot Streak
+                        </button>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Get hot streaks from localStorage or initialize empty object
+    let hotStreaks = JSON.parse(localStorage.getItem('hotStreaks') || '{}');
+
+    // Initialize buttons based on stored state
+    document.querySelectorAll('.hot-streak-toggle').forEach(button => {
+        const playerId = button.dataset.playerId;
+        if (hotStreaks[playerId]) {
+            button.textContent = 'End Hot Streak';
+            button.classList.remove('btn-primary');
+            button.classList.add('btn-danger');
+        }
+
+        button.addEventListener('click', function() {
+            const playerId = this.dataset.playerId;
+            const playerName = this.dataset.playerName;
+            
+            if (hotStreaks[playerId]) {
+                // Turn off hot streak
+                delete hotStreaks[playerId];
+                this.textContent = 'Start Hot Streak';
+                this.classList.remove('btn-danger');
+                this.classList.add('btn-primary');
+            } else {
+                // Turn on hot streak
+                hotStreaks[playerId] = true;
+                this.textContent = 'End Hot Streak';
+                this.classList.remove('btn-primary');
+                this.classList.add('btn-danger');
+            }
+            
+            // Save to localStorage
+            localStorage.setItem('hotStreaks', JSON.stringify(hotStreaks));
+        });
+    });
+});
+</script>
+{% endblock %} 
