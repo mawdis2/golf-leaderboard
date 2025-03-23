@@ -122,6 +122,10 @@ EOF
 echo "==> Initializing database..."
 python init_db.py
 
+# Run migrations
+echo "==> Running migrations..."
+python migrations/add_has_individual_matches.py
+
 # Create migrations directory if it doesn't exist
 mkdir -p migrations/versions
 
