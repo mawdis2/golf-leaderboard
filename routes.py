@@ -1233,8 +1233,50 @@ def debug_tournaments():
 
 @bp.route("/tournaments")
 def tournaments():
-    tournaments = Tournament.query.order_by(Tournament.date.desc()).all()
-    return render_template('tournaments.html', tournaments=tournaments)
+    # Get the selected year (default to current year)
+    selected_year = request.args.get('year', datetime.now().year, type=int)
+    
+    # Get all years that have tournaments
+    tournament_years_query = """
+    SELECT DISTINCT EXTRACT(YEAR FROM date) as year
+    FROM tournament
+    ORDER BY year DESC
+    """
+    tournament_years_result = db.session.execute(tournament_years_query)
+    tournament_years = [int(row[0]) for row in tournament_years_result]
+    
+    # Get all years that have trophies
+    trophy_years_query = """
+    SELECT DISTINCT year
+    FROM historical_total
+    WHERE trophy_count > 0
+    ORDER BY year DESC
+    """
+    trophy_years_result = db.session.execute(trophy_years_query)
+    trophy_years = [int(row[0]) for row in trophy_years_result]
+    
+    # Combine and deduplicate years
+    all_years = sorted(set(tournament_years + trophy_years), reverse=True)
+    
+    # If no years found, use current year
+    if not all_years:
+        all_years = [datetime.now().year]
+    
+    # If selected year is not in the list, use the first year
+    if selected_year not in all_years and all_years:
+        selected_year = all_years[0]
+    
+    # Get tournaments for the selected year
+    tournaments = Tournament.query.filter(
+        extract('year', Tournament.date) == selected_year
+    ).order_by(Tournament.date.desc()).all()
+    
+    return render_template(
+        'tournaments.html',
+        tournaments=tournaments,
+        selected_year=selected_year,
+        years=all_years
+    )
 
 @bp.route("/tournament/<int:tournament_id>/matches")
 def tournament_matches(tournament_id):
