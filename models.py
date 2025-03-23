@@ -84,6 +84,7 @@ class Tournament(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(100), nullable=False)
     date = db.Column(db.DateTime, nullable=False)
+    year = db.Column(db.Integer, nullable=False)
     course_id = db.Column(db.Integer, db.ForeignKey('course.id'), nullable=True)
     has_individual_matches = db.Column(db.Boolean, default=False)
     is_active = db.Column(db.Boolean, default=True)
