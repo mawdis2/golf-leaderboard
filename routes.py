@@ -6,6 +6,7 @@ from flask_login import current_user, login_required, login_user, logout_user
 from sqlalchemy.sql import func, case, and_, or_, extract
 from datetime import datetime, timedelta, timezone
 from models import db, User, Player, Birdie, Course, HistoricalTotal, Eagle, Tournament, Team, TeamMember, TournamentResult, Match
+from forms import TournamentForm
 
 print("TEST LINE WITH RELATIVE PATH - " + str(datetime.now()))
 

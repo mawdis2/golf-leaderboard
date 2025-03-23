@@ -6,8 +6,8 @@ print("==> Starting database initialization...")
 
 from app import create_app
 from extensions import db
-from models import User, Player, Course, Birdie, HistoricalTotal, Eagle
-from sqlalchemy import inspect, text
+from models import User, Player, Course, Birdie, HistoricalTotal, Eagle, Tournament, Team, TeamMember, TournamentResult, Match
+from sqlalchemy import inspect, text, create_engine
 from flask import Flask
 from werkzeug.security import generate_password_hash
 from datetime import datetime
@@ -27,73 +27,126 @@ def verify_table_columns(table_name, inspector):
 
 app = create_app()
 
-with app.app_context():
+def init_db():
     try:
         print("==> Starting database setup...")
         
-        # Get database URL (with password masked)
-        db_url = str(db.engine.url)
-        if '@' in db_url:
-            db_url = db_url.split('@')[1]
-        print(f"  -> Using database: {db_url}")
-        
-        # Test database connection
-        print("  -> Testing database connection...")
-        try:
-            db.engine.connect()
-            print("  -> Database connection successful")
-        except OperationalError as e:
-            print(f"  -> Database connection failed: {e}")
+        # Get database URL from environment variable
+        database_url = os.getenv('DATABASE_URL')
+        if not database_url:
+            print("Error: DATABASE_URL environment variable not set")
             sys.exit(1)
         
-        # Create tables if they don't exist
-        print("  -> Creating tables if they don't exist...")
-        db.create_all()
+        print(f"  -> Database URL: {database_url}")
         
-        # Check if trophy_count column exists in historical_total table
-        # If not, add it
-        print("  -> Checking for trophy_count column...")
+        # Create engine and test connection
+        print("  -> Testing database connection...")
+        engine = create_engine(database_url)
         try:
-            db.session.execute(text("SELECT trophy_count FROM historical_total LIMIT 1"))
-            print("  -> trophy_count column already exists")
-        except (OperationalError, ProgrammingError):
-            print("  -> Adding trophy_count column to historical_total table...")
+            with engine.connect() as conn:
+                conn.execute(text("SELECT 1"))
+            print("  -> Database connection successful")
+        except Exception as e:
+            print(f"  -> Error connecting to database: {e}")
+            sys.exit(1)
+        
+        # Check if tables exist
+        inspector = inspect(engine)
+        existing_tables = inspector.get_table_names()
+        
+        if existing_tables:
+            print("  -> Tables already exist, skipping schema creation")
+            
+            # Check for trophy_count column
+            print("  -> Checking for trophy_count column...")
             try:
-                db.session.execute(text("ALTER TABLE historical_total ADD COLUMN trophy_count INTEGER DEFAULT 0"))
-                db.session.commit()
-                print("  -> trophy_count column added successfully")
+                with engine.connect() as conn:
+                    conn.execute(text("SELECT trophy_count FROM historical_total LIMIT 1"))
+                print("  -> trophy_count column already exists")
+            except Exception:
+                print("  -> Adding trophy_count column...")
+                try:
+                    with engine.connect() as conn:
+                        conn.execute(text("ALTER TABLE historical_total ADD COLUMN trophy_count INTEGER DEFAULT 0"))
+                    print("  -> trophy_count column added successfully")
+                except Exception as e:
+                    print(f"  -> Error adding trophy_count column: {e}")
+            
+            # Check for has_individual_matches column
+            print("  -> Checking for has_individual_matches column...")
+            try:
+                with engine.connect() as conn:
+                    conn.execute(text("SELECT has_individual_matches FROM tournament LIMIT 1"))
+                print("  -> has_individual_matches column already exists")
+            except Exception:
+                print("  -> Adding has_individual_matches column...")
+                try:
+                    with engine.connect() as conn:
+                        conn.execute(text("ALTER TABLE tournament ADD COLUMN has_individual_matches BOOLEAN DEFAULT FALSE"))
+                    print("  -> has_individual_matches column added successfully")
+                except Exception as e:
+                    print(f"  -> Error adding has_individual_matches column: {e}")
+            
+            # Set permissions
+            print("  -> Setting permissions...")
+            try:
+                with engine.connect() as conn:
+                    conn.execute(text("GRANT ALL PRIVILEGES ON ALL TABLES IN SCHEMA public TO golf_leaderboard_db_user"))
+                    conn.execute(text("GRANT ALL PRIVILEGES ON ALL SEQUENCES IN SCHEMA public TO golf_leaderboard_db_user"))
+                print("  -> Permissions set successfully")
             except Exception as e:
-                db.session.rollback()
-                print(f"  -> Error adding trophy_count column: {e}")
-        
-        # Verify tables were created
-        inspector = inspect(db.engine)
-        tables_after = inspector.get_table_names()
-        print(f"  -> Tables after creation: {tables_after}")
-        
-        # Verify all required tables
-        required_tables = ['users', 'player', 'course', 'birdie', 'historical_total', 'eagle']
-        for table in required_tables:
-            if verify_table_exists(table, inspector):
-                verify_table_columns(table, inspector)
-            else:
-                print(f"  -> ERROR: Required table '{table}' is missing!")
-                raise Exception(f"Required table '{table}' was not created")
-        
-        # Check if admin user exists
-        admin_user = User.query.filter_by(username='admin').first()
-        if not admin_user:
+                print(f"  -> Error setting permissions: {e}")
+            
+            # Verify tables
+            print("  -> Verifying tables...")
+            try:
+                with engine.connect() as conn:
+                    # Get all tables
+                    result = conn.execute(text("""
+                        SELECT table_name 
+                        FROM information_schema.tables 
+                        WHERE table_schema = 'public'
+                    """))
+                    tables = [row[0] for row in result]
+                    print(f"    - Found tables: {tables}")
+                    
+                    # Verify each table's columns
+                    for table in tables:
+                        result = conn.execute(text(f"""
+                            SELECT column_name 
+                            FROM information_schema.columns 
+                            WHERE table_name = '{table}'
+                        """))
+                        columns = [row[0] for row in result]
+                        print(f"    - Verified table {table}:")
+                        print(f"      Columns: {columns}")
+                    
+                    # Verify admin user
+                    result = conn.execute(text("SELECT * FROM users WHERE username = 'admin'"))
+                    admin = result.fetchone()
+                    if admin:
+                        print("  -> Admin user verified successfully")
+                    else:
+                        print("  -> Admin user not found, creating...")
+                        conn.execute(text("""
+                            INSERT INTO users (username, password_hash, is_admin)
+                            VALUES ('admin', 'pbkdf2:sha256:260000$YOUR_HASH_HERE', true)
+                        """))
+                        print("  -> Admin user created successfully")
+            except Exception as e:
+                print(f"  -> Error verifying tables: {e}")
+        else:
+            print("  -> Creating database schema...")
+            db.create_all()
+            print("  -> Database schema created successfully")
+            
+            # Create admin user
             print("  -> Creating admin user...")
-            admin_user = User(
-                username='admin',
-                is_admin=True
-            )
-            admin_user.set_password('shotgun')  # You can change this password
-            db.session.add(admin_user)
+            admin = User(username='admin', is_admin=True)
+            admin.set_password('admin')  # Change this in production
+            db.session.add(admin)
             db.session.commit()
             print("  -> Admin user created successfully")
-        else:
-            print("  -> Admin user already exists")
         
         print(f"\n==> Database initialization completed in {time.time() - start_time:.2f}s")
         
