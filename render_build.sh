@@ -118,13 +118,13 @@ with app.app_context():
         sys.exit(1)
 EOF
 
-# Initialize database (tables and admin user if they don't exist)
+# Initialize database
 echo "==> Initializing database..."
 python init_db.py
 
-# Run database migrations
-echo "==> Running database migrations..."
-python run_migration.py
+# Start the application
+echo "==> Starting application..."
+gunicorn app:app
 
 # Create migrations directory if it doesn't exist
 mkdir -p migrations
