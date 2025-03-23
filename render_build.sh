@@ -122,12 +122,8 @@ EOF
 echo "==> Initializing database..."
 python init_db.py
 
-# Start the application
-echo "==> Starting application..."
-gunicorn app:app
-
 # Create migrations directory if it doesn't exist
-mkdir -p migrations
+mkdir -p migrations/versions
 
 # Create fix_trophy_counts.py migration script
 cat > migrations/fix_trophy_counts.py << 'EOF'

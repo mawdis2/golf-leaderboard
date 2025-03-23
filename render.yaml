@@ -3,7 +3,7 @@ services:
     name: golf-leaderboard
     env: python
     buildCommand: ./render_build.sh
-    startCommand: gunicorn app:app
+    startCommand: gunicorn app:app --bind 0.0.0.0:$PORT
     envVars:
       - key: PYTHON_VERSION
         value: 3.11.11
@@ -11,6 +11,10 @@ services:
         fromDatabase:
           name: golf_leaderboard_db
           property: connectionString
+      - key: FLASK_APP
+        value: app.py
+      - key: FLASK_ENV
+        value: production
     healthCheckPath: /
     autoDeploy: true
     plan: free
