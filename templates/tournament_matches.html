@@ -9,7 +9,7 @@
     <div class="row mb-4">
         <div class="col">
             <a href="{{ url_for('main.tournaments') }}" class="btn btn-secondary">Back to Tournaments</a>
-            <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#addMatchModal">
+            <button class="btn btn-primary" data-toggle="modal" data-target="#addMatchModal">
                 Add Match
             </button>
         </div>
@@ -192,6 +192,11 @@
 
 <script>
 document.addEventListener('DOMContentLoaded', function() {
+    // Initialize jQuery for Bootstrap 4 modals
+    $('#addMatchModal').on('shown.bs.modal', function () {
+        $(this).find('select[name="player1_id"]').focus();
+    });
+
     // Handle add match form submission
     const addMatchForm = document.getElementById('addMatchForm');
     if (addMatchForm) {
