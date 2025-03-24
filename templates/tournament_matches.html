@@ -153,7 +153,7 @@
                 </button>
             </div>
             <div class="modal-body">
-                <form id="editMatchForm" method="POST">
+                <form id="editMatchForm" method="POST" action="{{ url_for('main.edit_match', tournament_id=tournament.id) }}">
                     <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                     <input type="hidden" name="match_id" id="editMatchId">
                     <div class="form-group">
