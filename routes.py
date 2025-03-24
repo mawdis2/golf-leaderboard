@@ -1386,7 +1386,8 @@ def add_tournament():
             name=form.name.data,
             date=form.date.data,
             course_id=form.course.data,
-            has_individual_matches=form.has_individual_matches.data
+            has_individual_matches=form.has_individual_matches.data,
+            year=form.date.data.year  # Add the year field
         )
         db.session.add(tournament)
         db.session.commit()
