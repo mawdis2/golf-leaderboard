@@ -1306,8 +1306,8 @@ def add_match(tournament_id):
     player2_id = request.form.get('player2_id')
     result = request.form.get('result')
     
-    if not all([player1_id, player2_id, result]):
-        flash('All fields are required.', 'error')
+    if not all([player1_id, player2_id]):
+        flash('Both players are required.', 'error')
         return redirect(url_for('main.tournament_matches', tournament_id=tournament_id))
     
     match = Match(
@@ -1316,12 +1316,13 @@ def add_match(tournament_id):
         player2_id=player2_id
     )
     
-    if result == 'tie':
-        match.is_tie = True
-    elif result == 'player1':
-        match.winner_id = player1_id
-    elif result == 'player2':
-        match.winner_id = player2_id
+    if result:  # Only set result if one was provided
+        if result == 'tie':
+            match.is_tie = True
+        elif result == 'player1':
+            match.winner_id = player1_id
+        elif result == 'player2':
+            match.winner_id = player2_id
     
     db.session.add(match)
     db.session.commit()
