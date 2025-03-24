@@ -105,6 +105,7 @@
             </div>
             <div class="modal-body">
                 <form id="addMatchForm" method="POST" action="{{ url_for('main.add_match', tournament_id=tournament.id) }}">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                     <div class="mb-3">
                         <label class="form-label">Player 1</label>
                         <select name="player1_id" class="form-select" required>
@@ -149,6 +150,7 @@
             </div>
             <div class="modal-body">
                 <form id="editMatchForm" method="POST">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                     <input type="hidden" name="match_id" id="editMatchId">
                     <div class="mb-3">
                         <label class="form-label">Player 1</label>
