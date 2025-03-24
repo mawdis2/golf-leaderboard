@@ -188,6 +188,46 @@
 
 <script>
 document.addEventListener('DOMContentLoaded', function() {
+    // Initialize Bootstrap modals
+    const addMatchModal = new bootstrap.Modal(document.getElementById('addMatchModal'));
+    const editMatchModal = new bootstrap.Modal(document.getElementById('editMatchModal'));
+
+    // Handle add match button click
+    const addMatchBtn = document.querySelector('[data-bs-target="#addMatchModal"]');
+    if (addMatchBtn) {
+        addMatchBtn.addEventListener('click', function() {
+            addMatchModal.show();
+        });
+    }
+
+    // Handle add match form submission
+    const addMatchForm = document.getElementById('addMatchForm');
+    if (addMatchForm) {
+        addMatchForm.addEventListener('submit', function(e) {
+            e.preventDefault();
+            const formData = new FormData(this);
+            
+            fetch(this.action, {
+                method: 'POST',
+                body: formData,
+                headers: {
+                    'X-CSRFToken': document.querySelector('input[name="csrf_token"]').value
+                }
+            })
+            .then(response => {
+                if (response.ok) {
+                    window.location.reload();
+                } else {
+                    throw new Error('Network response was not ok');
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                alert('Error adding match. Please try again.');
+            });
+        });
+    }
+
     // Handle edit match button clicks
     document.querySelectorAll('.edit-match').forEach(button => {
         button.addEventListener('click', function() {
@@ -215,9 +255,37 @@ document.addEventListener('DOMContentLoaded', function() {
             document.getElementById('editMatchForm').action = `/edit_match/${matchId}`;
             
             // Show modal
-            new bootstrap.Modal(document.getElementById('editMatchModal')).show();
+            editMatchModal.show();
         });
     });
+
+    // Handle edit match form submission
+    const editMatchForm = document.getElementById('editMatchForm');
+    if (editMatchForm) {
+        editMatchForm.addEventListener('submit', function(e) {
+            e.preventDefault();
+            const formData = new FormData(this);
+            
+            fetch(this.action, {
+                method: 'POST',
+                body: formData,
+                headers: {
+                    'X-CSRFToken': document.querySelector('input[name="csrf_token"]').value
+                }
+            })
+            .then(response => {
+                if (response.ok) {
+                    window.location.reload();
+                } else {
+                    throw new Error('Network response was not ok');
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                alert('Error updating match. Please try again.');
+            });
+        });
+    }
 });
 </script>
 {% endblock %} 
