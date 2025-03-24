@@ -164,10 +164,12 @@ class Match(db.Model):
     player2_id = db.Column(db.Integer, db.ForeignKey('player.id'), nullable=False)
     winner_id = db.Column(db.Integer, db.ForeignKey('player.id'), nullable=True)
     is_tie = db.Column(db.Boolean, default=False)
-    date = db.Column(db.DateTime, default=datetime.utcnow)
+    date = db.Column(db.DateTime, nullable=False)
+    course_id = db.Column(db.Integer, db.ForeignKey('course.id'), nullable=False)
     
     # Relationships
     tournament = db.relationship('Tournament', backref=db.backref('matches', lazy=True))
     player1 = db.relationship('Player', foreign_keys=[player1_id], backref='matches_as_player1')
     player2 = db.relationship('Player', foreign_keys=[player2_id], backref='matches_as_player2')
     winner = db.relationship('Player', foreign_keys=[winner_id], backref='matches_won')
+    course = db.relationship('Course', backref='matches')

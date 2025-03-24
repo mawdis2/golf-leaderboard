@@ -1291,11 +1291,13 @@ def tournament_matches(tournament_id):
     players = Player.query.order_by(Player.name).all()
     matches = Match.query.filter_by(tournament_id=tournament_id).order_by(Match.date.desc()).all()
     standings = tournament.get_standings()
+    courses = Course.query.order_by(Course.name).all()
     return render_template('tournament_matches.html', 
                          tournament=tournament,
                          players=players,
                          matches=matches,
-                         standings=standings)
+                         standings=standings,
+                         courses=courses)
 
 @bp.route("/tournament/<int:tournament_id>/add_match", methods=['POST'])
 @login_required
@@ -1304,16 +1306,26 @@ def add_match(tournament_id):
     
     player1_id = request.form.get('player1_id')
     player2_id = request.form.get('player2_id')
+    course_id = request.form.get('course_id')
+    date_str = request.form.get('date')
     result = request.form.get('result')
     
-    if not all([player1_id, player2_id]):
-        flash('Both players are required.', 'error')
+    if not all([player1_id, player2_id, course_id, date_str]):
+        flash('Player 1, Player 2, Course, and Date are required.', 'error')
+        return redirect(url_for('main.tournament_matches', tournament_id=tournament_id))
+    
+    try:
+        match_date = datetime.strptime(date_str, '%Y-%m-%d')
+    except ValueError:
+        flash('Invalid date format.', 'error')
         return redirect(url_for('main.tournament_matches', tournament_id=tournament_id))
     
     match = Match(
         tournament_id=tournament_id,
         player1_id=player1_id,
-        player2_id=player2_id
+        player2_id=player2_id,
+        course_id=course_id,
+        date=match_date
     )
     
     if result:  # Only set result if one was provided
@@ -1337,14 +1349,24 @@ def edit_match(match_id):
     
     player1_id = request.form.get('player1_id')
     player2_id = request.form.get('player2_id')
+    course_id = request.form.get('course_id')
+    date_str = request.form.get('date')
     result = request.form.get('result')
     
-    if not all([player1_id, player2_id, result]):
-        flash('All fields are required.', 'error')
+    if not all([player1_id, player2_id, course_id, date_str]):
+        flash('Player 1, Player 2, Course, and Date are required.', 'error')
+        return redirect(url_for('main.tournament_matches', tournament_id=match.tournament_id))
+    
+    try:
+        match_date = datetime.strptime(date_str, '%Y-%m-%d')
+    except ValueError:
+        flash('Invalid date format.', 'error')
         return redirect(url_for('main.tournament_matches', tournament_id=match.tournament_id))
     
     match.player1_id = player1_id
     match.player2_id = player2_id
+    match.course_id = course_id
+    match.date = match_date
     match.winner_id = None
     match.is_tie = False
     
