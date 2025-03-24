@@ -101,32 +101,34 @@
         <div class="modal-content">
             <div class="modal-header">
                 <h5 class="modal-title">Add Match</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                    <span aria-hidden="true">&times;</span>
+                </button>
             </div>
             <div class="modal-body">
                 <form id="addMatchForm" method="POST" action="{{ url_for('main.add_match', tournament_id=tournament.id) }}">
-                    {{ csrf_token() }}
-                    <div class="mb-3">
-                        <label class="form-label">Player 1</label>
-                        <select name="player1_id" class="form-select" required>
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                    <div class="form-group">
+                        <label>Player 1</label>
+                        <select name="player1_id" class="form-control" required>
                             <option value="">Select Player</option>
                             {% for player in players %}
                             <option value="{{ player.id }}">{{ player.name }}</option>
                             {% endfor %}
                         </select>
                     </div>
-                    <div class="mb-3">
-                        <label class="form-label">Player 2</label>
-                        <select name="player2_id" class="form-select" required>
+                    <div class="form-group">
+                        <label>Player 2</label>
+                        <select name="player2_id" class="form-control" required>
                             <option value="">Select Player</option>
                             {% for player in players %}
                             <option value="{{ player.id }}">{{ player.name }}</option>
                             {% endfor %}
                         </select>
                     </div>
-                    <div class="mb-3">
-                        <label class="form-label">Result (Optional)</label>
-                        <select name="result" class="form-select">
+                    <div class="form-group">
+                        <label>Result (Optional)</label>
+                        <select name="result" class="form-control">
                             <option value="">Not Played Yet</option>
                             <option value="player1">Player 1 Won</option>
                             <option value="player2">Player 2 Won</option>
@@ -146,33 +148,35 @@
         <div class="modal-content">
             <div class="modal-header">
                 <h5 class="modal-title">Edit Match</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                    <span aria-hidden="true">&times;</span>
+                </button>
             </div>
             <div class="modal-body">
                 <form id="editMatchForm" method="POST">
-                    {{ csrf_token() }}
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                     <input type="hidden" name="match_id" id="editMatchId">
-                    <div class="mb-3">
-                        <label class="form-label">Player 1</label>
-                        <select name="player1_id" id="editPlayer1" class="form-select" required>
+                    <div class="form-group">
+                        <label>Player 1</label>
+                        <select name="player1_id" id="editPlayer1" class="form-control" required>
                             <option value="">Select Player</option>
                             {% for player in players %}
                             <option value="{{ player.id }}">{{ player.name }}</option>
                             {% endfor %}
                         </select>
                     </div>
-                    <div class="mb-3">
-                        <label class="form-label">Player 2</label>
-                        <select name="player2_id" id="editPlayer2" class="form-select" required>
+                    <div class="form-group">
+                        <label>Player 2</label>
+                        <select name="player2_id" id="editPlayer2" class="form-control" required>
                             <option value="">Select Player</option>
                             {% for player in players %}
                             <option value="{{ player.id }}">{{ player.name }}</option>
                             {% endfor %}
                         </select>
                     </div>
-                    <div class="mb-3">
-                        <label class="form-label">Result</label>
-                        <select name="result" id="editResult" class="form-select" required>
+                    <div class="form-group">
+                        <label>Result</label>
+                        <select name="result" id="editResult" class="form-control" required>
                             <option value="">Select Result</option>
                             <option value="player1">Player 1 Won</option>
                             <option value="player2">Player 2 Won</option>
@@ -188,18 +192,6 @@
 
 <script>
 document.addEventListener('DOMContentLoaded', function() {
-    // Initialize Bootstrap modals
-    const addMatchModal = new bootstrap.Modal(document.getElementById('addMatchModal'));
-    const editMatchModal = new bootstrap.Modal(document.getElementById('editMatchModal'));
-
-    // Handle add match button click
-    const addMatchBtn = document.querySelector('[data-bs-target="#addMatchModal"]');
-    if (addMatchBtn) {
-        addMatchBtn.addEventListener('click', function() {
-            addMatchModal.show();
-        });
-    }
-
     // Handle add match form submission
     const addMatchForm = document.getElementById('addMatchForm');
     if (addMatchForm) {
@@ -210,9 +202,7 @@ document.addEventListener('DOMContentLoaded', function() {
             fetch(this.action, {
                 method: 'POST',
                 body: formData,
-                headers: {
-                    'X-CSRFToken': document.querySelector('input[name="csrf_token"]').value
-                }
+                credentials: 'same-origin'
             })
             .then(response => {
                 if (response.ok) {
@@ -249,13 +239,12 @@ document.addEventListener('DOMContentLoaded', function() {
                 document.getElementById('editResult').value = 'player1';
             } else if (winnerId === player2Id) {
                 document.getElementById('editResult').value = 'player2';
+            } else {
+                document.getElementById('editResult').value = '';
             }
             
-            // Set form action
-            document.getElementById('editMatchForm').action = `/edit_match/${matchId}`;
-            
             // Show modal
-            editMatchModal.show();
+            $('#editMatchModal').modal('show');
         });
     });
 
@@ -269,9 +258,7 @@ document.addEventListener('DOMContentLoaded', function() {
             fetch(this.action, {
                 method: 'POST',
                 body: formData,
-                headers: {
-                    'X-CSRFToken': document.querySelector('input[name="csrf_token"]').value
-                }
+                credentials: 'same-origin'
             })
             .then(response => {
                 if (response.ok) {
