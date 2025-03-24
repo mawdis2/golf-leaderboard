@@ -82,7 +82,9 @@
                                         data-player1-id="{{ match.player1_id }}"
                                         data-player2-id="{{ match.player2_id }}"
                                         data-winner-id="{{ match.winner_id }}"
-                                        data-is-tie="{{ match.is_tie|lower }}">
+                                        data-is-tie="{{ match.is_tie|lower }}"
+                                        data-date="{{ match.date.strftime('%Y-%m-%d') }}"
+                                        data-course-id="{{ match.course_id }}">
                                     Edit
                                 </button>
                             </td>
@@ -108,6 +110,19 @@
             <div class="modal-body">
                 <form id="addMatchForm" method="POST" action="{{ url_for('main.add_match', tournament_id=tournament.id) }}">
                     <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                    <div class="form-group">
+                        <label>Match Date</label>
+                        <input type="date" name="date" class="form-control" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Course</label>
+                        <select name="course_id" class="form-control" required>
+                            <option value="">Select Course</option>
+                            {% for course in courses %}
+                            <option value="{{ course.id }}">{{ course.name }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
                     <div class="form-group">
                         <label>Player 1</label>
                         <select name="player1_id" class="form-control" required>
@@ -157,6 +172,19 @@
                     <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                     <input type="hidden" name="match_id" id="editMatchId">
                     <div class="form-group">
+                        <label>Match Date</label>
+                        <input type="date" name="date" id="editDate" class="form-control" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Course</label>
+                        <select name="course_id" id="editCourse" class="form-control" required>
+                            <option value="">Select Course</option>
+                            {% for course in courses %}
+                            <option value="{{ course.id }}">{{ course.name }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="form-group">
                         <label>Player 1</label>
                         <select name="player1_id" id="editPlayer1" class="form-control" required>
                             <option value="">Select Player</option>
@@ -197,6 +225,10 @@ document.addEventListener('DOMContentLoaded', function() {
         $(this).find('select[name="player1_id"]').focus();
     });
 
+    // Set default date to today for the add match form
+    const today = new Date().toISOString().split('T')[0];
+    document.querySelector('#addMatchModal input[name="date"]').value = today;
+
     // Handle add match form submission
     const addMatchForm = document.getElementById('addMatchForm');
     if (addMatchForm) {
@@ -231,11 +263,15 @@ document.addEventListener('DOMContentLoaded', function() {
             const player2Id = this.dataset.player2Id;
             const winnerId = this.dataset.winnerId;
             const isTie = this.dataset.isTie === 'true';
+            const date = this.dataset.date;
+            const courseId = this.dataset.courseId;
             
             // Set form values
             document.getElementById('editMatchId').value = matchId;
             document.getElementById('editPlayer1').value = player1Id;
             document.getElementById('editPlayer2').value = player2Id;
+            document.getElementById('editDate').value = date;
+            document.getElementById('editCourse').value = courseId;
             
             // Set result
             if (isTie) {
