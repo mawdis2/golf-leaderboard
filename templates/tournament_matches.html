@@ -31,30 +31,24 @@
                         </tr>
                     </thead>
                     <tbody>
-                        {% set current_rank = 1 %}
+                        {% set rank = 1 %}
+                        {% set tied_position = 1 %}
                         {% set prev_points = None %}
                         {% for player, points in standings %}
                             <tr>
                                 <td>
-                                    {% if loop.first %}
-                                        {% if not loop.last and points == standings[1][1] %}
-                                            T{{ current_rank }}
-                                        {% else %}
-                                            {{ current_rank }}
-                                        {% endif %}
+                                    {% if prev_points is not none and points == prev_points %}
+                                        T{{ tied_position }}
                                     {% else %}
-                                        {% if points == prev_points %}
-                                            T{{ current_rank }}
-                                        {% else %}
-                                            {% set current_rank = loop.index %}
-                                        {% endif %}
-                                        {{ "T" if points == prev_points }}{{ current_rank }}
+                                        {% set tied_position = rank %}
+                                        {{ rank }}
                                     {% endif %}
                                 </td>
                                 <td>{{ player.name }}</td>
                                 <td>{{ "%.1f"|format(points) }}</td>
                             </tr>
                             {% set prev_points = points %}
+                            {% set rank = rank + 1 %}
                         {% endfor %}
                     </tbody>
                 </table>
