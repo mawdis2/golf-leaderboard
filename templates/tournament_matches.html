@@ -9,7 +9,7 @@
     <div class="row mb-4">
         <div class="col">
             <a href="{{ url_for('main.tournaments') }}" class="btn btn-secondary">Back to Tournaments</a>
-            <button class="btn btn-primary" data-toggle="modal" data-target="#addMatchModal">
+            <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#addMatchModal">
                 Add Match
             </button>
         </div>
@@ -110,12 +110,12 @@
             <div class="modal-body">
                 <form id="addMatchForm" method="POST" action="{{ url_for('main.add_match', tournament_id=tournament.id) }}">
                     <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                    <div class="form-group">
-                        <label>Match Date</label>
+                    <div class="mb-3">
+                        <label class="form-label">Match Date</label>
                         <input type="date" name="date" class="form-control" required>
                     </div>
-                    <div class="form-group">
-                        <label>Course</label>
+                    <div class="mb-3">
+                        <label class="form-label">Course</label>
                         <select name="course_id" class="form-control" required>
                             <option value="">Select Course</option>
                             {% for course in courses %}
@@ -123,8 +123,8 @@
                             {% endfor %}
                         </select>
                     </div>
-                    <div class="form-group">
-                        <label>Player 1</label>
+                    <div class="mb-3">
+                        <label class="form-label">Player 1</label>
                         <select name="player1_id" class="form-control" required>
                             <option value="">Select Player</option>
                             {% for player in players %}
@@ -132,8 +132,8 @@
                             {% endfor %}
                         </select>
                     </div>
-                    <div class="form-group">
-                        <label>Player 2</label>
+                    <div class="mb-3">
+                        <label class="form-label">Player 2</label>
                         <select name="player2_id" class="form-control" required>
                             <option value="">Select Player</option>
                             {% for player in players %}
@@ -141,8 +141,8 @@
                             {% endfor %}
                         </select>
                     </div>
-                    <div class="form-group">
-                        <label>Result (Optional)</label>
+                    <div class="mb-3">
+                        <label class="form-label">Result (Optional)</label>
                         <select name="result" class="form-control">
                             <option value="">Not Played Yet</option>
                             <option value="player1">Player 1 Won</option>
@@ -169,12 +169,12 @@
                 <form id="editMatchForm" method="POST">
                     <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                     <input type="hidden" name="match_id" id="editMatchId">
-                    <div class="form-group">
-                        <label>Match Date</label>
+                    <div class="mb-3">
+                        <label class="form-label">Match Date</label>
                         <input type="date" name="date" id="editDate" class="form-control" required>
                     </div>
-                    <div class="form-group">
-                        <label>Course</label>
+                    <div class="mb-3">
+                        <label class="form-label">Course</label>
                         <select name="course_id" id="editCourse" class="form-control" required>
                             <option value="">Select Course</option>
                             {% for course in courses %}
@@ -182,8 +182,8 @@
                             {% endfor %}
                         </select>
                     </div>
-                    <div class="form-group">
-                        <label>Player 1</label>
+                    <div class="mb-3">
+                        <label class="form-label">Player 1</label>
                         <select name="player1_id" id="editPlayer1" class="form-control" required>
                             <option value="">Select Player</option>
                             {% for player in players %}
@@ -191,8 +191,8 @@
                             {% endfor %}
                         </select>
                     </div>
-                    <div class="form-group">
-                        <label>Player 2</label>
+                    <div class="mb-3">
+                        <label class="form-label">Player 2</label>
                         <select name="player2_id" id="editPlayer2" class="form-control" required>
                             <option value="">Select Player</option>
                             {% for player in players %}
@@ -200,10 +200,10 @@
                             {% endfor %}
                         </select>
                     </div>
-                    <div class="form-group">
-                        <label>Result</label>
-                        <select name="result" id="editResult" class="form-control" required>
-                            <option value="">Select Result</option>
+                    <div class="mb-3">
+                        <label class="form-label">Result</label>
+                        <select name="result" id="editResult" class="form-control">
+                            <option value="">Not Played Yet</option>
                             <option value="player1">Player 1 Won</option>
                             <option value="player2">Player 2 Won</option>
                             <option value="tie">Tied</option>
@@ -218,10 +218,11 @@
 
 <script>
 document.addEventListener('DOMContentLoaded', function() {
-    // Initialize jQuery for Bootstrap 4 modals
-    $('#addMatchModal').on('shown.bs.modal', function () {
-        $(this).find('select[name="player1_id"]').focus();
-    });
+    // Initialize Bootstrap 5 modals
+    const addMatchModal = document.getElementById('addMatchModal');
+    const editMatchModal = document.getElementById('editMatchModal');
+    const addMatchModalObj = new bootstrap.Modal(addMatchModal);
+    const editMatchModalObj = new bootstrap.Modal(editMatchModal);
 
     // Set default date to today for the add match form
     const today = new Date().toISOString().split('T')[0];
@@ -237,10 +238,14 @@ document.addEventListener('DOMContentLoaded', function() {
             fetch(this.action, {
                 method: 'POST',
                 body: formData,
+                headers: {
+                    'X-CSRFToken': formData.get('csrf_token')
+                },
                 credentials: 'same-origin'
             })
             .then(response => {
                 if (response.ok) {
+                    addMatchModalObj.hide();
                     window.location.reload();
                 } else {
                     throw new Error('Network response was not ok');
@@ -285,8 +290,8 @@ document.addEventListener('DOMContentLoaded', function() {
             // Set form action
             document.getElementById('editMatchForm').action = `/edit_match/${matchId}`;
             
-            // Show modal
-            $('#editMatchModal').modal('show');
+            // Show modal using Bootstrap 5
+            editMatchModalObj.show();
         });
     });
 
@@ -300,10 +305,14 @@ document.addEventListener('DOMContentLoaded', function() {
             fetch(this.action, {
                 method: 'POST',
                 body: formData,
+                headers: {
+                    'X-CSRFToken': formData.get('csrf_token')
+                },
                 credentials: 'same-origin'
             })
             .then(response => {
                 if (response.ok) {
+                    editMatchModalObj.hide();
                     window.location.reload();
                 } else {
                     throw new Error('Network response was not ok');
