@@ -31,28 +31,31 @@
                         </tr>
                     </thead>
                     <tbody>
+                        {% set current_rank = 1 %}
                         {% set prev_points = None %}
-                        {% set start_position = 1 %}
-                        {% set same_points_count = 0 %}
                         {% for player, points in standings %}
-                            {% if prev_points != points %}
-                                {% if same_points_count > 0 %}
-                                    {% set start_position = start_position + same_points_count %}
+                            {% if loop.first %}
+                                {% if not loop.last and points == standings[1][1] %}
+                                    <td>T{{ current_rank }}</td>
+                                {% else %}
+                                    <td>{{ current_rank }}</td>
                                 {% endif %}
-                                {% set same_points_count = 0 %}
-                                {% set current_position = start_position %}
                             {% else %}
-                                {% set same_points_count = same_points_count + 1 %}
+                                {% if points == prev_points %}
+                                    <td>T{{ current_rank }}</td>
+                                {% else %}
+                                    {% set current_rank = loop.index %}
+                                    {% if loop.index < standings|length and points == standings[loop.index][1] %}
+                                        <td>T{{ current_rank }}</td>
+                                    {% else %}
+                                        <td>{{ current_rank }}</td>
+                                    {% endif %}
+                                {% endif %}
                             {% endif %}
-                            <tr>
-                                <td>{% if same_points_count > 0 %}T{% endif %}{{ current_position }}</td>
-                                <td>{{ player.name }}</td>
-                                <td>{{ "%.1f"|format(points) }}</td>
-                            </tr>
+                            <td>{{ player.name }}</td>
+                            <td>{{ "%.1f"|format(points) }}</td>
                             {% set prev_points = points %}
-                            {% if same_points_count == 0 %}
-                                {% set start_position = start_position + 1 %}
-                            {% endif %}
+                        </tr>
                         {% endfor %}
                     </tbody>
                 </table>
