@@ -34,28 +34,19 @@
                         {% set current_rank = 1 %}
                         {% set prev_points = None %}
                         {% for player, points in standings %}
-                            {% if loop.first %}
-                                {% if not loop.last and points == standings[1][1] %}
-                                    <td>T{{ current_rank }}</td>
-                                {% else %}
-                                    <td>{{ current_rank }}</td>
-                                {% endif %}
-                            {% else %}
-                                {% if points == prev_points %}
-                                    <td>T{{ current_rank }}</td>
-                                {% else %}
-                                    {% set current_rank = loop.index %}
-                                    {% if loop.index < standings|length and points == standings[loop.index][1] %}
-                                        <td>T{{ current_rank }}</td>
+                            <tr>
+                                <td>
+                                    {% if prev_points is not none and points == prev_points %}
+                                        T{{ current_rank }}
                                     {% else %}
-                                        <td>{{ current_rank }}</td>
+                                        {% set current_rank = loop.index %}
+                                        {{ current_rank }}
                                     {% endif %}
-                                {% endif %}
-                            {% endif %}
-                            <td>{{ player.name }}</td>
-                            <td>{{ "%.1f"|format(points) }}</td>
+                                </td>
+                                <td>{{ player.name }}</td>
+                                <td>{{ "%.1f"|format(points) }}</td>
+                            </tr>
                             {% set prev_points = points %}
-                        </tr>
                         {% endfor %}
                     </tbody>
                 </table>
