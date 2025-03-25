@@ -129,6 +129,7 @@ python migrations/add_is_active.py
 python migrations/add_created_at.py
 python migrations/add_course_id.py
 python migrations/add_year_column.py
+python migrations/add_match_course_id.py
 
 # Create migrations directory if it doesn't exist
 mkdir -p migrations/versions
