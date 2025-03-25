@@ -31,12 +31,22 @@
                         </tr>
                     </thead>
                     <tbody>
+                        {% set prev_points = None %}
+                        {% set position = 1 %}
+                        {% set skipped = 0 %}
                         {% for player, points in standings %}
-                        <tr>
-                            <td>{{ loop.index }}</td>
-                            <td>{{ player.name }}</td>
-                            <td>{{ "%.1f"|format(points) }}</td>
-                        </tr>
+                            {% if prev_points != None and points != prev_points %}
+                                {% set position = position + skipped + 1 %}
+                                {% set skipped = 0 %}
+                            {% else %}
+                                {% set skipped = skipped + 1 %}
+                            {% endif %}
+                            <tr>
+                                <td>{% if skipped > 0 %}T{% endif %}{{ position }}</td>
+                                <td>{{ player.name }}</td>
+                                <td>{{ "%.1f"|format(points) }}</td>
+                            </tr>
+                            {% set prev_points = points %}
                         {% endfor %}
                     </tbody>
                 </table>
@@ -55,6 +65,7 @@
                     <thead>
                         <tr>
                             <th>Date</th>
+                            <th>Course</th>
                             <th>Player 1</th>
                             <th>Player 2</th>
                             <th>Result</th>
@@ -64,7 +75,8 @@
                     <tbody>
                         {% for match in matches %}
                         <tr>
-                            <td>{{ match.date.strftime('%Y-%m-%d %H:%M') }}</td>
+                            <td>{{ match.date.strftime('%Y-%m-%d') }}</td>
+                            <td>{{ match.course.name }}</td>
                             <td>{{ match.player1.name }}</td>
                             <td>{{ match.player2.name }}</td>
                             <td>
