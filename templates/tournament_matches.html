@@ -47,12 +47,8 @@
                                             T{{ current_rank }}
                                         {% else %}
                                             {% set current_rank = loop.index %}
-                                            {% if loop.index < standings|length and points == standings[loop.index][1] %}
-                                                T{{ current_rank }}
-                                            {% else %}
-                                                {{ current_rank }}
-                                            {% endif %}
                                         {% endif %}
+                                        {{ "T" if points == prev_points }}{{ current_rank }}
                                     {% endif %}
                                 </td>
                                 <td>{{ player.name }}</td>
