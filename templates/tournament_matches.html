@@ -32,20 +32,19 @@
                     </thead>
                     <tbody>
                         {% set prev_points = None %}
-                        {% set current_position = 1 %}
-                        {% set players_at_current_points = 0 %}
+                        {% set real_position = 1 %}
+                        {% set display_position = 1 %}
                         {% for player, points in standings %}
                             {% if prev_points != None and points != prev_points %}
-                                {% set current_position = current_position + players_at_current_points %}
-                                {% set players_at_current_points = 0 %}
+                                {% set display_position = real_position %}
                             {% endif %}
                             <tr>
-                                <td>{% if players_at_current_points > 0 %}T{% endif %}{{ current_position }}</td>
+                                <td>{% if prev_points == points %}T{% endif %}{{ display_position }}</td>
                                 <td>{{ player.name }}</td>
                                 <td>{{ "%.1f"|format(points) }}</td>
                             </tr>
                             {% set prev_points = points %}
-                            {% set players_at_current_points = players_at_current_points + 1 %}
+                            {% set real_position = real_position + 1 %}
                         {% endfor %}
                     </tbody>
                 </table>
