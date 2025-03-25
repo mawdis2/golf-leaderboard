@@ -108,9 +108,41 @@ class Tournament(db.Model):
                 elif match.winner_id:
                     standings[match.winner_id] = standings.get(match.winner_id, 0) + 1
             
-            # Convert to list of tuples (player_id, points) and sort
-            sorted_standings = sorted(standings.items(), key=lambda x: x[1], reverse=True)
-            return [(Player.query.get(player_id), points) for player_id, points in sorted_standings]
+            # Convert to list of tuples (player, points) and sort by points
+            player_standings = []
+            for player_id, points in standings.items():
+                player = Player.query.get(player_id)
+                player_standings.append((player, points))
+            
+            # Sort by points (descending)
+            player_standings.sort(key=lambda x: x[1], reverse=True)
+            
+            # Assign ranks with ties (same logic as leaderboard)
+            current_rank = 1
+            prev_points = None
+            final_standings = []
+            
+            for i, (player, points) in enumerate(player_standings):
+                if i == 0:
+                    # First player
+                    if len(player_standings) > 1 and points == player_standings[1][1]:
+                        rank = f"T{current_rank}"
+                    else:
+                        rank = str(current_rank)
+                else:
+                    if points == prev_points:
+                        rank = f"T{current_rank}"
+                    else:
+                        current_rank = i + 1
+                        if i < len(player_standings) - 1 and points == player_standings[i + 1][1]:
+                            rank = f"T{current_rank}"
+                        else:
+                            rank = str(current_rank)
+                
+                final_standings.append((player, points, rank))
+                prev_points = points
+            
+            return final_standings
         else:
             # Use regular tournament results
             return sorted(self.results, key=lambda x: x.position)
