@@ -36,11 +36,23 @@
                         {% for player, points in standings %}
                             <tr>
                                 <td>
-                                    {% if prev_points is not none and points == prev_points %}
-                                        T{{ current_rank }}
+                                    {% if loop.first %}
+                                        {% if not loop.last and points == standings[1][1] %}
+                                            T{{ current_rank }}
+                                        {% else %}
+                                            {{ current_rank }}
+                                        {% endif %}
                                     {% else %}
-                                        {% set current_rank = loop.index %}
-                                        {{ current_rank }}
+                                        {% if points == prev_points %}
+                                            T{{ current_rank }}
+                                        {% else %}
+                                            {% set current_rank = loop.index %}
+                                            {% if loop.index < standings|length and points == standings[loop.index][1] %}
+                                                T{{ current_rank }}
+                                            {% else %}
+                                                {{ current_rank }}
+                                            {% endif %}
+                                        {% endif %}
                                     {% endif %}
                                 </td>
                                 <td>{{ player.name }}</td>
