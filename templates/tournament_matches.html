@@ -123,7 +123,7 @@
                             {% for player, points, rank in standings %}
                             <tr>
                                 <td>{{ rank }}</td>
-                                <td>{{ player.name }}</td>
+                                <td>{{ player.first_name }} {{ player.last_name[0] if player.last_name else '' }}</td>
                                 <td>{{ points }}</td>
                             </tr>
                             {% endfor %}
