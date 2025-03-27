@@ -3,214 +3,117 @@
 {% block title %}Tournament Matches{% endblock %}
 
 {% block content %}
-<div class="container mt-4">
-    <h1>{{ tournament.name }} - Matches</h1>
-    
-    <div class="row mb-4">
-        <div class="col">
-            <a href="{{ url_for('main.tournaments') }}" class="btn btn-secondary">Back to Tournaments</a>
-            <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#addMatchModal">
-                Add Match
-            </button>
-        </div>
-    </div>
-
-    <!-- Current Standings -->
-    <div class="card mb-4">
-        <div class="card-header">
-            <h3>Current Standings</h3>
-        </div>
-        <div class="card-body">
-            <div class="table-responsive">
-                <table class="table table-striped">
-                    <thead>
-                        <tr>
-                            <th>Position</th>
-                            <th>Player</th>
-                            <th>Points</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {% for player, points, rank in standings %}
+<div class="row">
+    <div class="col-md-8">
+        <div class="card">
+            <div class="card-header bg-success text-white">
+                <h5 class="mb-0">Tournament: {{ tournament.name }}</h5>
+            </div>
+            <div class="card-body">
+                <button type="button" class="btn btn-primary mb-3" data-bs-toggle="modal" data-bs-target="#addMatchModal">
+                    Add Match
+                </button>
+                <div class="table-responsive">
+                    <table class="table table-striped">
+                        <thead>
                             <tr>
-                                <td>{{ rank }}</td>
-                                <td>{{ player.name }}</td>
-                                <td>{{ "%.1f"|format(points) }}</td>
+                                <th>Date</th>
+                                <th>Course</th>
+                                <th>Player 1</th>
+                                <th>Player 2</th>
+                                <th>Result</th>
                             </tr>
-                        {% endfor %}
-                    </tbody>
-                </table>
+                        </thead>
+                        <tbody>
+                            {% for match in matches %}
+                            <tr>
+                                <td>{{ match.date.strftime('%Y-%m-%d') }}</td>
+                                <td>{{ match.course }}</td>
+                                <td>{{ match.player1.name }}</td>
+                                <td>{{ match.player2.name }}</td>
+                                <td>{{ match.result if match.result else 'Not Played Yet' }}</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
             </div>
         </div>
     </div>
-
-    <!-- Match History -->
-    <div class="card">
-        <div class="card-header">
-            <h3>Match History</h3>
-        </div>
-        <div class="card-body">
-            <div class="table-responsive">
-                <table class="table table-striped">
-                    <thead>
-                        <tr>
-                            <th>Date</th>
-                            <th>Course</th>
-                            <th>Player 1</th>
-                            <th>Player 2</th>
-                            <th>Result</th>
-                            <th>Actions</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {% for match in matches %}
-                        <tr>
-                            <td>{{ match.date.strftime('%Y-%m-%d') }}</td>
-                            <td>{{ match.course.name }}</td>
-                            <td>{{ match.player1.name }}</td>
-                            <td>{{ match.player2.name }}</td>
-                            <td>
-                                {% if match.is_tie %}
-                                    Tied
-                                {% elif match.winner %}
-                                    {{ match.winner.name }} won
-                                {% else %}
-                                    Not Played Yet
-                                {% endif %}
-                            </td>
-                            <td>
-                                <button class="btn btn-sm btn-primary edit-match" 
-                                        data-match-id="{{ match.id }}"
-                                        data-player1-id="{{ match.player1_id }}"
-                                        data-player2-id="{{ match.player2_id }}"
-                                        data-winner-id="{{ match.winner_id }}"
-                                        data-is-tie="{{ match.is_tie|lower }}"
-                                        data-date="{{ match.date.strftime('%Y-%m-%d') }}"
-                                        data-course-id="{{ match.course_id }}">
-                                    Edit
-                                </button>
-                            </td>
-                        </tr>
-                        {% endfor %}
-                    </tbody>
-                </table>
+    <div class="col-md-4">
+        <div class="card">
+            <div class="card-header bg-success text-white">
+                <h5 class="mb-0">Standings</h5>
+            </div>
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table class="table table-striped">
+                        <thead>
+                            <tr>
+                                <th>Rank</th>
+                                <th>Player</th>
+                                <th>Points</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for player, points, rank in standings %}
+                            <tr>
+                                <td>{{ rank }}</td>
+                                <td>{{ player.name }}</td>
+                                <td>{{ points }}</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
             </div>
         </div>
     </div>
 </div>
 
 <!-- Add Match Modal -->
-<div class="modal fade" id="addMatchModal" tabindex="-1">
+<div class="modal fade" id="addMatchModal" tabindex="-1" aria-labelledby="addMatchModalLabel" aria-hidden="true">
     <div class="modal-dialog">
         <div class="modal-content">
             <div class="modal-header">
-                <h5 class="modal-title">Add Match</h5>
+                <h5 class="modal-title" id="addMatchModalLabel">Add Match</h5>
                 <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
             <div class="modal-body">
-                <form id="addMatchForm" method="POST" action="{{ url_for('main.add_match', tournament_id=tournament.id) }}">
-                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <form id="addMatchForm">
                     <div class="mb-3">
-                        <label class="form-label">Match Date</label>
-                        <input type="date" name="date" class="form-control" required>
+                        <label for="date" class="form-label">Date</label>
+                        <input type="date" class="form-control" id="date" name="date" required>
                     </div>
                     <div class="mb-3">
-                        <label class="form-label">Course</label>
-                        <select name="course_id" class="form-control" required>
-                            <option value="">Select Course</option>
-                            {% for course in courses %}
-                            <option value="{{ course.id }}">{{ course.name }}</option>
-                            {% endfor %}
-                        </select>
+                        <label for="course" class="form-label">Course</label>
+                        <input type="text" class="form-control" id="course" name="course" required>
                     </div>
                     <div class="mb-3">
-                        <label class="form-label">Player 1</label>
-                        <select name="player1_id" class="form-control" required>
-                            <option value="">Select Player</option>
+                        <label for="player1" class="form-label">Player 1</label>
+                        <select class="form-control" id="player1" name="player1" required>
                             {% for player in players %}
                             <option value="{{ player.id }}">{{ player.name }}</option>
                             {% endfor %}
                         </select>
                     </div>
                     <div class="mb-3">
-                        <label class="form-label">Player 2</label>
-                        <select name="player2_id" class="form-control" required>
-                            <option value="">Select Player</option>
+                        <label for="player2" class="form-label">Player 2</label>
+                        <select class="form-control" id="player2" name="player2" required>
                             {% for player in players %}
                             <option value="{{ player.id }}">{{ player.name }}</option>
                             {% endfor %}
                         </select>
                     </div>
                     <div class="mb-3">
-                        <label class="form-label">Result (Optional)</label>
-                        <select name="result" class="form-control">
-                            <option value="">Not Played Yet</option>
-                            <option value="player1">Player 1 Won</option>
-                            <option value="player2">Player 2 Won</option>
-                            <option value="tie">Tied</option>
-                        </select>
+                        <label for="result" class="form-label">Result (Optional)</label>
+                        <input type="text" class="form-control" id="result" name="result">
                     </div>
-                    <button type="submit" class="btn btn-primary">Add Match</button>
                 </form>
             </div>
-        </div>
-    </div>
-</div>
-
-<!-- Edit Match Modal -->
-<div class="modal fade" id="editMatchModal" tabindex="-1">
-    <div class="modal-dialog">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title">Edit Match</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-            </div>
-            <div class="modal-body">
-                <form id="editMatchForm" method="POST">
-                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                    <input type="hidden" name="match_id" id="editMatchId">
-                    <div class="mb-3">
-                        <label class="form-label">Match Date</label>
-                        <input type="date" name="date" id="editDate" class="form-control" required>
-                    </div>
-                    <div class="mb-3">
-                        <label class="form-label">Course</label>
-                        <select name="course_id" id="editCourse" class="form-control" required>
-                            <option value="">Select Course</option>
-                            {% for course in courses %}
-                            <option value="{{ course.id }}">{{ course.name }}</option>
-                            {% endfor %}
-                        </select>
-                    </div>
-                    <div class="mb-3">
-                        <label class="form-label">Player 1</label>
-                        <select name="player1_id" id="editPlayer1" class="form-control" required>
-                            <option value="">Select Player</option>
-                            {% for player in players %}
-                            <option value="{{ player.id }}">{{ player.name }}</option>
-                            {% endfor %}
-                        </select>
-                    </div>
-                    <div class="mb-3">
-                        <label class="form-label">Player 2</label>
-                        <select name="player2_id" id="editPlayer2" class="form-control" required>
-                            <option value="">Select Player</option>
-                            {% for player in players %}
-                            <option value="{{ player.id }}">{{ player.name }}</option>
-                            {% endfor %}
-                        </select>
-                    </div>
-                    <div class="mb-3">
-                        <label class="form-label">Result</label>
-                        <select name="result" id="editResult" class="form-control">
-                            <option value="">Not Played Yet</option>
-                            <option value="player1">Player 1 Won</option>
-                            <option value="player2">Player 2 Won</option>
-                            <option value="tie">Tied</option>
-                        </select>
-                    </div>
-                    <button type="submit" class="btn btn-primary">Update Match</button>
-                </form>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                <button type="button" class="btn btn-primary" onclick="submitMatch()">Add Match</button>
             </div>
         </div>
     </div>
@@ -218,109 +121,31 @@
 
 <script>
 document.addEventListener('DOMContentLoaded', function() {
-    // Initialize Bootstrap 5 modals
-    const addMatchModal = document.getElementById('addMatchModal');
-    const editMatchModal = document.getElementById('editMatchModal');
-    const addMatchModalObj = new bootstrap.Modal(addMatchModal);
-    const editMatchModalObj = new bootstrap.Modal(editMatchModal);
-
-    // Set default date to today for the add match form
-    const today = new Date().toISOString().split('T')[0];
-    document.querySelector('#addMatchModal input[name="date"]').value = today;
-
-    // Handle add match form submission
-    const addMatchForm = document.getElementById('addMatchForm');
-    if (addMatchForm) {
-        addMatchForm.addEventListener('submit', function(e) {
-            e.preventDefault();
-            const formData = new FormData(this);
-            
-            fetch(this.action, {
-                method: 'POST',
-                body: formData,
-                credentials: 'same-origin'
-            })
-            .then(response => {
-                if (response.ok) {
-                    addMatchModalObj.hide();
-                    window.location.reload();
-                } else {
-                    throw new Error('Network response was not ok');
-                }
-            })
-            .catch(error => {
-                console.error('Error:', error);
-                alert('Error adding match. Please try again.');
-            });
-        });
-    }
-
-    // Handle edit match button clicks
-    document.querySelectorAll('.edit-match').forEach(button => {
-        button.addEventListener('click', function() {
-            const matchId = this.dataset.matchId;
-            const player1Id = this.dataset.player1Id;
-            const player2Id = this.dataset.player2Id;
-            const winnerId = this.dataset.winnerId;
-            const isTie = this.dataset.isTie === 'true';
-            const date = this.dataset.date;
-            const courseId = this.dataset.courseId;
-            
-            // Set form values
-            document.getElementById('editMatchId').value = matchId;
-            document.getElementById('editPlayer1').value = player1Id;
-            document.getElementById('editPlayer2').value = player2Id;
-            document.getElementById('editDate').value = date;
-            document.getElementById('editCourse').value = courseId;
-            
-            // Set result
-            if (isTie) {
-                document.getElementById('editResult').value = 'tie';
-            } else if (winnerId === player1Id) {
-                document.getElementById('editResult').value = 'player1';
-            } else if (winnerId === player2Id) {
-                document.getElementById('editResult').value = 'player2';
-            } else {
-                document.getElementById('editResult').value = '';
-            }
-            
-            // Set form action
-            document.getElementById('editMatchForm').action = `/edit_match/${matchId}`;
-            
-            // Show modal using Bootstrap 5
-            editMatchModalObj.show();
-        });
-    });
-
-    // Handle edit match form submission
-    const editMatchForm = document.getElementById('editMatchForm');
-    if (editMatchForm) {
-        editMatchForm.addEventListener('submit', function(e) {
-            e.preventDefault();
-            const formData = new FormData(this);
-            
-            fetch(this.action, {
-                method: 'POST',
-                body: formData,
-                headers: {
-                    'X-CSRFToken': formData.get('csrf_token')
-                },
-                credentials: 'same-origin'
-            })
-            .then(response => {
-                if (response.ok) {
-                    editMatchModalObj.hide();
-                    window.location.reload();
-                } else {
-                    throw new Error('Network response was not ok');
-                }
-            })
-            .catch(error => {
-                console.error('Error:', error);
-                alert('Error updating match. Please try again.');
-            });
-        });
-    }
+    // Set default date to today
+    document.getElementById('date').valueAsDate = new Date();
+    
+    // Initialize the modal
+    var addMatchModal = new bootstrap.Modal(document.getElementById('addMatchModal'));
 });
+
+function submitMatch() {
+    const form = document.getElementById('addMatchForm');
+    const formData = new FormData(form);
+    
+    fetch('/tournament/{{ tournament.id }}/add_match', {
+        method: 'POST',
+        body: formData
+    })
+    .then(response => {
+        if (response.ok) {
+            window.location.reload();
+        } else {
+            throw new Error('Failed to add match');
+        }
+    })
+    .catch(error => {
+        alert('Error adding match: ' + error.message);
+    });
+}
 </script>
 {% endblock %} 
