@@ -23,21 +23,34 @@
         padding: 0.5rem;
     }
     .table th:first-child, .table td:first-child {
-        min-width: 100px;
+        min-width: 80px;
     }
     .table th:nth-child(2), .table td:nth-child(2) {
-        min-width: 120px;
+        min-width: 100px;
     }
     .table th:nth-child(3), .table td:nth-child(3),
     .table th:nth-child(4), .table td:nth-child(4) {
-        min-width: 100px;
+        min-width: 80px;
     }
     .table th:last-child, .table td:last-child {
-        min-width: 150px;
+        min-width: 120px;
     }
     .btn-sm {
         padding: 0.25rem 0.5rem;
         font-size: 0.875rem;
+    }
+    @media (max-width: 768px) {
+        .table th:last-child, .table td:last-child {
+            min-width: 100px;
+        }
+        .table td:last-child {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .table td:last-child button {
+            margin-left: 8px;
+        }
     }
 </style>
 
@@ -75,6 +88,13 @@
         <div class="card">
             <div class="card-header">
                 <h5 class="mb-0">Tournament: {{ tournament.name }}</h5>
+                {% if tournament.is_active %}
+                <button type="button" class="btn btn-success float-end" onclick="finishTournament()">
+                    Finish Tournament
+                </button>
+                {% else %}
+                <span class="badge bg-secondary float-end">Tournament Finished</span>
+                {% endif %}
             </div>
             <div class="card-body">
                 <button type="button" class="btn btn-primary mb-3" data-bs-toggle="modal" data-bs-target="#addMatchModal">
@@ -300,6 +320,32 @@ function submitEditMatch(matchId) {
     })
     .catch(error => {
         alert('Error updating match: ' + error.message);
+    });
+}
+
+function finishTournament() {
+    if (!confirm('Are you sure you want to finish this tournament? The player in first place will receive a trophy.')) {
+        return;
+    }
+    
+    fetch('/tournament/{{ tournament.id }}/finish', {
+        method: 'POST',
+        headers: {
+            'X-CSRFToken': document.querySelector('input[name="csrf_token"]').value,
+            'X-Requested-With': 'XMLHttpRequest'
+        }
+    })
+    .then(response => {
+        if (response.ok) {
+            window.location.reload();
+        } else {
+            return response.json().then(data => {
+                throw new Error(data.error || 'Failed to finish tournament');
+            });
+        }
+    })
+    .catch(error => {
+        alert('Error finishing tournament: ' + error.message);
     });
 }
 </script>

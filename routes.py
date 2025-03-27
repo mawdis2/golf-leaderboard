@@ -1892,3 +1892,56 @@ def admin_fix_trophies():
 def hot_streaks():
     players = Player.query.order_by(Player.name).all()
     return render_template('hot_streaks.html', players=players)
+
+@bp.route("/tournament/<int:tournament_id>/finish", methods=['POST'])
+def finish_tournament(tournament_id):
+    tournament = Tournament.query.get_or_404(tournament_id)
+    
+    if not tournament.is_active:
+        if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+            return jsonify({'error': 'Tournament is already finished.'}), 400
+        flash('Tournament is already finished.', 'error')
+        return redirect(url_for('main.tournament_matches', tournament_id=tournament_id))
+    
+    # Get the standings
+    standings = tournament.get_standings()
+    if not standings:
+        if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+            return jsonify({'error': 'No matches have been played yet.'}), 400
+        flash('No matches have been played yet.', 'error')
+        return redirect(url_for('main.tournament_matches', tournament_id=tournament_id))
+    
+    # Get the winner (first player in standings)
+    winner = standings[0][0]
+    
+    # Update the winner's trophy status
+    winner.has_trophy = True
+    
+    # Update or create historical total for the winner
+    current_year = datetime.now().year
+    historical_total = HistoricalTotal.query.filter(
+        HistoricalTotal.player_id == winner.id,
+        HistoricalTotal.year == current_year
+    ).first()
+    
+    if historical_total:
+        historical_total.has_trophy = True
+        historical_total.trophy_count += 1
+    else:
+        historical_total = HistoricalTotal(
+            player_id=winner.id,
+            year=current_year,
+            has_trophy=True,
+            trophy_count=1
+        )
+        db.session.add(historical_total)
+    
+    # Mark tournament as finished
+    tournament.is_active = False
+    
+    db.session.commit()
+    
+    if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+        return jsonify({'message': f'Tournament finished! {winner.name} wins!'})
+    flash(f'Tournament finished! {winner.name} wins!', 'success')
+    return redirect(url_for('main.tournament_matches', tournament_id=tournament_id))
