@@ -1290,7 +1290,6 @@ def tournament_matches(tournament_id):
     tournament = Tournament.query.get_or_404(tournament_id)
     matches = Match.query.filter_by(tournament_id=tournament_id).order_by(Match.date.desc()).all()
     courses = Course.query.all()
-    players = Player.query.all()
     
     # Get all players who have played matches in this tournament
     players_in_tournament = set()
@@ -1304,12 +1303,12 @@ def tournament_matches(tournament_id):
         if match.winner_id:
             players_with_points.add(match.winner_id)
     
-    # Get standings for players with points
+    # Get standings for players who have played matches
     standings = []
-    for player in players:
-        points = sum(1 for match in matches if match.winner_id == player.id)
-        if points > 0:
-            standings.append((player, points, 0))  # Rank will be calculated later
+    for player_id in players_in_tournament:
+        player = Player.query.get(player_id)
+        points = sum(1 for match in matches if match.winner_id == player_id)
+        standings.append((player, points, 0))  # Rank will be calculated later
     
     # Sort standings by points (descending)
     standings.sort(key=lambda x: x[1], reverse=True)
@@ -1323,16 +1322,10 @@ def tournament_matches(tournament_id):
             current_points = points
         standings[i] = (player, points, current_rank)
     
-    # Add players with 0 points to standings
-    for player in players:
-        if player.id not in players_with_points:
-            standings.append((player, 0, len(standings) + 1))
-    
     return render_template('tournament_matches.html', 
                          tournament=tournament, 
                          matches=matches, 
-                         courses=courses, 
-                         players=players,
+                         courses=courses,
                          standings=standings)
 
 @bp.route("/tournament/<int:tournament_id>/add_match", methods=['POST'])
