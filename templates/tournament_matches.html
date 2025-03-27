@@ -6,7 +6,7 @@
 <div class="row">
     <div class="col-md-8">
         <div class="card">
-            <div class="card-header bg-success text-white">
+            <div class="card-header">
                 <h5 class="mb-0">Tournament: {{ tournament.name }}</h5>
             </div>
             <div class="card-body">
@@ -42,7 +42,7 @@
     </div>
     <div class="col-md-4">
         <div class="card">
-            <div class="card-header bg-success text-white">
+            <div class="card-header">
                 <h5 class="mb-0">Standings</h5>
             </div>
             <div class="card-body">
@@ -86,20 +86,24 @@
                         <input type="date" class="form-control" id="date" name="date" required>
                     </div>
                     <div class="mb-3">
-                        <label for="course" class="form-label">Course</label>
-                        <input type="text" class="form-control" id="course" name="course" required>
+                        <label for="course_id" class="form-label">Course</label>
+                        <select class="form-control" id="course_id" name="course_id" required>
+                            {% for course in courses %}
+                            <option value="{{ course.id }}">{{ course.name }}</option>
+                            {% endfor %}
+                        </select>
                     </div>
                     <div class="mb-3">
-                        <label for="player1" class="form-label">Player 1</label>
-                        <select class="form-control" id="player1" name="player1" required>
+                        <label for="player1_id" class="form-label">Player 1</label>
+                        <select class="form-control" id="player1_id" name="player1_id" required>
                             {% for player in players %}
                             <option value="{{ player.id }}">{{ player.name }}</option>
                             {% endfor %}
                         </select>
                     </div>
                     <div class="mb-3">
-                        <label for="player2" class="form-label">Player 2</label>
-                        <select class="form-control" id="player2" name="player2" required>
+                        <label for="player2_id" class="form-label">Player 2</label>
+                        <select class="form-control" id="player2_id" name="player2_id" required>
                             {% for player in players %}
                             <option value="{{ player.id }}">{{ player.name }}</option>
                             {% endfor %}
@@ -107,7 +111,12 @@
                     </div>
                     <div class="mb-3">
                         <label for="result" class="form-label">Result (Optional)</label>
-                        <input type="text" class="form-control" id="result" name="result">
+                        <select class="form-control" id="result" name="result">
+                            <option value="">Not Played Yet</option>
+                            <option value="player1">Player 1 Won</option>
+                            <option value="player2">Player 2 Won</option>
+                            <option value="tie">Tied</option>
+                        </select>
                     </div>
                 </form>
             </div>
