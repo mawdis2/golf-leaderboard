@@ -53,7 +53,7 @@
         min-width: 60px;
     }
     .table th:last-child, .table td:last-child {
-        min-width: 100px;
+        min-width: 90px;
     }
     .btn-sm {
         padding: 0.25rem 0.5rem;
@@ -75,16 +75,14 @@
             min-width: 50px;
         }
         .table th:last-child, .table td:last-child {
-            min-width: 90px;
+            min-width: 80px;
         }
         .table td:last-child {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            gap: 4px;
+            display: block;
         }
         .table td:last-child button {
-            margin-left: 4px;
+            margin-top: 4px;
+            width: 100%;
             padding: 0.2rem 0.4rem;
             font-size: 0.7rem;
         }
@@ -157,8 +155,8 @@
                             <tr>
                                 <th>Date</th>
                                 <th>Course</th>
-                                <th>Player 1</th>
-                                <th>Player 2</th>
+                                <th>P1</th>
+                                <th>P2</th>
                                 <th>Result</th>
                             </tr>
                         </thead>
@@ -167,21 +165,25 @@
                             <tr>
                                 <td>{{ match.date.strftime('%Y-%m-%d') }}</td>
                                 <td>{{ match.course.name }}</td>
-                                <td>{{ match.player1.name }}</td>
-                                <td>{{ match.player2.name }}</td>
+                                <td>{{ match.player1.first_name }} {{ match.player1.last_name[0] if match.player1.last_name else '' }}</td>
+                                <td>{{ match.player2.first_name }} {{ match.player2.last_name[0] if match.player2.last_name else '' }}</td>
                                 <td>
-                                    {% if match.is_tie %}
-                                        Tied
-                                    {% elif match.winner_id == match.player1_id %}
-                                        {{ match.player1.name }} Won
-                                    {% elif match.winner_id == match.player2_id %}
-                                        {{ match.player2.name }} Won
-                                    {% else %}
-                                        Not Played Yet
-                                    {% endif %}
-                                    <button type="button" class="btn btn-sm btn-primary float-end" data-bs-toggle="modal" data-bs-target="#editMatchModal{{ match.id }}">
-                                        Edit
-                                    </button>
+                                    <div class="d-flex flex-column">
+                                        <div>
+                                            {% if match.is_tie %}
+                                                Tied
+                                            {% elif match.winner_id == match.player1_id %}
+                                                {{ match.player1.first_name }} {{ match.player1.last_name[0] if match.player1.last_name else '' }} Won
+                                            {% elif match.winner_id == match.player2_id %}
+                                                {{ match.player2.first_name }} {{ match.player2.last_name[0] if match.player2.last_name else '' }} Won
+                                            {% else %}
+                                                Not Played Yet
+                                            {% endif %}
+                                        </div>
+                                        <button type="button" class="btn btn-sm btn-primary mt-1" data-bs-toggle="modal" data-bs-target="#editMatchModal{{ match.id }}">
+                                            Edit
+                                        </button>
+                                    </div>
                                 </td>
                             </tr>
                             {% endfor %}
