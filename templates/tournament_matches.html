@@ -9,7 +9,7 @@
     <div class="row mb-4">
         <div class="col">
             <a href="{{ url_for('main.tournaments') }}" class="btn btn-secondary">Back to Tournaments</a>
-            <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#addMatchModal">
+            <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#addMatchModal">
                 Add Match
             </button>
         </div>
@@ -238,9 +238,6 @@ document.addEventListener('DOMContentLoaded', function() {
             fetch(this.action, {
                 method: 'POST',
                 body: formData,
-                headers: {
-                    'X-CSRFToken': formData.get('csrf_token')
-                },
                 credentials: 'same-origin'
             })
             .then(response => {
