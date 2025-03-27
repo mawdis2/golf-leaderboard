@@ -3,8 +3,75 @@
 {% block title %}Tournament Matches{% endblock %}
 
 {% block content %}
+<style>
+    body {
+        background-image: url('https://images.unsplash.com/photo-1587174486073-ae5e5cff23aa?ixlib=rb-1.2.1&auto=format&fit=crop&w=1950&q=80');
+        background-size: cover;
+        background-position: center;
+        background-attachment: fixed;
+        min-height: 100vh;
+    }
+    .card {
+        background-color: rgba(255, 255, 255, 0.95);
+        margin-bottom: 20px;
+    }
+    .table-responsive {
+        margin-bottom: 0;
+    }
+    .table th, .table td {
+        white-space: nowrap;
+        padding: 0.5rem;
+    }
+    .table th:first-child, .table td:first-child {
+        min-width: 100px;
+    }
+    .table th:nth-child(2), .table td:nth-child(2) {
+        min-width: 120px;
+    }
+    .table th:nth-child(3), .table td:nth-child(3),
+    .table th:nth-child(4), .table td:nth-child(4) {
+        min-width: 100px;
+    }
+    .table th:last-child, .table td:last-child {
+        min-width: 150px;
+    }
+    .btn-sm {
+        padding: 0.25rem 0.5rem;
+        font-size: 0.875rem;
+    }
+</style>
+
 <div class="row">
-    <div class="col-md-8">
+    <div class="col-md-4 order-md-2">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0">Standings</h5>
+            </div>
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table class="table table-striped">
+                        <thead>
+                            <tr>
+                                <th>Rank</th>
+                                <th>Player</th>
+                                <th>Points</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for player, points, rank in standings %}
+                            <tr>
+                                <td>{{ rank }}</td>
+                                <td>{{ player.name }}</td>
+                                <td>{{ points }}</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-8 order-md-1">
         <div class="card">
             <div class="card-header">
                 <h5 class="mb-0">Tournament: {{ tournament.name }}</h5>
@@ -45,35 +112,6 @@
                                         Edit
                                     </button>
                                 </td>
-                            </tr>
-                            {% endfor %}
-                        </tbody>
-                    </table>
-                </div>
-            </div>
-        </div>
-    </div>
-    <div class="col-md-4">
-        <div class="card">
-            <div class="card-header">
-                <h5 class="mb-0">Standings</h5>
-            </div>
-            <div class="card-body">
-                <div class="table-responsive">
-                    <table class="table table-striped">
-                        <thead>
-                            <tr>
-                                <th>Rank</th>
-                                <th>Player</th>
-                                <th>Points</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {% for player, points, rank in standings %}
-                            <tr>
-                                <td>{{ rank }}</td>
-                                <td>{{ player.name }}</td>
-                                <td>{{ points }}</td>
                             </tr>
                             {% endfor %}
                         </tbody>
