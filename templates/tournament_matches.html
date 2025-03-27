@@ -28,7 +28,7 @@
                             {% for match in matches %}
                             <tr>
                                 <td>{{ match.date.strftime('%Y-%m-%d') }}</td>
-                                <td>{{ match.course }}</td>
+                                <td>{{ match.course.name }}</td>
                                 <td>{{ match.player1.name }}</td>
                                 <td>{{ match.player2.name }}</td>
                                 <td>{{ match.result if match.result else 'Not Played Yet' }}</td>
@@ -81,6 +81,8 @@
             </div>
             <div class="modal-body">
                 <form id="addMatchForm">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                    <input type="hidden" name="tournament_id" value="{{ tournament.id }}">
                     <div class="mb-3">
                         <label for="date" class="form-label">Date</label>
                         <input type="date" class="form-control" id="date" name="date" required>
@@ -88,6 +90,7 @@
                     <div class="mb-3">
                         <label for="course_id" class="form-label">Course</label>
                         <select class="form-control" id="course_id" name="course_id" required>
+                            <option value="">Select Course</option>
                             {% for course in courses %}
                             <option value="{{ course.id }}">{{ course.name }}</option>
                             {% endfor %}
@@ -143,13 +146,19 @@ function submitMatch() {
     
     fetch('/tournament/{{ tournament.id }}/add_match', {
         method: 'POST',
+        headers: {
+            'X-CSRFToken': formData.get('csrf_token'),
+            'X-Requested-With': 'XMLHttpRequest'
+        },
         body: formData
     })
     .then(response => {
         if (response.ok) {
             window.location.reload();
         } else {
-            throw new Error('Failed to add match');
+            return response.json().then(data => {
+                throw new Error(data.error || 'Failed to add match');
+            });
         }
     })
     .catch(error => {

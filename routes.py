@@ -1300,7 +1300,6 @@ def tournament_matches(tournament_id):
                          courses=courses)
 
 @bp.route("/tournament/<int:tournament_id>/add_match", methods=['POST'])
-@login_required
 def add_match(tournament_id):
     tournament = Tournament.query.get_or_404(tournament_id)
     
@@ -1311,12 +1310,16 @@ def add_match(tournament_id):
     result = request.form.get('result')
     
     if not all([player1_id, player2_id, course_id, date_str]):
+        if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+            return jsonify({'error': 'Player 1, Player 2, Course, and Date are required.'}), 400
         flash('Player 1, Player 2, Course, and Date are required.', 'error')
         return redirect(url_for('main.tournament_matches', tournament_id=tournament_id))
     
     try:
         match_date = datetime.strptime(date_str, '%Y-%m-%d')
     except ValueError:
+        if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+            return jsonify({'error': 'Invalid date format.'}), 400
         flash('Invalid date format.', 'error')
         return redirect(url_for('main.tournament_matches', tournament_id=tournament_id))
     
@@ -1339,6 +1342,8 @@ def add_match(tournament_id):
     db.session.add(match)
     db.session.commit()
     
+    if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+        return jsonify({'message': 'Match added successfully!'})
     flash('Match added successfully!', 'success')
     return redirect(url_for('main.tournament_matches', tournament_id=tournament_id))
 
