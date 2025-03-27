@@ -31,7 +31,20 @@
                                 <td>{{ match.course.name }}</td>
                                 <td>{{ match.player1.name }}</td>
                                 <td>{{ match.player2.name }}</td>
-                                <td>{{ match.result if match.result else 'Not Played Yet' }}</td>
+                                <td>
+                                    {% if match.is_tie %}
+                                        Tied
+                                    {% elif match.winner_id == match.player1_id %}
+                                        {{ match.player1.name }} Won
+                                    {% elif match.winner_id == match.player2_id %}
+                                        {{ match.player2.name }} Won
+                                    {% else %}
+                                        Not Played Yet
+                                    {% endif %}
+                                    <button type="button" class="btn btn-sm btn-primary float-end" data-bs-toggle="modal" data-bs-target="#editMatchModal{{ match.id }}">
+                                        Edit
+                                    </button>
+                                </td>
                             </tr>
                             {% endfor %}
                         </tbody>
@@ -131,6 +144,66 @@
     </div>
 </div>
 
+<!-- Edit Match Modals -->
+{% for match in matches %}
+<div class="modal fade" id="editMatchModal{{ match.id }}" tabindex="-1" aria-labelledby="editMatchModalLabel{{ match.id }}" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="editMatchModalLabel{{ match.id }}">Edit Match</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <form id="editMatchForm{{ match.id }}">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                    <div class="mb-3">
+                        <label for="date{{ match.id }}" class="form-label">Date</label>
+                        <input type="date" class="form-control" id="date{{ match.id }}" name="date" value="{{ match.date.strftime('%Y-%m-%d') }}" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="course_id{{ match.id }}" class="form-label">Course</label>
+                        <select class="form-control" id="course_id{{ match.id }}" name="course_id" required>
+                            {% for course in courses %}
+                            <option value="{{ course.id }}" {% if course.id == match.course_id %}selected{% endif %}>{{ course.name }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label for="player1_id{{ match.id }}" class="form-label">Player 1</label>
+                        <select class="form-control" id="player1_id{{ match.id }}" name="player1_id" required>
+                            {% for player in players %}
+                            <option value="{{ player.id }}" {% if player.id == match.player1_id %}selected{% endif %}>{{ player.name }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label for="player2_id{{ match.id }}" class="form-label">Player 2</label>
+                        <select class="form-control" id="player2_id{{ match.id }}" name="player2_id" required>
+                            {% for player in players %}
+                            <option value="{{ player.id }}" {% if player.id == match.player2_id %}selected{% endif %}>{{ player.name }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label for="result{{ match.id }}" class="form-label">Result</label>
+                        <select class="form-control" id="result{{ match.id }}" name="result">
+                            <option value="">Not Played Yet</option>
+                            <option value="player1" {% if match.winner_id == match.player1_id %}selected{% endif %}>Player 1 Won</option>
+                            <option value="player2" {% if match.winner_id == match.player2_id %}selected{% endif %}>Player 2 Won</option>
+                            <option value="tie" {% if match.is_tie %}selected{% endif %}>Tied</option>
+                        </select>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                <button type="button" class="btn btn-primary" onclick="submitEditMatch('{{ match.id }}')">Save Changes</button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endfor %}
+
 <script>
 document.addEventListener('DOMContentLoaded', function() {
     // Set default date to today
@@ -163,6 +236,32 @@ function submitMatch() {
     })
     .catch(error => {
         alert('Error adding match: ' + error.message);
+    });
+}
+
+function submitEditMatch(matchId) {
+    const form = document.getElementById(`editMatchForm${matchId}`);
+    const formData = new FormData(form);
+    
+    fetch(`/edit_match/${matchId}`, {
+        method: 'POST',
+        headers: {
+            'X-CSRFToken': formData.get('csrf_token'),
+            'X-Requested-With': 'XMLHttpRequest'
+        },
+        body: formData
+    })
+    .then(response => {
+        if (response.ok) {
+            window.location.reload();
+        } else {
+            return response.json().then(data => {
+                throw new Error(data.error || 'Failed to update match');
+            });
+        }
+    })
+    .catch(error => {
+        alert('Error updating match: ' + error.message);
     });
 }
 </script>
