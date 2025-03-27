@@ -123,7 +123,7 @@
                             {% for player, points, rank in standings %}
                             <tr>
                                 <td>{{ rank }}</td>
-                                <td>{{ player.first_name }} {{ player.last_name[0] if player.last_name else '' }}</td>
+                                <td>{{ player.name.split()[0] }} {{ player.name.split()[1][0] if player.name.split()|length > 1 else '' }}</td>
                                 <td>{{ points }}</td>
                             </tr>
                             {% endfor %}
@@ -165,17 +165,17 @@
                             <tr>
                                 <td>{{ match.date.strftime('%Y-%m-%d') }}</td>
                                 <td>{{ match.course.name }}</td>
-                                <td>{{ match.player1.first_name }} {{ match.player1.last_name[0] if match.player1.last_name else '' }}</td>
-                                <td>{{ match.player2.first_name }} {{ match.player2.last_name[0] if match.player2.last_name else '' }}</td>
+                                <td>{{ match.player1.name.split()[0] }} {{ match.player1.name.split()[1][0] if match.player1.name.split()|length > 1 else '' }}</td>
+                                <td>{{ match.player2.name.split()[0] }} {{ match.player2.name.split()[1][0] if match.player2.name.split()|length > 1 else '' }}</td>
                                 <td>
                                     <div class="d-flex flex-column">
                                         <div>
                                             {% if match.is_tie %}
                                                 Tied
                                             {% elif match.winner_id == match.player1_id %}
-                                                {{ match.player1.first_name }} {{ match.player1.last_name[0] if match.player1.last_name else '' }} Won
+                                                {{ match.player1.name.split()[0] }} {{ match.player1.name.split()[1][0] if match.player1.name.split()|length > 1 else '' }} Won
                                             {% elif match.winner_id == match.player2_id %}
-                                                {{ match.player2.first_name }} {{ match.player2.last_name[0] if match.player2.last_name else '' }} Won
+                                                {{ match.player2.name.split()[0] }} {{ match.player2.name.split()[1][0] if match.player2.name.split()|length > 1 else '' }} Won
                                             {% else %}
                                                 Not Played Yet
                                             {% endif %}
