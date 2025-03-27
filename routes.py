@@ -1297,12 +1297,6 @@ def tournament_matches(tournament_id):
         players_in_tournament.add(match.player1_id)
         players_in_tournament.add(match.player2_id)
     
-    # Get all players who have points
-    players_with_points = set()
-    for match in matches:
-        if match.winner_id:
-            players_with_points.add(match.winner_id)
-    
     # Get standings for players who have played matches
     standings = []
     for player_id in players_in_tournament:
@@ -1313,14 +1307,27 @@ def tournament_matches(tournament_id):
     # Sort standings by points (descending)
     standings.sort(key=lambda x: x[1], reverse=True)
     
-    # Calculate ranks
+    # Calculate ranks with proper tie handling
     current_rank = 1
     current_points = standings[0][1] if standings else 0
+    players_at_rank = 1
+    
     for i, (player, points, _) in enumerate(standings):
         if points < current_points:
             current_rank = i + 1
             current_points = points
-        standings[i] = (player, points, current_rank)
+            players_at_rank = 1
+        else:
+            players_at_rank += 1
+        
+        # If this is the second player at this rank, update the previous player's rank
+        if players_at_rank == 2 and i > 0:
+            prev_player, prev_points, _ = standings[i-1]
+            standings[i-1] = (prev_player, prev_points, f"T{current_rank}")
+        
+        # Set current player's rank
+        rank = f"T{current_rank}" if players_at_rank > 1 else str(current_rank)
+        standings[i] = (player, points, rank)
     
     return render_template('tournament_matches.html', 
                          tournament=tournament, 
