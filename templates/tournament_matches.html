@@ -265,8 +265,28 @@
                 <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
             <div class="modal-body">
-                <form id="editMatchForm{{ match.id }}">
+                <form id="editMatchForm{{ match.id }}" method="POST" action="{{ url_for('main.edit_match', match_id=match.id) }}">
                     <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                    <div class="mb-3">
+                        <label for="edit_player1{{ match.id }}" class="form-label">Player 1</label>
+                        <select class="form-select" id="edit_player1{{ match.id }}" name="player1_id" required>
+                            {% for player in players %}
+                            <option value="{{ player.id }}" {% if player.id == match.player1_id %}selected{% endif %}>
+                                {{ player.name }}
+                            </option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label for="edit_player2{{ match.id }}" class="form-label">Player 2</label>
+                        <select class="form-select" id="edit_player2{{ match.id }}" name="player2_id" required>
+                            {% for player in players %}
+                            <option value="{{ player.id }}" {% if player.id == match.player2_id %}selected{% endif %}>
+                                {{ player.name }}
+                            </option>
+                            {% endfor %}
+                        </select>
+                    </div>
                     <div class="mb-3">
                         <label for="date{{ match.id }}" class="form-label">Date</label>
                         <input type="date" class="form-control" id="date{{ match.id }}" name="date" value="{{ match.date.strftime('%Y-%m-%d') }}" required>
@@ -276,22 +296,6 @@
                         <select class="form-control" id="course_id{{ match.id }}" name="course_id" required>
                             {% for course in courses %}
                             <option value="{{ course.id }}" {% if course.id == match.course_id %}selected{% endif %}>{{ course.name }}</option>
-                            {% endfor %}
-                        </select>
-                    </div>
-                    <div class="mb-3">
-                        <label for="player1_id{{ match.id }}" class="form-label">Player 1</label>
-                        <select class="form-control" id="player1_id{{ match.id }}" name="player1_id" required>
-                            {% for player in players %}
-                            <option value="{{ player.id }}" {% if player.id == match.player1_id %}selected{% endif %}>{{ player.name }}</option>
-                            {% endfor %}
-                        </select>
-                    </div>
-                    <div class="mb-3">
-                        <label for="player2_id{{ match.id }}" class="form-label">Player 2</label>
-                        <select class="form-control" id="player2_id{{ match.id }}" name="player2_id" required>
-                            {% for player in players %}
-                            <option value="{{ player.id }}" {% if player.id == match.player2_id %}selected{% endif %}>{{ player.name }}</option>
                             {% endfor %}
                         </select>
                     </div>
@@ -307,6 +311,7 @@
                 </form>
             </div>
             <div class="modal-footer">
+                <button type="button" class="btn btn-danger me-auto" onclick="deleteMatch('{{ match.id }}')">Delete Match</button>
                 <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
                 <button type="button" class="btn btn-primary" onclick="submitEditMatch('{{ match.id }}')">Save Changes</button>
             </div>
@@ -373,6 +378,32 @@ function submitEditMatch(matchId) {
     })
     .catch(error => {
         alert('Error updating match: ' + error.message);
+    });
+}
+
+function deleteMatch(matchId) {
+    if (!confirm('Are you sure you want to delete this match? This action cannot be undone.')) {
+        return;
+    }
+    
+    fetch(`/delete_match/${matchId}`, {
+        method: 'POST',
+        headers: {
+            'X-CSRFToken': document.querySelector('input[name="csrf_token"]').value,
+            'X-Requested-With': 'XMLHttpRequest'
+        }
+    })
+    .then(response => {
+        if (response.ok) {
+            window.location.reload();
+        } else {
+            return response.json().then(data => {
+                throw new Error(data.error || 'Failed to delete match');
+            });
+        }
+    })
+    .catch(error => {
+        alert('Error deleting match: ' + error.message);
     });
 }
 

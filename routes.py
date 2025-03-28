@@ -1981,3 +1981,17 @@ def finish_tournament(tournament_id):
         return jsonify({'message': f'Tournament finished! {winner.name} wins!'})
     flash(f'Tournament finished! {winner.name} wins!', 'success')
     return redirect(url_for('main.tournament_matches', tournament_id=tournament_id))
+
+@bp.route("/delete_match/<int:match_id>", methods=['POST'])
+def delete_match(match_id):
+    match = Match.query.get_or_404(match_id)
+    
+    # Delete the match
+    db.session.delete(match)
+    db.session.commit()
+    
+    if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+        return jsonify({'message': 'Match deleted successfully'})
+    
+    flash('Match deleted successfully', 'success')
+    return redirect(url_for('main.tournament_matches', tournament_id=match.tournament_id))
