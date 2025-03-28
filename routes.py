@@ -1302,7 +1302,9 @@ def tournament_matches(tournament_id):
     standings = []
     for player_id in players_in_tournament:
         player = Player.query.get(player_id)
-        points = sum(1 for match in matches if match.winner_id == player_id)
+        # Calculate points: 1 for wins, 0.5 for ties
+        points = sum(1 for match in matches if match.winner_id == player_id) + \
+                sum(0.5 for match in matches if match.is_tie and (match.player1_id == player_id or match.player2_id == player_id))
         standings.append((player, points, 0))  # Rank will be calculated later
     
     # Sort standings by points (descending)
