@@ -169,8 +169,10 @@
                                     <div class="d-flex flex-column">
                                         <div>{{ match.player1.name.split()[0] }} {{ match.player1.name.split()[1][0] if match.player1.name.split()|length > 1 else '' }}</div>
                                         <div class="small">
-                                            {% if match.is_tie %}
+                                            {% if not match.winner_id and not match.is_tie %}
                                                 ⚠️
+                                            {% elif match.is_tie %}
+                                                🤝
                                             {% elif match.winner_id == match.player1_id %}
                                                 ✅
                                             {% else %}
@@ -183,8 +185,10 @@
                                     <div class="d-flex flex-column">
                                         <div>{{ match.player2.name.split()[0] }} {{ match.player2.name.split()[1][0] if match.player2.name.split()|length > 1 else '' }}</div>
                                         <div class="small">
-                                            {% if match.is_tie %}
+                                            {% if not match.winner_id and not match.is_tie %}
                                                 ⚠️
+                                            {% elif match.is_tie %}
+                                                🤝
                                             {% elif match.winner_id == match.player2_id %}
                                                 ✅
                                             {% else %}
