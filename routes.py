@@ -1290,6 +1290,7 @@ def tournament_matches(tournament_id):
     tournament = Tournament.query.get_or_404(tournament_id)
     matches = Match.query.filter_by(tournament_id=tournament_id).order_by(Match.date.desc()).all()
     courses = Course.query.all()
+    players = Player.query.all()  # Get all players
     
     # Get all players who have played matches in this tournament
     players_in_tournament = set()
@@ -1333,6 +1334,7 @@ def tournament_matches(tournament_id):
                          tournament=tournament, 
                          matches=matches, 
                          courses=courses,
+                         players=players,  # Pass players to template
                          standings=standings)
 
 @bp.route("/tournament/<int:tournament_id>/add_match", methods=['POST'])
