@@ -1321,13 +1321,19 @@ def tournament_matches(tournament_id):
         else:
             players_at_rank += 1
         
-        # If this is the second player at this rank, update the previous player's rank
-        if players_at_rank == 2 and i > 0:
-            prev_player, prev_points, _ = standings[i-1]
-            standings[i-1] = (prev_player, prev_points, f"T{current_rank}")
-        
         # Set current player's rank
-        rank = f"T{current_rank}" if players_at_rank > 1 else str(current_rank)
+        if players_at_rank == 1:
+            # Check if this is a unique score (no other players have the same points)
+            is_unique = True
+            for j, (other_player, other_points, _) in enumerate(standings):
+                if i != j and other_points == points:
+                    is_unique = False
+                    break
+            
+            rank = str(current_rank) if is_unique else f"T{current_rank}"
+        else:
+            rank = f"T{current_rank}"
+        
         standings[i] = (player, points, rank)
     
     return render_template('tournament_matches.html', 
