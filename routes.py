@@ -1311,36 +1311,28 @@ def tournament_matches(tournament_id):
     # Calculate ranks with proper tie handling
     current_rank = 1
     current_points = standings[0][1] if standings else 0
-    players_at_rank = 1
     
     for i, (player, points, _) in enumerate(standings):
         if points < current_points:
             current_rank = i + 1
             current_points = points
-            players_at_rank = 1
-        else:
-            players_at_rank += 1
         
-        # Set current player's rank
-        if players_at_rank == 1:
-            # Check if this is a unique score (no other players have the same points)
-            is_unique = True
-            for j, (other_player, other_points, _) in enumerate(standings):
-                if i != j and other_points == points:
-                    is_unique = False
-                    break
-            
-            rank = str(current_rank) if is_unique else f"T{current_rank}"
-        else:
-            rank = f"T{current_rank}"
+        # Check if this score is unique
+        is_unique = True
+        for j, (other_player, other_points, _) in enumerate(standings):
+            if i != j and other_points == points:
+                is_unique = False
+                break
         
+        # Set rank based on whether the score is unique
+        rank = str(current_rank) if is_unique else f"T{current_rank}"
         standings[i] = (player, points, rank)
     
     return render_template('tournament_matches.html', 
                          tournament=tournament, 
                          matches=matches, 
                          courses=courses,
-                         players=players,  # Pass players to template
+                         players=players,
                          standings=standings)
 
 @bp.route("/tournament/<int:tournament_id>/add_match", methods=['POST'])
