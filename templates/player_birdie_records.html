@@ -44,7 +44,7 @@
                         <tbody>
                             {% for record in records %}
                                 <tr>
-                                    <td>{{ record.date.strftime('%Y-%m-%d') }}</td>
+                                    <td>{{ record.date.strftime('%d-%m-%Y') }}</td>
                                     <td>{{ record.course_name }}</td>
                                     <td>{{ record.hole_number }}</td>
                                     <td>{% if record.is_eagle %}Eagle{% else %}Birdie{% endif %}</td>
