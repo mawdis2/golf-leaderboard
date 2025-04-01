@@ -1,472 +1,265 @@
 <!-- templates/admin_dashboard.html -->
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Admin Dashboard</title>
-    <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
-    <style>
-        .admin-container {
-            background-color: rgba(0, 0, 0, 0.8);
-            padding: 20px;
-            border-radius: 10px;
-            margin: 20px auto;
-            max-width: 1200px;
-        }
+{% extends "base.html" %}
 
-        .tab-container {
-            display: flex;
-            gap: 10px;
-            margin-bottom: 20px;
-        }
+{% block title %}Admin Dashboard{% endblock %}
 
-        .tab-button {
-            background-color: #444;
-            color: white;
-            border: none;
-            padding: 10px 20px;
-            border-radius: 5px;
-            cursor: pointer;
-            font-size: 1em;
-            transition: background-color 0.3s;
-        }
-
-        .tab-button:hover {
-            background-color: #666;
-        }
-
-        .tab-button.active {
-            background-color: #007bff;
-        }
-
-        .tab-content {
-            display: none;
-            background-color: rgba(0, 0, 0, 0.6);
-            padding: 20px;
-            border-radius: 5px;
-            color: white;
-        }
-
-        .tab-content.active {
-            display: block;
-        }
-
-        table {
-            width: 100%;
-            border-collapse: collapse;
-            margin-top: 20px;
-            background-color: rgba(0, 0, 0, 0.4);
-        }
-
-        th {
-            padding: 8px;
-            text-align: left;
-            color: white !important;
-            background-color: #007bff;
-        }
-
-        td {
-            padding: 8px;
-            text-align: left;
-            color: black !important;
-            background-color: white;
-        }
-
-        tr:hover {
-            background-color: rgba(255, 255, 255, 0.1);
-        }
-
-        .action-button {
-            background-color: #007bff;
-            color: white;
-            border: none;
-            padding: 8px 16px;
-            border-radius: 4px;
-            cursor: pointer;
-            text-decoration: none;
-            display: inline-block;
-            margin: 4px;
-            transition: background-color 0.3s;
-        }
-
-        .action-button:hover {
-            background-color: #0056b3;
-        }
-
-        .delete-button {
-            background-color: #dc3545;
-        }
-
-        .delete-button:hover {
-            background-color: #c82333;
-        }
-
-        .add-button {
-            background-color: #28a745;
-            margin-bottom: 20px;
-        }
-
-        .add-button:hover {
-            background-color: #218838;
-        }
-
-        .flashes {
-            list-style: none;
-            padding: 0;
-            margin-bottom: 20px;
-        }
-
-        .flashes li {
-            padding: 10px;
-            margin-bottom: 10px;
-            border-radius: 4px;
-            color: white;
-        }
-
-        .flashes li.success {
-            background-color: rgba(40, 167, 69, 0.8);
-        }
-
-        .flashes li.error {
-            background-color: rgba(220, 53, 69, 0.8);
-        }
-
-        .logout-button {
-            position: absolute;
-            top: 20px;
-            right: 20px;
-            background-color: #dc3545;
-            color: white;
-            padding: 8px 16px;
-            border-radius: 4px;
-            text-decoration: none;
-            transition: background-color 0.3s;
-        }
-
-        .logout-button:hover {
-            background-color: #c82333;
-        }
-
-        /* Form styling */
-        form {
-            margin-top: 20px;
-        }
-
-        label {
-            display: block;
-            margin-bottom: 8px;
-            color: white;
-        }
-
-        input[type="text"],
-        input[type="number"],
-        select {
-            width: 100%;
-            padding: 8px;
-            margin-bottom: 16px;
-            border: 1px solid #666;
-            border-radius: 4px;
-            background-color: #333;
-            color: white;
-        }
-
-        input[type="text"]:focus,
-        input[type="number"]:focus,
-        select:focus {
-            outline: none;
-            border-color: #007bff;
-        }
-
-        button[type="submit"] {
-            background-color: #28a745;
-            color: white;
-            border: none;
-            padding: 10px 20px;
-            border-radius: 4px;
-            cursor: pointer;
-            transition: background-color 0.3s;
-        }
-
-        button[type="submit"]:hover {
-            background-color: #218838;
-        }
-
-        .name-column {
-            color: white;
-        }
-
-        /* Additional specific selector for player names */
-        table td:first-child {
-            color: black !important;
-        }
-
-        .score-entry {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            padding: 8px;
-            margin: 4px 0;
-        }
-
-        .delete-btn {
-            background-color: #dc3545;
-            color: white;
-            border: none;
-            padding: 4px 8px;
-            border-radius: 4px;
-            cursor: pointer;
-            font-size: 0.9em;
-        }
-
-        .delete-btn:hover {
-            background-color: #c82333;
-        }
-
-        .scores-container {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 20px;
-            margin-top: 20px;
-        }
-
-        .birdies-section, .eagles-section {
-            background-color: rgba(0, 0, 0, 0.3);
-            padding: 15px;
-            border-radius: 8px;
-        }
-
-        .score-entry {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            padding: 8px;
-            margin: 4px 0;
-            background-color: rgba(255, 255, 255, 0.1);
-            border-radius: 4px;
-        }
-
-        .delete-btn {
-            background-color: #dc3545;
-            color: white;
-            border: none;
-            padding: 4px 8px;
-            border-radius: 4px;
-            cursor: pointer;
-            font-size: 0.9em;
-        }
-
-        .delete-btn:hover {
-            background-color: #c82333;
-        }
-
-        .admin-header h1 {
-            color: white;
-            margin-bottom: 20px;
-        }
-    </style>
-</head>
-<body>
-    <div class="admin-container">
-        <div class="admin-header">
-            <h1>Admin Dashboard</h1>
-            <a href="{{ url_for('main.logout') }}" class="logout-button">Logout</a>
-        </div>
-
-        {% with messages = get_flashed_messages(with_categories=true) %}
-            {% if messages %}
-                <ul class="flashes">
-                    {% for category, message in messages %}
-                        <li class="{{ category }}">{{ message }}</li>
-                    {% endfor %}
-                </ul>
-            {% endif %}
-        {% endwith %}
-
-        <div class="tab-container">
-            <button class="tab-button active" onclick="showTab('Players')">Players</button>
-            <button class="tab-button" onclick="showTab('Courses')">Courses</button>
-            <button class="tab-button" onclick="showTab('Historical Data')">Historical Data</button>
-            <button class="tab-button" onclick="showTab('Trophies')">Trophies</button>
-            <button class="tab-button" onclick="showTab('Scores')">Scores</button>
-            <li class="nav-item">
-                <a class="nav-link" id="tournaments-tab" data-bs-toggle="tab" href="#tournaments" role="tab" aria-controls="tournaments" aria-selected="false">Tournaments</a>
-            </li>
-        </div>
-
-        <div id="Players" class="tab-content active">
-            <a href="{{ url_for('main.add_player') }}" class="action-button add-button">Add New Player</a>
-            <table>
-                <thead>
-                    <tr>
-                        <th>Name</th>
-                        <th>Actions</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {% for player in players %}
-                    <tr>
-                        <td class="name-column">{{ player.name }}</td>
-                        <td>
-                            <button onclick="if(confirm('Are you sure you want to delete {{ player.name }}? This will also delete all their birdies and eagles.')) window.location.href='{{ url_for('main.delete_player', player_id=player.id) }}'" class="action-button delete-button">Delete</button>
-                        </td>
-                    </tr>
-                    {% endfor %}
-                </tbody>
-            </table>
-        </div>
-
-        <div id="Courses" class="tab-content">
-            <h2>Add New Course</h2>
-            <form method="POST" action="{{ url_for('main.add_course') }}">
-                <input type="text" name="name" placeholder="Course Name" required>
-                <button type="submit">Add Course</button>
-            </form>
-
-            <h2>Courses</h2>
-            <table>
-                <tr>
-                    <th>Name</th>
-                    <th>Actions</th>
-                </tr>
-                {% for course in courses %}
-                <tr>
-                    <td>{{ course.name }}</td>
-                    <td>
-                        <button onclick="if(confirm('WARNING: Deleting {{ course.name }} will also delete ALL birdies and eagles that players have recorded at this course. This cannot be undone.\n\nAre you sure you want to delete this course?')) window.location.href='{{ url_for('main.delete_course', course_id=course.id) }}'">Delete</button>
-                    </td>
-                </tr>
-                {% endfor %}
-            </table>
-        </div>
-
-        <div id="Historical Data" class="tab-content">
-            <a href="{{ url_for('main.add_historical_totals') }}" class="action-button add-button">Add Historical Totals</a>
-        </div>
-
-        <div id="Trophies" class="tab-content">
-            <h2>Manage Trophies</h2>
-            <form method="POST" action="{{ url_for('main.add_trophy') }}">
-                <select name="player_id" required>
-                    <option value="">Select Player</option>
-                    {% for player in players %}
-                        <option value="{{ player.id }}">{{ player.name }}</option>
-                    {% endfor %}
-                </select>
-                <button type="submit">Add Trophy</button>
-            </form>
-
-            <h2>Current Trophy Holders</h2>
-            <table>
-                <tr>
-                    <th>Player Name</th>
-                    <th>Actions</th>
-                </tr>
-                {% for player in players %}
-                    {% if player.has_trophy %}
-                    <tr>
-                        <td>{{ player.name }} 🏆</td>
-                        <td>
-                            <button onclick="if(confirm('Are you sure you want to remove the trophy from {{ player.name }}?')) window.location.href='{{ url_for('main.delete_trophy', player_id=player.id) }}'">Remove Trophy</button>
-                        </td>
-                    </tr>
-                    {% endif %}
-                {% endfor %}
-            </table>
-        </div>
-
-        <div id="Scores" class="tab-content" style="display: none;">
-            <h3>Scores</h3>
-            <table class="table">
-                <thead>
-                    <tr>
-                        <th>Date</th>
-                        <th>Player</th>
-                        <th>Course</th>
-                        <th>Hole</th>
-                        <th>Type</th>
-                        <th>Actions</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {% for score in scores %}
-                    <tr>
-                        <td>{{ score.date.strftime('%Y-%m-%d') }}</td>
-                        <td>{{ score.player.name }}</td>
-                        <td>{{ score.course.name }}</td>
-                        <td>{{ score.hole_number }}</td>
-                        <td>{% if score.is_eagle %}Eagle{% else %}Birdie{% endif %}</td>
-                        <td>
-                            <form action="{{ url_for('main.delete_score', score_id=score.id) }}" method="POST" style="display: inline;">
-                                <button type="submit" class="btn btn-danger btn-sm" onclick="return confirm('Are you sure you want to delete this score?')">Delete</button>
-                            </form>
-                        </td>
-                    </tr>
-                    {% endfor %}
-                </tbody>
-            </table>
-        </div>
-
-        <div class="tab-pane fade" id="tournaments" role="tabpanel" aria-labelledby="tournaments-tab">
-            <div class="card">
-                <div class="card-header bg-primary text-white">
-                    <h2 class="h4 mb-0">Tournament Management</h2>
-                </div>
-                <div class="card-body">
-                    <div class="d-grid gap-2">
-                        <a href="{{ url_for('main.admin_tournaments') }}" class="btn btn-primary">Manage Tournaments</a>
-                        <a href="{{ url_for('main.manage_teams') }}" class="btn btn-success">Manage Teams</a>
-                        <a href="{{ url_for('main.tournaments') }}" class="btn btn-info">View Tournament History</a>
-                    </div>
-                    <div class="alert alert-info mt-3">
-                        <p>In this section, you can:</p>
-                        <ul>
-                            <li>Create and manage tournaments</li>
-                            <li>Create teams and assign players</li>
-                            <li>Record tournament results</li>
-                        </ul>
-                    </div>
-                </div>
+{% block content %}
+<div class="container">
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="d-flex justify-content-between align-items-center">
+                <h1 class="mb-0">Admin Dashboard</h1>
+                <a href="{{ url_for('main.logout') }}" class="btn btn-danger">Logout</a>
             </div>
         </div>
+    </div>
 
-        <div class="row mt-4">
-            <div class="col-md-12">
-                <div class="card">
-                    <div class="card-header">
-                        <h5>Maintenance</h5>
+    {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+            {% for category, message in messages %}
+                <div class="alert alert-{{ category }}">{{ message }}</div>
+            {% endfor %}
+        {% endif %}
+    {% endwith %}
+
+    <div class="card">
+        <div class="card-header">
+            <ul class="nav nav-tabs card-header-tabs" id="adminTabs" role="tablist">
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link active" id="players-tab" data-bs-toggle="tab" data-bs-target="#players" type="button" role="tab">Players</button>
+                </li>
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link" id="courses-tab" data-bs-toggle="tab" data-bs-target="#courses" type="button" role="tab">Courses</button>
+                </li>
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link" id="historical-tab" data-bs-toggle="tab" data-bs-target="#historical" type="button" role="tab">Historical Data</button>
+                </li>
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link" id="trophies-tab" data-bs-toggle="tab" data-bs-target="#trophies" type="button" role="tab">Trophies</button>
+                </li>
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link" id="scores-tab" data-bs-toggle="tab" data-bs-target="#scores" type="button" role="tab">Scores</button>
+                </li>
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link" id="tournaments-tab" data-bs-toggle="tab" data-bs-target="#tournaments" type="button" role="tab">Tournaments</button>
+                </li>
+            </ul>
+        </div>
+        <div class="card-body">
+            <div class="tab-content" id="adminTabsContent">
+                <!-- Players Tab -->
+                <div class="tab-pane fade show active" id="players" role="tabpanel">
+                    <div class="d-flex justify-content-between align-items-center mb-3">
+                        <h2 class="h4 mb-0">Players</h2>
+                        <a href="{{ url_for('main.add_player') }}" class="btn btn-success">Add New Player</a>
                     </div>
-                    <div class="card-body">
-                        <a href="{{ url_for('main.admin_fix_trophies') }}" class="btn btn-warning" onclick="return confirm('This will synchronize trophy records with tournament results. Continue?');">
-                            Synchronize Trophy Records
-                        </a>
-                        <p class="text-muted mt-2">Use this if you've deleted tournaments and need to update trophy records.</p>
+                    <div class="table-responsive">
+                        <table class="table table-striped">
+                            <thead>
+                                <tr>
+                                    <th>Name</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for player in players %}
+                                <tr>
+                                    <td>{{ player.name }}</td>
+                                    <td>
+                                        <button onclick="if(confirm('Are you sure you want to delete {{ player.name }}? This will also delete all their birdies and eagles.')) window.location.href='{{ url_for('main.delete_player', player_id=player.id) }}'" class="btn btn-danger btn-sm">Delete</button>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- Courses Tab -->
+                <div class="tab-pane fade" id="courses" role="tabpanel">
+                    <div class="d-flex justify-content-between align-items-center mb-3">
+                        <h2 class="h4 mb-0">Courses</h2>
+                        <a href="{{ url_for('main.add_course') }}" class="btn btn-success">Add New Course</a>
+                    </div>
+                    <div class="table-responsive">
+                        <table class="table table-striped">
+                            <thead>
+                                <tr>
+                                    <th>Name</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for course in courses %}
+                                <tr>
+                                    <td>{{ course.name }}</td>
+                                    <td>
+                                        <button onclick="if(confirm('Are you sure you want to delete {{ course.name }}?')) window.location.href='{{ url_for('main.delete_course', course_id=course.id) }}'" class="btn btn-danger btn-sm">Delete</button>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- Historical Data Tab -->
+                <div class="tab-pane fade" id="historical" role="tabpanel">
+                    <div class="d-flex justify-content-between align-items-center mb-3">
+                        <h2 class="h4 mb-0">Historical Data</h2>
+                        <a href="{{ url_for('main.add_historical_totals') }}" class="btn btn-success">Add Historical Data</a>
+                    </div>
+                    <div class="table-responsive">
+                        <table class="table table-striped">
+                            <thead>
+                                <tr>
+                                    <th>Year</th>
+                                    <th>Player</th>
+                                    <th>Birdies</th>
+                                    <th>Eagles</th>
+                                    <th>Trophy</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for record in historical_records %}
+                                <tr>
+                                    <td>{{ record.year }}</td>
+                                    <td>{{ record.player.name }}</td>
+                                    <td>{{ record.birdies }}</td>
+                                    <td>{{ record.eagles }}</td>
+                                    <td>{% if record.has_trophy %}🏆{% endif %}</td>
+                                    <td>
+                                        <button onclick="if(confirm('Are you sure you want to delete this record?')) window.location.href='{{ url_for('main.delete_historical_total', record_id=record.id) }}'" class="btn btn-danger btn-sm">Delete</button>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- Trophies Tab -->
+                <div class="tab-pane fade" id="trophies" role="tabpanel">
+                    <div class="d-flex justify-content-between align-items-center mb-3">
+                        <h2 class="h4 mb-0">Trophies</h2>
+                        <a href="{{ url_for('main.add_trophy') }}" class="btn btn-success">Add Trophy</a>
+                    </div>
+                    <div class="table-responsive">
+                        <table class="table table-striped">
+                            <thead>
+                                <tr>
+                                    <th>Year</th>
+                                    <th>Player</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for trophy in trophies %}
+                                <tr>
+                                    <td>{{ trophy.year }}</td>
+                                    <td>{{ trophy.player.name }}</td>
+                                    <td>
+                                        <button onclick="if(confirm('Are you sure you want to delete this trophy?')) window.location.href='{{ url_for('main.delete_trophy', trophy_id=trophy.id) }}'" class="btn btn-danger btn-sm">Delete</button>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- Scores Tab -->
+                <div class="tab-pane fade" id="scores" role="tabpanel">
+                    <div class="d-flex justify-content-between align-items-center mb-3">
+                        <h2 class="h4 mb-0">Scores</h2>
+                        <a href="{{ url_for('main.add_birdie') }}" class="btn btn-success">Add Score</a>
+                    </div>
+                    <div class="table-responsive">
+                        <table class="table table-striped">
+                            <thead>
+                                <tr>
+                                    <th>Date</th>
+                                    <th>Player</th>
+                                    <th>Course</th>
+                                    <th>Hole</th>
+                                    <th>Type</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for score in scores %}
+                                <tr>
+                                    <td>{{ score.date.strftime('%d-%m-%Y') }}</td>
+                                    <td>{{ score.player.name }}</td>
+                                    <td>{{ score.course.name }}</td>
+                                    <td>{{ score.hole_number }}</td>
+                                    <td>{% if score.is_eagle %}Eagle{% else %}Birdie{% endif %}</td>
+                                    <td>
+                                        <form action="{{ url_for('main.delete_score', score_id=score.id) }}" method="POST" style="display: inline;">
+                                            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                            <button type="submit" class="btn btn-danger btn-sm" onclick="return confirm('Are you sure you want to delete this score?')">Delete</button>
+                                        </form>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- Tournaments Tab -->
+                <div class="tab-pane fade" id="tournaments" role="tabpanel">
+                    <div class="d-flex justify-content-between align-items-center mb-3">
+                        <h2 class="h4 mb-0">Tournaments</h2>
+                        <a href="{{ url_for('main.add_tournament') }}" class="btn btn-success">Add Tournament</a>
+                    </div>
+                    <div class="table-responsive">
+                        <table class="table table-striped">
+                            <thead>
+                                <tr>
+                                    <th>Name</th>
+                                    <th>Date</th>
+                                    <th>Course</th>
+                                    <th>Type</th>
+                                    <th>Status</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for tournament in tournaments %}
+                                <tr>
+                                    <td>{{ tournament.name }}</td>
+                                    <td>{{ tournament.date.strftime('%d-%m-%Y') }}</td>
+                                    <td>{{ tournament.course.name if tournament.course else 'N/A' }}</td>
+                                    <td>
+                                        {% if tournament.is_team_event %}
+                                            <span class="badge bg-success">Team</span>
+                                        {% else %}
+                                            <span class="badge bg-info">Individual</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        {% if tournament.is_active %}
+                                            <span class="badge bg-primary">Active</span>
+                                        {% else %}
+                                            <span class="badge bg-secondary">Finished</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        <a href="{{ url_for('main.tournament_details', tournament_id=tournament.id) }}" class="btn btn-info btn-sm">View</a>
+                                        <a href="{{ url_for('main.edit_tournament', tournament_id=tournament.id) }}" class="btn btn-primary btn-sm">Edit</a>
+                                        <a href="{{ url_for('main.add_tournament_result', tournament_id=tournament.id) }}" class="btn btn-success btn-sm">Add Result</a>
+                                        <a href="{{ url_for('main.delete_tournament', tournament_id=tournament.id) }}" class="btn btn-danger btn-sm" onclick="return confirm('Are you sure you want to delete this tournament?')">Delete</a>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
                     </div>
                 </div>
             </div>
         </div>
     </div>
-
-    <script>
-        function showTab(tabName) {
-            // Hide all tab contents
-            var tabContents = document.getElementsByClassName('tab-content');
-            for (var i = 0; i < tabContents.length; i++) {
-                tabContents[i].style.display = 'none';
-            }
-            
-            // Show the selected tab content
-            document.getElementById(tabName).style.display = 'block';
-            
-            // Update active tab button
-            var tabButtons = document.getElementsByClassName('tab-button');
-            for (var i = 0; i < tabButtons.length; i++) {
-                tabButtons[i].classList.remove('active');
-                if (tabButtons[i].innerText === tabName) {
-                    tabButtons[i].classList.add('active');
-                }
-            }
-        }
-    </script>
-</body>
-</html>
+</div>
+{% endblock %}
