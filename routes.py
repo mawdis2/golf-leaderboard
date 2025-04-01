@@ -227,8 +227,8 @@ def add_player():
 def add_birdie():
     if request.method == 'POST':
         try:
-        print("Form data received:")
-        print(request.form)
+            print("Form data received:")
+            print(request.form)
             
             player_id = request.form.get('player_id')
             course_id = request.form.get('course_id')
@@ -249,7 +249,6 @@ def add_birdie():
                 if date.date() > today:
                     flash('Cannot select a future date.', 'error')
                     return redirect(url_for('main.add_birdie'))
-                    
             except ValueError:
                 flash('Invalid date format.', 'error')
                 return redirect(url_for('main.add_birdie'))
@@ -268,21 +267,21 @@ def add_birdie():
             # Find the player
             player = Player.query.get(player_id)
             if player:
-            print(f"Player found: {player.name}")
+                print(f"Player found: {player.name}")
             
                 # Create new birdie record
                 new_record = Birdie(
-                player_id=player_id, 
-                course_id=course_id, 
+                    player_id=player_id, 
+                    course_id=course_id, 
                     hole_number=hole_number,
-                year=current_year,
+                    year=current_year,
                     date=date,
-                is_eagle=is_eagle
-            )
+                    is_eagle=is_eagle
+                )
                 print(f"Created record: player={player.name}, is_eagle={is_eagle}")
                 
                 db.session.add(new_record)
-            db.session.commit()
+                db.session.commit()
                 flash('Score added successfully!', 'success')
             else:
                 flash('Player not found.', 'error')
@@ -297,8 +296,8 @@ def add_birdie():
     
     # For GET requests, just render the template
     try:
-    players = Player.query.all()
-    courses = Course.query.all()
+        players = Player.query.all()
+        courses = Course.query.all()
         
         # Get date restrictions
         today = datetime.now().strftime('%Y-%m-%d')
@@ -307,9 +306,9 @@ def add_birdie():
         return render_template('add_birdie.html', 
                          players=players, 
                          courses=courses,
-            min_date=start_of_year,
-            max_date=today,
-            current_year=datetime.now().year
+                         min_date=start_of_year,
+                         max_date=today,
+                         current_year=datetime.now().year
         )
     except Exception as e:
         print(f"Error loading page: {e}")
@@ -322,9 +321,9 @@ def add_course():
         course_name = request.form.get("course_name")
         if course_name:
             try:
-            course = Course(name=course_name)
-            db.session.add(course)
-            db.session.commit()
+                course = Course(name=course_name)
+                db.session.add(course)
+                db.session.commit()
                 flash(f'Course "{course_name}" added successfully!', 'success')
             except Exception as e:
                 db.session.rollback()
@@ -352,7 +351,7 @@ def player_birdie_records(player_id):
     # Check if we're looking at historical data or current year
     if selected_year == current_year:
         # Get current year records from Birdie table
-    records = db.session.query(
+        records = db.session.query(
         Course.name.label('course_name'),
             Birdie.date,
             Birdie.hole_number,
@@ -766,14 +765,14 @@ def history():
                         if historical:
                             historical.trophy_count = actual_trophy_count
                             db.session.commit()
-        else:
-            player, birdie_count, eagle_count, has_trophy = player_data
+            else:
+                player, birdie_count, eagle_count, has_trophy = player_data
                 year_trophy_count = 1 if has_trophy else 0
         
             # Ensure birdie_count and eagle_count are integers (not None)
             birdie_count = birdie_count or 0
             eagle_count = eagle_count or 0
-        total = birdie_count + eagle_count
+            total = birdie_count + eagle_count
         
             # Count total trophies across all years
             all_years_trophy_count = 0
@@ -1229,14 +1228,14 @@ def delete_score(score_id):
         return redirect(url_for('main.leaderboard'))
     
     try:
-            score = Birdie.query.get_or_404(score_id)
+        score = Birdie.query.get_or_404(score_id)
         db.session.delete(score)
         db.session.commit()
         flash('Score deleted successfully', 'success')
     except Exception as e:
         flash(f'Error deleting score: {str(e)}', 'error')
     
-            return redirect(url_for('main.admin_dashboard'))
+        return redirect(url_for('main.admin_dashboard'))
         
 @bp.route("/debug_tournaments")
 def debug_tournaments():
@@ -1421,7 +1420,7 @@ def add_match(tournament_id):
             match.winner_id = player2_id
     
     db.session.add(match)
-        db.session.commit()
+    db.session.commit()
     
     if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
         return jsonify({'message': 'Match added successfully!'})
@@ -1537,7 +1536,7 @@ def edit_tournament(tournament_id):
             flash(f'Tournament "{tournament.name}" updated successfully!', 'success')
             return redirect(url_for('main.admin_tournaments'))
         
-    except Exception as e:
+        except Exception as e:
             db.session.rollback()
             print(f"Error updating tournament: {e}")
             flash('Error updating tournament. Please try again.', 'error')
