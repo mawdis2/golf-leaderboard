@@ -590,6 +590,10 @@ def add_emoji():
 
 @bp.route("/history", methods=["GET"])
 def history():
+    auth_check = check_site_auth()
+    if auth_check:
+        return auth_check
+        
     current_year = datetime.now().year
     selected_year = request.args.get('year', current_year, type=int)
     
