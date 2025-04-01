@@ -227,8 +227,8 @@ def add_player():
 def add_birdie():
     if request.method == 'POST':
         try:
-            print("Form data received:")
-            print(request.form)
+        print("Form data received:")
+        print(request.form)
             
             player_id = request.form.get('player_id')
             course_id = request.form.get('course_id')
@@ -268,21 +268,21 @@ def add_birdie():
             # Find the player
             player = Player.query.get(player_id)
             if player:
-                print(f"Player found: {player.name}")
-                
+            print(f"Player found: {player.name}")
+            
                 # Create new birdie record
                 new_record = Birdie(
-                    player_id=player_id, 
-                    course_id=course_id, 
+                player_id=player_id, 
+                course_id=course_id, 
                     hole_number=hole_number,
-                    year=current_year,
+                year=current_year,
                     date=date,
-                    is_eagle=is_eagle
-                )
+                is_eagle=is_eagle
+            )
                 print(f"Created record: player={player.name}, is_eagle={is_eagle}")
                 
                 db.session.add(new_record)
-                db.session.commit()
+            db.session.commit()
                 flash('Score added successfully!', 'success')
             else:
                 flash('Player not found.', 'error')
@@ -297,16 +297,16 @@ def add_birdie():
     
     # For GET requests, just render the template
     try:
-        players = Player.query.all()
-        courses = Course.query.all()
+    players = Player.query.all()
+    courses = Course.query.all()
         
         # Get date restrictions
         today = datetime.now().strftime('%Y-%m-%d')
         start_of_year = f"{datetime.now().year}-01-01"
         
         return render_template('add_birdie.html', 
-            players=players, 
-            courses=courses,
+                         players=players, 
+                         courses=courses,
             min_date=start_of_year,
             max_date=today,
             current_year=datetime.now().year
@@ -322,9 +322,9 @@ def add_course():
         course_name = request.form.get("course_name")
         if course_name:
             try:
-                course = Course(name=course_name)
-                db.session.add(course)
-                db.session.commit()
+            course = Course(name=course_name)
+            db.session.add(course)
+            db.session.commit()
                 flash(f'Course "{course_name}" added successfully!', 'success')
             except Exception as e:
                 db.session.rollback()
@@ -352,15 +352,15 @@ def player_birdie_records(player_id):
     # Check if we're looking at historical data or current year
     if selected_year == current_year:
         # Get current year records from Birdie table
-        records = db.session.query(
-            Course.name.label('course_name'),
+    records = db.session.query(
+        Course.name.label('course_name'),
             Birdie.date,
             Birdie.hole_number,
             Birdie.is_eagle
-        ).join(
+    ).join(
             Course, Course.id == Birdie.course_id
-        ).filter(
-            Birdie.player_id == player_id,
+    ).filter(
+        Birdie.player_id == player_id,
             Birdie.year == selected_year
         ).order_by(
             Birdie.date.desc()
@@ -379,7 +379,7 @@ def player_birdie_records(player_id):
             Birdie.year == selected_year
         ).order_by(
             Birdie.date.desc()
-        ).all()
+    ).all()
         
         # If no individual records exist, get the summary from HistoricalTotal
         if not records:
@@ -766,15 +766,15 @@ def history():
                         if historical:
                             historical.trophy_count = actual_trophy_count
                             db.session.commit()
-            else:
-                player, birdie_count, eagle_count, has_trophy = player_data
+        else:
+            player, birdie_count, eagle_count, has_trophy = player_data
                 year_trophy_count = 1 if has_trophy else 0
-            
+        
             # Ensure birdie_count and eagle_count are integers (not None)
             birdie_count = birdie_count or 0
             eagle_count = eagle_count or 0
-            total = birdie_count + eagle_count
-            
+        total = birdie_count + eagle_count
+        
             # Count total trophies across all years
             all_years_trophy_count = 0
             try:
@@ -810,46 +810,46 @@ def history():
                 if eagle_count > 5:
                     eagle_display += f" ({eagle_count})"
             
-            leaderboard.append((
-                total,  # Store total for sorting
-                player.name,
-                birdie_count,
-                player.id,
+        leaderboard.append((
+            total,  # Store total for sorting
+            player.name,
+            birdie_count,
+            player.id,
                 trophy_display + eagle_display,  # Combine trophy and eagle emojis
                 eagle_count,
                 year_trophy_count  # Use year trophy count instead of all years
-            ))
+        ))
+    
+    # Sort by total score (descending)
+    sorted_leaderboard = sorted(leaderboard, key=lambda x: x[0], reverse=True)
+    
+    # Create final leaderboard with ranks
+    final_leaderboard = []
+    prev_total = None
+    current_rank = 0
+    players_at_rank = 1
+    
+    for idx, entry in enumerate(sorted_leaderboard):
+        total = entry[0]
         
-        # Sort by total score (descending)
-        sorted_leaderboard = sorted(leaderboard, key=lambda x: x[0], reverse=True)
+        if total != prev_total:
+            current_rank = idx + 1
+            players_at_rank = 1
+        else:
+            players_at_rank += 1
+            # If this is the second player at this rank, also update the previous player
+            if players_at_rank == 2 and final_leaderboard:
+                prev_entry = final_leaderboard[-1]
+                final_leaderboard[-1] = (f"T{current_rank}", *prev_entry[1:])
         
-        # Create final leaderboard with ranks
-        final_leaderboard = []
-        prev_total = None
-        current_rank = 0
-        players_at_rank = 1
+        rank_display = f"T{current_rank}" if players_at_rank > 1 else str(current_rank)
+        prev_total = total
         
-        for idx, entry in enumerate(sorted_leaderboard):
-            total = entry[0]
-            
-            if total != prev_total:
-                current_rank = idx + 1
-                players_at_rank = 1
-            else:
-                players_at_rank += 1
-                # If this is the second player at this rank, also update the previous player
-                if players_at_rank == 2 and final_leaderboard:
-                    prev_entry = final_leaderboard[-1]
-                    final_leaderboard[-1] = (f"T{current_rank}", *prev_entry[1:])
-            
-            rank_display = f"T{current_rank}" if players_at_rank > 1 else str(current_rank)
-            prev_total = total
-            
-            final_leaderboard.append((
-                rank_display,
-                entry[1],  # name
-                entry[2],  # birdies
-                entry[3],  # player_id
+        final_leaderboard.append((
+            rank_display,
+            entry[1],  # name
+            entry[2],  # birdies
+            entry[3],  # player_id
                 entry[4],  # trophy display for current year
                 entry[5],  # eagles
                 entry[6]   # year trophy count
@@ -1154,16 +1154,59 @@ def trends():
             })
         
         player_stats[player.name] = yearly_stats
-    
-    print("Debug - Years:", years)
-    print("Debug - Players:", [p.name for p in players])
-    print("Debug - Player Stats:", player_stats)
+
+    # Get course performance data
+    course_stats = {}
+    for player in players:
+        course_data = {}
+        # Get current year stats by course
+        current_year = datetime.now().year
+        course_query = db.session.query(
+            Course.name,
+            func.count(Birdie.id).label('total')
+        ).join(
+            Birdie, Birdie.course_id == Course.id
+        ).filter(
+            Birdie.player_id == player.id,
+            Birdie.year == current_year
+        ).group_by(
+            Course.name
+        ).all()
+        
+        for course_name, total in course_query:
+            course_data[course_name] = total
+        
+        course_stats[player.name] = course_data
+
+    # Get monthly trends for current year
+    monthly_stats = {}
+    for player in players:
+        current_year = datetime.now().year
+        monthly_data = [0] * 12  # Initialize with zeros for all months
+        
+        # Get current year monthly stats
+        monthly_query = db.session.query(
+            extract('month', Birdie.date).label('month'),
+            func.count(Birdie.id).label('total')
+        ).filter(
+            Birdie.player_id == player.id,
+            Birdie.year == current_year
+        ).group_by(
+            'month'
+        ).all()
+        
+        for month, total in monthly_query:
+            monthly_data[int(month) - 1] = total
+        
+        monthly_stats[player.name] = monthly_data
     
     return render_template(
         'trends.html',
         years=years,
         players=players,
-        player_stats=player_stats
+        player_stats=player_stats,
+        course_stats=course_stats,
+        monthly_stats=monthly_stats
     )
 
 @bp.route("/delete_trophy/<int:player_id>")
@@ -1186,15 +1229,15 @@ def delete_score(score_id):
         return redirect(url_for('main.leaderboard'))
     
     try:
-        score = Birdie.query.get_or_404(score_id)
+            score = Birdie.query.get_or_404(score_id)
         db.session.delete(score)
         db.session.commit()
         flash('Score deleted successfully', 'success')
     except Exception as e:
         flash(f'Error deleting score: {str(e)}', 'error')
     
-    return redirect(url_for('main.admin_dashboard'))
-
+            return redirect(url_for('main.admin_dashboard'))
+        
 @bp.route("/debug_tournaments")
 def debug_tournaments():
     # Get all tournaments
@@ -1378,7 +1421,7 @@ def add_match(tournament_id):
             match.winner_id = player2_id
     
     db.session.add(match)
-    db.session.commit()
+        db.session.commit()
     
     if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
         return jsonify({'message': 'Match added successfully!'})
@@ -1493,8 +1536,8 @@ def edit_tournament(tournament_id):
             
             flash(f'Tournament "{tournament.name}" updated successfully!', 'success')
             return redirect(url_for('main.admin_tournaments'))
-            
-        except Exception as e:
+        
+    except Exception as e:
             db.session.rollback()
             print(f"Error updating tournament: {e}")
             flash('Error updating tournament. Please try again.', 'error')

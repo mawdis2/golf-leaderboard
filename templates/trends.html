@@ -1,172 +1,274 @@
-<!DOCTYPE html>
-<html>
-<head>
-    <title>Golf Stats Trends</title>
-    <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
-</head>
-<body>
-    <div class="container">
-        <nav>
-            <a href="{{ url_for('main.leaderboard') }}">Home</a>
-            <a href="{{ url_for('main.leaderboard') }}">Leaderboard</a>
-            <a href="{{ url_for('main.history') }}">History</a>
-            <a href="{{ url_for('main.add_birdie') }}">Add Birdie</a>
-        </nav>
+{% extends "base.html" %}
 
-        <h1>Golf Stats Trends</h1>
+{% block title %}Golf Stats Trends{% endblock %}
 
-        <div class="chart-container" style="width: 80%; height: 400px; margin: 20px auto; background-color: white;">
-            <canvas id="trendsChart"></canvas>
-        </div>
-
-        <script>
-            document.addEventListener('DOMContentLoaded', function() {
-                // First Chart - Yearly Trends
-                const ctx1 = document.getElementById('trendsChart');
-                const years = JSON.parse('{{ years|tojson|safe }}');
-                const playerStats = JSON.parse('{{ player_stats|tojson|safe }}');
-                const playerNames = JSON.parse('{{ players|map(attribute="name")|list|tojson|safe }}');
-                
-                const colors = [
-                    'rgb(75, 192, 192)',   // teal
-                    'rgb(255, 99, 132)',   // red
-                    'rgb(54, 162, 235)',   // blue
-                    'rgb(255, 206, 86)',   // yellow
-                    'rgb(153, 102, 255)',  // purple
-                    'rgb(255, 159, 64)',   // orange
-                    'rgb(75, 192, 192)',   // teal
-                    'rgb(255, 99, 132)',   // red
-                    'rgb(54, 162, 235)'    // blue
-                ];
-
-                const datasets = playerNames.map((player, index) => ({
-                    label: player,
-                    data: years.map(year => {
-                        const yearData = playerStats[player].find(d => d.year === year);
-                        return yearData ? yearData.total : 0;
-                    }),
-                    backgroundColor: colors[index]
-                }));
-
-                const yearlyChart = new Chart(ctx1, {
-                    type: 'bar',
-                    data: {
-                        labels: years,
-                        datasets: datasets
-                    },
-                    options: {
-                        responsive: true,
-                        maintainAspectRatio: false,
-                        scales: {
-                            x: {
-                                grid: {
-                                    display: false
-                                },
-                                ticks: {
-                                    font: {
-                                        size: 14,
-                                        weight: 'bold'
-                                    }
-                                }
-                            },
-                            y: {
-                                beginAtZero: true,
-                                title: {
-                                    display: true,
-                                    text: 'Total Birdies + Eagles',
-                                    font: {
-                                        size: 14,
-                                        weight: 'bold'
-                                    }
-                                }
-                            }
-                        },
-                        plugins: {
-                            title: {
-                                display: true,
-                                text: 'Yearly Progress: Total Birdies and Eagles',
-                                font: {
-                                    size: 18,
-                                    weight: 'bold'
-                                },
-                                padding: 20
-                            },
-                            legend: {
-                                position: 'right'
-                            }
-                        },
-                        barPercentage: 0.8,
-                        categoryPercentage: 0.9
-                    }
-                });
-            });
-        </script>
-
-        <!-- Add container for the course stats chart -->
-        <div class="chart-container" style="width: 80%; height: 400px; margin: 20px auto; background-color: white;">
-            <canvas id="courseChart"></canvas>
-        </div>
-
-        <script>
-            document.addEventListener('DOMContentLoaded', function() {
-                // Second Chart - Course Stats
-                const ctx2 = document.getElementById('courseChart');
-                const courseStats = {
-                    labels: ['Course A', 'Course B', 'Course C'], // We'll need to update this with real course data
-                    datasets: [{
-                        label: 'Geo Roa',
-                        data: [12, 8, 5],
-                        backgroundColor: 'rgb(75, 192, 192)'
-                    }, {
-                        label: 'Martin Awdisho',
-                        data: [10, 6, 4],
-                        backgroundColor: 'rgb(255, 99, 132)'
-                    }]
-                };
-
-                new Chart(ctx2, {
-                    type: 'bar',
-                    data: courseStats,
-                    options: {
-                        indexAxis: 'y',  // This makes it horizontal
-                        responsive: true,
-                        maintainAspectRatio: false,
-                        plugins: {
-                            title: {
-                                display: true,
-                                text: 'Birdies by Course',
-                                font: {
-                                    size: 18,
-                                    weight: 'bold'
-                                },
-                                padding: 20
-                            },
-                            legend: {
-                                position: 'right'
-                            }
-                        },
-                        scales: {
-                            x: {
-                                beginAtZero: true,
-                                title: {
-                                    display: true,
-                                    text: 'Number of Birdies',
-                                    font: {
-                                        size: 14,
-                                        weight: 'bold'
-                                    }
-                                }
-                            }
-                        }
-                    }
-                });
-            });
-        </script>
-
-        <div class="button-container">
-            <a href="{{ url_for('main.history') }}" class="button">Back to History</a>
+{% block content %}
+<div class="container">
+    <div class="row mb-4">
+        <div class="col-12">
+            <h1 class="text-center mb-4">Golf Stats Trends</h1>
+            <div class="d-flex justify-content-center gap-2 mb-4">
+                <a href="{{ url_for('main.leaderboard') }}" class="btn btn-primary">Back to Leaderboard</a>
+            </div>
         </div>
     </div>
-</body>
-</html>
+
+    <!-- Yearly Progress Chart -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-body">
+                    <canvas id="yearlyChart"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Birdie vs Eagle Ratio Chart -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-body">
+                    <canvas id="ratioChart"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Course Performance Chart -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-body">
+                    <canvas id="courseChart"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Monthly Trends Chart -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-body">
+                    <canvas id="monthlyChart"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // Common chart options
+            const commonOptions = {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        position: 'right'
+                    }
+                }
+            };
+
+            // Color palette
+            const colors = [
+                'rgb(75, 192, 192)',   // teal
+                'rgb(255, 99, 132)',   // red
+                'rgb(54, 162, 235)',   // blue
+                'rgb(255, 206, 86)',   // yellow
+                'rgb(153, 102, 255)',  // purple
+                'rgb(255, 159, 64)',   // orange
+                'rgb(75, 192, 192)',   // teal
+                'rgb(255, 99, 132)',   // red
+                'rgb(54, 162, 235)'    // blue
+            ];
+
+            // Yearly Progress Chart
+            const yearlyCtx = document.getElementById('yearlyChart');
+            const years = JSON.parse('{{ years|tojson|safe }}');
+            const playerStats = JSON.parse('{{ player_stats|tojson|safe }}');
+            const playerNames = JSON.parse('{{ players|map(attribute="name")|list|tojson|safe }}');
+            
+            const yearlyDatasets = playerNames.map((player, index) => ({
+                label: player,
+                data: years.map(year => {
+                    const yearData = playerStats[player].find(d => d.year === year);
+                    return yearData ? yearData.total : 0;
+                }),
+                backgroundColor: colors[index % colors.length],
+                borderColor: colors[index % colors.length],
+                borderWidth: 1
+            }));
+
+            new Chart(yearlyCtx, {
+                type: 'bar',
+                data: {
+                    labels: years,
+                    datasets: yearlyDatasets
+                },
+                options: {
+                    ...commonOptions,
+                    scales: {
+                        x: {
+                            grid: { display: false },
+                            ticks: { font: { size: 14, weight: 'bold' } }
+                        },
+                        y: {
+                            beginAtZero: true,
+                            title: {
+                                display: true,
+                                text: 'Total Birdies + Eagles',
+                                font: { size: 14, weight: 'bold' }
+                            }
+                        }
+                    },
+                    plugins: {
+                        ...commonOptions.plugins,
+                        title: {
+                            display: true,
+                            text: 'Yearly Progress: Total Birdies and Eagles',
+                            font: { size: 18, weight: 'bold' },
+                            padding: 20
+                        }
+                    }
+                }
+            });
+
+            // Birdie vs Eagle Ratio Chart
+            const ratioCtx = document.getElementById('ratioChart');
+            const ratioDatasets = playerNames.map((player, index) => {
+                const currentYear = new Date().getFullYear();
+                const yearData = playerStats[player].find(d => d.year === currentYear);
+                const total = yearData ? (yearData.birdies + yearData.eagles) : 0;
+                const eagleRatio = yearData ? (yearData.eagles / total * 100) : 0;
+                const birdieRatio = yearData ? (yearData.birdies / total * 100) : 0;
+
+                return {
+                    label: player,
+                    data: [birdieRatio, eagleRatio],
+                    backgroundColor: [
+                        colors[index % colors.length],
+                        colors[(index + 1) % colors.length]
+                    ]
+                };
+            });
+
+            new Chart(ratioCtx, {
+                type: 'bar',
+                data: {
+                    labels: ['Birdies', 'Eagles'],
+                    datasets: ratioDatasets
+                },
+                options: {
+                    ...commonOptions,
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            max: 100,
+                            title: {
+                                display: true,
+                                text: 'Percentage',
+                                font: { size: 14, weight: 'bold' }
+                            }
+                        }
+                    },
+                    plugins: {
+                        ...commonOptions.plugins,
+                        title: {
+                            display: true,
+                            text: 'Current Year: Birdie vs Eagle Ratio',
+                            font: { size: 18, weight: 'bold' },
+                            padding: 20
+                        }
+                    }
+                }
+            });
+
+            // Course Performance Chart
+            const courseCtx = document.getElementById('courseChart');
+            const courseData = JSON.parse('{{ course_stats|tojson|safe }}');
+            
+            const courseDatasets = playerNames.map((player, index) => ({
+                label: player,
+                data: courseData[player] || [],
+                backgroundColor: colors[index % colors.length]
+            }));
+
+            new Chart(courseCtx, {
+                type: 'bar',
+                data: {
+                    labels: Object.keys(courseData[playerNames[0]] || {}),
+                    datasets: courseDatasets
+                },
+                options: {
+                    ...commonOptions,
+                    indexAxis: 'y',
+                    scales: {
+                        x: {
+                            beginAtZero: true,
+                            title: {
+                                display: true,
+                                text: 'Number of Birdies + Eagles',
+                                font: { size: 14, weight: 'bold' }
+                            }
+                        }
+                    },
+                    plugins: {
+                        ...commonOptions.plugins,
+                        title: {
+                            display: true,
+                            text: 'Course Performance',
+                            font: { size: 18, weight: 'bold' },
+                            padding: 20
+                        }
+                    }
+                }
+            });
+
+            // Monthly Trends Chart
+            const monthlyCtx = document.getElementById('monthlyChart');
+            const monthlyData = JSON.parse('{{ monthly_stats|tojson|safe }}');
+            
+            const monthlyDatasets = playerNames.map((player, index) => ({
+                label: player,
+                data: monthlyData[player] || [],
+                backgroundColor: colors[index % colors.length],
+                borderColor: colors[index % colors.length],
+                borderWidth: 1,
+                fill: false
+            }));
+
+            new Chart(monthlyCtx, {
+                type: 'line',
+                data: {
+                    labels: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'],
+                    datasets: monthlyDatasets
+                },
+                options: {
+                    ...commonOptions,
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            title: {
+                                display: true,
+                                text: 'Number of Birdies + Eagles',
+                                font: { size: 14, weight: 'bold' }
+                            }
+                        }
+                    },
+                    plugins: {
+                        ...commonOptions.plugins,
+                        title: {
+                            display: true,
+                            text: 'Monthly Trends (Current Year)',
+                            font: { size: 18, weight: 'bold' },
+                            padding: 20
+                        }
+                    }
+                }
+            });
+        });
+    </script>
+</div>
+{% endblock %}
