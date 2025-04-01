@@ -14,6 +14,7 @@
     {% endwith %}
     
     <form method="POST" onsubmit="return validateDate()">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
         <div class="form-group">
             <label for="player_id">Player:</label>
             <select name="player_id" id="player_id" required>
