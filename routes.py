@@ -590,321 +590,114 @@ def add_emoji():
 
 @bp.route("/history", methods=["GET"])
 def history():
-    auth_check = check_site_auth()
-    if auth_check:
-        return auth_check
+    try:
+        auth_check = check_site_auth()
+        if auth_check:
+            return auth_check
+            
+        current_year = datetime.now().year
+        selected_year = request.args.get('year', current_year, type=int)
         
-    current_year = datetime.now().year
-    selected_year = request.args.get('year', current_year, type=int)
-    
-    if selected_year == current_year:
-        # For current year, get players with birdies/eagles
-        players_with_scores = db.session.query(
-            Player,
-            func.count(Birdie.id).label('birdie_count'),
-            func.sum(case((Birdie.is_eagle == True, 1), else_=0)).label('eagle_count')
-        ).outerjoin(
-            Birdie, 
-            (Player.id == Birdie.player_id) & (Birdie.year == selected_year)
-        ).group_by(Player.id).having(
-            func.count(Birdie.id) > 0
-        ).all()
+        # Get all years that have data
+        years = set()
         
-        # Also get players with trophies but no birdies/eagles
-        players_with_trophies = db.session.query(
-            Player,
-            HistoricalTotal.birdies.label('birdie_count'),
-            HistoricalTotal.eagles.label('eagle_count'),
-            HistoricalTotal.has_trophy.label('has_trophy'),
-            HistoricalTotal.trophy_count.label('trophy_count')
-        ).join(
-            HistoricalTotal,
-            (Player.id == HistoricalTotal.player_id) & 
-            (HistoricalTotal.year == selected_year)
-        ).filter(
-            HistoricalTotal.has_trophy == True
-        ).all()
+        # Get years from birdies
+        birdie_years = db.session.query(extract('year', Birdie.date).label('year')).distinct().all()
+        years.update(int(year[0]) for year in birdie_years if year[0] is not None)
         
-        # Combine both sets of players
-        players = players_with_scores
+        # Get years from historical totals
+        historical_years = db.session.query(HistoricalTotal.year).distinct().all()
+        years.update(int(year[0]) for year in historical_years if year[0] is not None)
         
-        # Add players with trophies but no scores if they're not already in the list
-        player_ids = [p[0].id for p in players]
-        for trophy_player in players_with_trophies:
-            if trophy_player[0].id not in player_ids:
-                players.append(trophy_player)
-    else:
-        try:
-            # Try to include trophy_count in the query
-            players = db.session.query(
-                Player,
-                HistoricalTotal.birdies.label('birdie_count'),
-                HistoricalTotal.eagles.label('eagle_count'),
-                HistoricalTotal.has_trophy.label('has_trophy'),
-                HistoricalTotal.trophy_count.label('trophy_count')
-            ).join(
-                HistoricalTotal,
-                (Player.id == HistoricalTotal.player_id) & 
-                (HistoricalTotal.year == selected_year)
-            ).filter(
-                or_(
-                    HistoricalTotal.birdies > 0,
-                    HistoricalTotal.eagles > 0,
-                    HistoricalTotal.has_trophy == True  # Include players with trophies
-                )
-            ).all()
-        except Exception as e:
-            # If trophy_count column doesn't exist yet, fall back to has_trophy
-            print(f"Error getting trophy_count, falling back to has_trophy: {e}")
-        players = db.session.query(
-            Player,
-            HistoricalTotal.birdies.label('birdie_count'),
-            HistoricalTotal.eagles.label('eagle_count'),
-            HistoricalTotal.has_trophy.label('has_trophy')
-        ).join(
-            HistoricalTotal,
-            (Player.id == HistoricalTotal.player_id) & 
-            (HistoricalTotal.year == selected_year)
-        ).filter(
-                or_(
-                HistoricalTotal.birdies > 0,
-                    HistoricalTotal.eagles > 0,
-                    HistoricalTotal.has_trophy == True  # Include players with trophies
-            )
-            ).all()
-
-    # Create initial leaderboard with totals
-    leaderboard = []
-    for player_data in players:
-        if selected_year == current_year and len(player_data) == 3:
-            player, birdie_count, eagle_count = player_data
+        # Get years from tournaments
+        tournament_years = db.session.query(extract('year', Tournament.date).label('year')).distinct().all()
+        years.update(int(year[0]) for year in tournament_years if year[0] is not None)
+        
+        # Always include current year
+        years.add(current_year)
+        
+        # Sort years in descending order
+        years = sorted(list(years), reverse=True)
+        
+        # Get all players
+        players = Player.query.all()
+        leaderboard = []
+        
+        for player in players:
+            # Count regular birdies (not eagles)
+            birdie_count = Birdie.query.filter(
+                Birdie.player_id == player.id,
+                extract('year', Birdie.date) == selected_year,
+                Birdie.is_eagle == False
+            ).count()
+            
+            # Count eagles
+            eagle_count = Birdie.query.filter(
+                Birdie.player_id == player.id,
+                extract('year', Birdie.date) == selected_year,
+                Birdie.is_eagle == True
+            ).count()
+            
             # Get trophy info from HistoricalTotal
-            try:
-                historical = HistoricalTotal.query.filter_by(
-                    player_id=player.id,
-                    year=selected_year
-                ).first()
-                
-                has_trophy = False
-                year_trophy_count = 0
-                if historical:
-                    has_trophy = historical.has_trophy
-                    year_trophy_count = getattr(historical, 'trophy_count', 0) or 0
-                    
-                    # Double-check trophy count by counting tournament wins directly
-                    if has_trophy:
-                        # Count individual tournament wins
-                        individual_wins = TournamentResult.query.join(Tournament).filter(
-                            TournamentResult.player_id == player.id,
-                            TournamentResult.position == 1,
-                            extract('year', Tournament.date) == selected_year
-                        ).count()
-                        
-                        # Count team tournament wins
-                        team_wins = 0
-                        teams = Team.query.join(TeamMember).filter(TeamMember.player_id == player.id).all()
-                        for team in teams:
-                            team_wins += TournamentResult.query.join(Tournament).filter(
-                                TournamentResult.team_id == team.id,
-                                TournamentResult.position == 1,
-                                extract('year', Tournament.date) == selected_year
-                            ).count()
-                        
-                        # Use the direct count if it's different from the stored count
-                        actual_trophy_count = individual_wins + team_wins
-                        if actual_trophy_count != year_trophy_count and actual_trophy_count > 0:
-                            print(f"Trophy count mismatch for {player.name}: DB={year_trophy_count}, Actual={actual_trophy_count}")
-                            year_trophy_count = actual_trophy_count
-                            
-                            # Update the historical total with the correct count
-                            if historical:
-                                historical.trophy_count = actual_trophy_count
-                                db.session.commit()
-            except Exception as e:
-                print(f"Error getting trophy_count, falling back to has_trophy: {e}")
-                historical = HistoricalTotal.query.filter_by(
-                    player_id=player.id,
-                    year=selected_year
-                ).first()
-                
-                has_trophy = False
-                year_trophy_count = 0
-                if historical:
-                    has_trophy = historical.has_trophy
-                    year_trophy_count = 1 if has_trophy else 0
-        else:
-            if len(player_data) >= 5:  # Check if trophy_count is included
-                player, birdie_count, eagle_count, has_trophy, year_trophy_count = player_data
-                
-                # Double-check trophy count by counting tournament wins directly
-                if has_trophy:
-                    # Count individual tournament wins
-                    individual_wins = TournamentResult.query.join(Tournament).filter(
-                        TournamentResult.player_id == player.id,
-                        TournamentResult.position == 1,
-                        extract('year', Tournament.date) == selected_year
-                    ).count()
-                    
-                    # Count team tournament wins
-                    team_wins = 0
-                    teams = Team.query.join(TeamMember).filter(TeamMember.player_id == player.id).all()
-                    for team in teams:
-                        team_wins += TournamentResult.query.join(Tournament).filter(
-                            TournamentResult.team_id == team.id,
-                            TournamentResult.position == 1,
-                            extract('year', Tournament.date) == selected_year
-                        ).count()
-                    
-                    # Use the direct count if it's different from the stored count
-                    actual_trophy_count = individual_wins + team_wins
-                    if actual_trophy_count != year_trophy_count and actual_trophy_count > 0:
-                        print(f"Trophy count mismatch for {player.name}: DB={year_trophy_count}, Actual={actual_trophy_count}")
-                        year_trophy_count = actual_trophy_count
-                        
-                        # Update the historical total with the correct count
-                        historical = HistoricalTotal.query.filter_by(
-                            player_id=player.id,
-                            year=selected_year
-                        ).first()
-                        if historical:
-                            historical.trophy_count = actual_trophy_count
-                            db.session.commit()
-            else:
-                player, birdie_count, eagle_count, has_trophy = player_data
-                year_trophy_count = 1 if has_trophy else 0
-        
-            # Ensure birdie_count and eagle_count are integers (not None)
-            birdie_count = birdie_count or 0
-            eagle_count = eagle_count or 0
-            total = birdie_count + eagle_count
-        
-            # Count total trophies across all years
-            all_years_trophy_count = 0
-            try:
-                historical_records = HistoricalTotal.query.filter_by(
-                    player_id=player.id,
-                    has_trophy=True
-                ).all()
-                
-                for record in historical_records:
-                    record_trophy_count = getattr(record, 'trophy_count', 0) or 1  # Default to 1 for old records
-                    all_years_trophy_count += record_trophy_count
-            except Exception as e:
-                print(f"Error getting all years trophy count: {e}")
-                # Count trophies based on has_trophy
-                historical_records = HistoricalTotal.query.filter_by(
-                    player_id=player.id,
-                    has_trophy=True
-                ).all()
-                
-                all_years_trophy_count = len(historical_records)
+            historical_total = HistoricalTotal.query.filter(
+                HistoricalTotal.player_id == player.id,
+                HistoricalTotal.year == selected_year
+            ).first()
             
-            # Create trophy display string based on count
+            has_trophy = False
+            trophy_count = 0
+            if historical_total:
+                has_trophy = historical_total.has_trophy
+                trophy_count = getattr(historical_total, 'trophy_count', 0) or 0
+            
+            # Create trophy display string
             trophy_display = ""
-            if has_trophy and year_trophy_count > 0:
-                trophy_display = "🏆" * min(year_trophy_count, 5)  # Limit to 5 visible trophies
-                if year_trophy_count > 5:
-                    trophy_display += f" ({year_trophy_count})"
+            if has_trophy and trophy_count > 0:
+                trophy_display = "🏆" * min(trophy_count, 3)
+                if trophy_count > 3:
+                    trophy_display += f"({trophy_count})"
             
-            # Add eagle emojis for historical data
-            eagle_display = ""
-            if eagle_count > 0:
-                eagle_display = "🦅" * min(eagle_count, 5)  # Limit to 5 visible eagles
-                if eagle_count > 5:
-                    eagle_display += f" ({eagle_count})"
+            # Only add to leaderboard if player has any scores or trophies
+            if birdie_count > 0 or eagle_count > 0 or has_trophy:
+                leaderboard.append((0, player.name, birdie_count, player.id, trophy_display, eagle_count, trophy_count))
+        
+        # Sort by total score (birdies + eagles)
+        leaderboard.sort(key=lambda x: x[2] + x[5], reverse=True)
+        
+        # Assign ranks with ties
+        current_rank = 1
+        prev_total = None
+        
+        for i, entry in enumerate(leaderboard):
+            if i == 0:
+                # First player
+                if len(leaderboard) > 1 and entry[2] + entry[5] == leaderboard[1][2] + leaderboard[1][5]:
+                    entry = ("T" + str(current_rank),) + entry[1:]
+                else:
+                    entry = (str(current_rank),) + entry[1:]
+            else:
+                if entry[2] + entry[5] == prev_total:
+                    entry = ("T" + str(current_rank),) + entry[1:]
+                else:
+                    current_rank = i + 1
+                    if i < len(leaderboard) - 1 and entry[2] + entry[5] == leaderboard[i + 1][2] + leaderboard[i + 1][5]:
+                        entry = ("T" + str(current_rank),) + entry[1:]
+                    else:
+                        entry = (str(current_rank),) + entry[1:]
             
-        leaderboard.append((
-            total,  # Store total for sorting
-            player.name,
-            birdie_count,
-            player.id,
-                trophy_display + eagle_display,  # Combine trophy and eagle emojis
-                eagle_count,
-                year_trophy_count  # Use year trophy count instead of all years
-        ))
-    
-    # Sort by total score (descending)
-    sorted_leaderboard = sorted(leaderboard, key=lambda x: x[0], reverse=True)
-    
-    # Create final leaderboard with ranks
-    final_leaderboard = []
-    prev_total = None
-    current_rank = 0
-    players_at_rank = 1
-    
-    for idx, entry in enumerate(sorted_leaderboard):
-        total = entry[0]
+            leaderboard[i] = entry
+            prev_total = entry[2] + entry[5]
         
-        if total != prev_total:
-            current_rank = idx + 1
-            players_at_rank = 1
-        else:
-            players_at_rank += 1
-            # If this is the second player at this rank, also update the previous player
-            if players_at_rank == 2 and final_leaderboard:
-                prev_entry = final_leaderboard[-1]
-                final_leaderboard[-1] = (f"T{current_rank}", *prev_entry[1:])
-        
-        rank_display = f"T{current_rank}" if players_at_rank > 1 else str(current_rank)
-        prev_total = total
-        
-        final_leaderboard.append((
-            rank_display,
-            entry[1],  # name
-            entry[2],  # birdies
-            entry[3],  # player_id
-                entry[4],  # trophy display for current year
-                entry[5],  # eagles
-                entry[6]   # year trophy count
-            ))
-
-    # Check for years with data directly from the database tables
-    print("Checking for years with data...")
-    
-    # 1. Check for years with trophies directly
-    trophy_years_query = """
-    SELECT DISTINCT year FROM historical_total 
-    WHERE has_trophy = true
-    ORDER BY year DESC
-    """
-    trophy_years_result = db.session.execute(trophy_years_query)
-    trophy_years = [row[0] for row in trophy_years_result]
-    print(f"Years with trophies: {trophy_years}")
-    
-    # 2. Check for years with birdies/eagles
-    birdie_years_query = """
-    SELECT DISTINCT year FROM birdie
-    ORDER BY year DESC
-    """
-    birdie_years_result = db.session.execute(birdie_years_query)
-    birdie_years = [row[0] for row in birdie_years_result]
-    print(f"Years with birdies: {birdie_years}")
-    
-    # 3. Check for years with tournaments
-    tournament_years_query = """
-    SELECT DISTINCT year FROM tournament
-    ORDER BY year DESC
-    """
-    tournament_years_result = db.session.execute(tournament_years_query)
-    tournament_years = [row[0] for row in tournament_years_result]
-    print(f"Years with tournaments: {tournament_years}")
-    
-    # Combine all years
-    all_years = set(trophy_years + birdie_years + tournament_years)
-    
-    # Always include current year
-    all_years.add(current_year)
-    
-    # Sort years in descending order
-    years = sorted(list(all_years), reverse=True)
-    print(f"Final years list: {years}")
-
-    return render_template(
-        "history.html",
-        leaderboard=final_leaderboard,
-        selected_year=selected_year,
-        years=years
-    )
+        return render_template(
+            "history.html",
+            leaderboard=leaderboard,
+            years=years,
+            selected_year=selected_year
+        )
+    except Exception as e:
+        print(f"Error in history route: {str(e)}")
+        flash("An error occurred while loading the history page. Please try again.", "error")
+        return redirect(url_for("main.leaderboard"))
 
 @bp.route("/add_trophy", methods=["GET", "POST"])
 def add_trophy():
