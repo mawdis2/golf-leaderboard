@@ -631,21 +631,21 @@ def history():
         leaderboard = []
         
         for player in players:
-            # Count regular birdies (not eagles)
+            # Count regular birdies (not eagles) from current year's birdie table
             birdie_count = Birdie.query.filter(
                 Birdie.player_id == player.id,
                 Birdie.year == selected_year,
                 Birdie.is_eagle == False
             ).count()
             
-            # Count eagles
+            # Count eagles from current year's birdie table
             eagle_count = Birdie.query.filter(
                 Birdie.player_id == player.id,
                 Birdie.year == selected_year,
                 Birdie.is_eagle == True
             ).count()
             
-            # Get trophy info from HistoricalTotal
+            # Get historical data
             historical_total = HistoricalTotal.query.filter(
                 HistoricalTotal.player_id == player.id,
                 HistoricalTotal.year == selected_year
@@ -656,6 +656,10 @@ def history():
             if historical_total:
                 has_trophy = historical_total.has_trophy
                 trophy_count = getattr(historical_total, 'trophy_count', 0) or 0
+                # Add historical birdies and eagles if this is not the current year
+                if selected_year != current_year:
+                    birdie_count = historical_total.birdies
+                    eagle_count = historical_total.eagles
             
             print(f"\nPlayer: {player.name}")
             print(f"Birdies: {birdie_count}")
