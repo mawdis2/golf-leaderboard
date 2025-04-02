@@ -145,26 +145,23 @@ def leaderboard():
             if trophy_count > 3:
                 emojis += f"({trophy_count})"
         
-        # Check for recent birdies (within last 3 days)
+        # Check for recent birdies (within last 7 days)
+        seven_days_ago = datetime.now() - timedelta(days=7)
         recent_birdies = Birdie.query.filter(
             Birdie.player_id == player.id,
             Birdie.is_eagle == False,
-            Birdie.date >= three_days_ago,
+            Birdie.date >= seven_days_ago,
             Birdie.year == current_year
         ).count()
-        
-        # Set recent_birdies on player object for template access
-        player.recent_birdies = recent_birdies
         
         # Add one birdie emoji for each recent birdie
         if recent_birdies > 0:
             emojis += "🐤" * recent_birdies
-            print(f"Found {recent_birdies} recent birdies for {player.name}")
             
         # Add eagle emojis for current year
         if eagle_count > 0:
             emojis += "🦅" * eagle_count
-            
+        
         player.emojis = emojis
         print(f"Final emojis for {player.name}: {emojis} (Recent birdies: {recent_birdies}, Eagles: {eagle_count}, Trophy: {has_trophy}, Trophy count: {trophy_count})")
             
