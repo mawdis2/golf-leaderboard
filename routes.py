@@ -602,7 +602,7 @@ def history():
         years = set()
         
         # Get years from birdies
-        birdie_years = db.session.query(extract('year', Birdie.date).label('year')).distinct().all()
+        birdie_years = db.session.query(Birdie.year).distinct().all()
         years.update(int(year[0]) for year in birdie_years if year[0] is not None)
         
         # Get years from historical totals
@@ -627,14 +627,14 @@ def history():
             # Count regular birdies (not eagles)
             birdie_count = Birdie.query.filter(
                 Birdie.player_id == player.id,
-                extract('year', Birdie.date) == selected_year,
+                Birdie.year == selected_year,
                 Birdie.is_eagle == False
             ).count()
             
             # Count eagles
             eagle_count = Birdie.query.filter(
                 Birdie.player_id == player.id,
-                extract('year', Birdie.date) == selected_year,
+                Birdie.year == selected_year,
                 Birdie.is_eagle == True
             ).count()
             
