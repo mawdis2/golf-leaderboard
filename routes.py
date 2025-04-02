@@ -598,19 +598,24 @@ def history():
         current_year = datetime.now().year
         selected_year = request.args.get('year', current_year, type=int)
         
+        print(f"\n=== History Route Debug for {selected_year} ===")
+        
         # Get all years that have data
         years = set()
         
         # Get years from birdies
         birdie_years = db.session.query(Birdie.year).distinct().all()
+        print(f"Birdie years found: {[year[0] for year in birdie_years]}")
         years.update(int(year[0]) for year in birdie_years if year[0] is not None)
         
         # Get years from historical totals
         historical_years = db.session.query(HistoricalTotal.year).distinct().all()
+        print(f"Historical years found: {[year[0] for year in historical_years]}")
         years.update(int(year[0]) for year in historical_years if year[0] is not None)
         
         # Get years from tournaments
         tournament_years = db.session.query(extract('year', Tournament.date).label('year')).distinct().all()
+        print(f"Tournament years found: {[year[0] for year in tournament_years]}")
         years.update(int(year[0]) for year in tournament_years if year[0] is not None)
         
         # Always include current year
@@ -618,9 +623,11 @@ def history():
         
         # Sort years in descending order
         years = sorted(list(years), reverse=True)
+        print(f"Final years list: {years}")
         
         # Get all players
         players = Player.query.all()
+        print(f"\nTotal players found: {len(players)}")
         leaderboard = []
         
         for player in players:
@@ -650,6 +657,12 @@ def history():
                 has_trophy = historical_total.has_trophy
                 trophy_count = getattr(historical_total, 'trophy_count', 0) or 0
             
+            print(f"\nPlayer: {player.name}")
+            print(f"Birdies: {birdie_count}")
+            print(f"Eagles: {eagle_count}")
+            print(f"Has Trophy: {has_trophy}")
+            print(f"Trophy Count: {trophy_count}")
+            
             # Create trophy display string
             trophy_display = ""
             if has_trophy and trophy_count > 0:
@@ -660,6 +673,11 @@ def history():
             # Only add to leaderboard if player has any scores or trophies
             if birdie_count > 0 or eagle_count > 0 or has_trophy:
                 leaderboard.append((0, player.name, birdie_count, player.id, trophy_display, eagle_count, trophy_count))
+                print(f"Added to leaderboard: {player.name}")
+            else:
+                print(f"Not added to leaderboard: {player.name} (no scores or trophies)")
+        
+        print(f"\nTotal players in leaderboard: {len(leaderboard)}")
         
         # Sort by total score (birdies + eagles)
         leaderboard.sort(key=lambda x: x[2] + x[5], reverse=True)
@@ -687,6 +705,7 @@ def history():
             
             leaderboard[i] = entry
             prev_total = entry[2] + entry[5]
+            print(f"Final entry for {entry[1]}: Rank={entry[0]}, Birdies={entry[2]}, Eagles={entry[5]}, Trophy={entry[4]}")
         
         return render_template(
             "history.html",
