@@ -207,20 +207,40 @@ def add_player():
         return auth_check
         
     if request.method == "POST":
-        name = request.form["name"].strip()
-        existing_player = Player.query.filter(func.lower(Player.name) == func.lower(name)).first()
-        if existing_player:
-            flash("Player with this name already exists.", "error")
+        try:
+            name = request.form["name"].strip()
+            existing_player = Player.query.filter(func.lower(Player.name) == func.lower(name)).first()
+            if existing_player:
+                flash("Player with this name already exists.", "error")
+                return redirect(url_for("add_player"))
+                
+            # Get the next available ID
+            max_id = db.session.execute("SELECT MAX(id) FROM player").scalar()
+            next_id = (max_id or 0) + 1
+            
+            # Create new player with explicit ID
+            new_player = Player(
+                id=next_id,  # Explicitly set the ID
+                name=name,
+                has_trophy=False,
+                permanent_emojis=None
+            )
+            
+            db.session.add(new_player)
+            db.session.commit()
+            
+            # Reset the sequence to the next available ID
+            db.session.execute(f"SELECT setval('player_id_seq', {next_id}, true)")
+            db.session.commit()
+            
+            flash("Player added successfully!", "success")
+            return redirect(url_for("main.leaderboard"))
+            
+        except Exception as e:
+            flash(f"Error adding player: {str(e)}", "error")
+            db.session.rollback()
             return redirect(url_for("add_player"))
-        new_player = Player(
-            name=name,
-            has_trophy=False,
-            permanent_emojis=None
-        )
-        db.session.add(new_player)
-        db.session.commit()
-        flash("Player added successfully!", "success")
-        return redirect(url_for("main.leaderboard"))
+            
     clear_flash_messages()
     return render_template("add_player.html")
 
