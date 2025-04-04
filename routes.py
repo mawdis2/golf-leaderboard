@@ -1085,19 +1085,26 @@ def delete_trophy(player_id):
 @login_required
 def delete_score(score_id):
     if not current_user.is_admin:
-        flash('You do not have permission to delete scores.')
+        flash('You do not have permission to delete scores.', 'error')
         return redirect(url_for('main.leaderboard'))
     
     try:
+        # Verify CSRF token
+        if not request.form.get('csrf_token'):
+            flash('Invalid request. Please try again.', 'error')
+            return redirect(url_for('main.admin_dashboard'))
+            
         score = Birdie.query.get_or_404(score_id)
         db.session.delete(score)
         db.session.commit()
         flash('Score deleted successfully', 'success')
     except Exception as e:
-        flash(f'Error deleting score: {str(e)}', 'error')
+        db.session.rollback()
+        print(f"Error deleting score: {e}")
+        flash('Error deleting score. Please try again.', 'error')
     
-        return redirect(url_for('main.admin_dashboard'))
-        
+    return redirect(url_for('main.admin_dashboard'))
+
 @bp.route("/debug_tournaments")
 def debug_tournaments():
     # Get all tournaments
