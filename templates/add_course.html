@@ -6,14 +6,19 @@
 <div class="container mt-4">
     <h1>Add New Course</h1>
     
-    <form method="POST" action="{{ url_for('main.add_course') }}" class="mt-4">
-        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    <form method="POST" class="mt-4">
+        {{ form.csrf_token }}
         <div class="mb-3">
-            <label for="course_name" class="form-label">Course Name</label>
-            <input type="text" class="form-control" id="course_name" name="course_name" required>
+            {{ form.course_name.label(class="form-label") }}
+            {{ form.course_name(class="form-control") }}
+            {% if form.course_name.errors %}
+                {% for error in form.course_name.errors %}
+                    <div class="text-danger">{{ error }}</div>
+                {% endfor %}
+            {% endif %}
         </div>
         
-        <button type="submit" class="btn btn-primary">Add Course</button>
+        {{ form.submit(class="btn btn-primary") }}
         <a href="{{ url_for('main.admin_dashboard') }}" class="btn btn-secondary">Back to Dashboard</a>
     </form>
 </div>
