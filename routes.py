@@ -348,9 +348,22 @@ def add_course():
                     flash("A course with this name already exists.", "error")
                     return redirect(url_for("main.add_course"))
                 
-                course = Course(name=course_name)
+                # Get the next available ID
+                max_id = db.session.execute("SELECT MAX(id) FROM course").scalar()
+                next_id = (max_id or 0) + 1
+                
+                # Create new course with explicit ID
+                course = Course(
+                    id=next_id,  # Explicitly set the ID
+                    name=course_name
+                )
                 db.session.add(course)
                 db.session.commit()
+                
+                # Reset the sequence to the next available ID
+                db.session.execute(f"SELECT setval('course_id_seq', {next_id}, true)")
+                db.session.commit()
+                
                 flash(f'Course "{course_name}" added successfully!', 'success')
                 return redirect(url_for("main.admin_dashboard"))
             except Exception as e:
