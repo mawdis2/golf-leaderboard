@@ -212,7 +212,11 @@ def add_player():
         if existing_player:
             flash("Player with this name already exists.", "error")
             return redirect(url_for("add_player"))
-        new_player = Player(name=name)
+        new_player = Player(
+            name=name,
+            has_trophy=False,
+            permanent_emojis=None
+        )
         db.session.add(new_player)
         db.session.commit()
         flash("Player added successfully!", "success")
