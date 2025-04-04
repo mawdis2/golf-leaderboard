@@ -338,27 +338,29 @@ def add_birdie():
 
 @bp.route("/add_course", methods=["GET", "POST"])
 def add_course():
-    form = CourseForm()
-    if form.validate_on_submit():
-        course_name = form.course_name.data
-        try:
-            # Check if course already exists
-            existing_course = Course.query.filter(func.lower(Course.name) == func.lower(course_name)).first()
-            if existing_course:
-                flash("A course with this name already exists.", "error")
-                return redirect(url_for("main.add_course"))
-            
-            course = Course(name=course_name)
-            db.session.add(course)
-            db.session.commit()
-            flash(f'Course "{course_name}" added successfully!', 'success')
-            return redirect(url_for("main.admin_dashboard"))
-        except Exception as e:
-            db.session.rollback()
-            print(f"Error adding course: {e}")
-            flash('Error adding course. Please try again.', 'error')
+    if request.method == "POST":
+        course_name = request.form.get("course_name")
+        if course_name:
+            try:
+                # Check if course already exists
+                existing_course = Course.query.filter(func.lower(Course.name) == func.lower(course_name)).first()
+                if existing_course:
+                    flash("A course with this name already exists.", "error")
+                    return redirect(url_for("main.add_course"))
+                
+                course = Course(name=course_name)
+                db.session.add(course)
+                db.session.commit()
+                flash(f'Course "{course_name}" added successfully!', 'success')
+                return redirect(url_for("main.admin_dashboard"))
+            except Exception as e:
+                db.session.rollback()
+                print(f"Error adding course: {e}")
+                flash('Error adding course. Please try again.', 'error')
+        else:
+            flash('Course name is required.', 'error')
     
-    return render_template("add_course.html", form=form)
+    return render_template("add_course.html")
 
 @bp.route("/players")
 def get_players():
