@@ -1722,13 +1722,7 @@ def admin_fix_trophies():
         flash('You do not have permission to access this page.', 'danger')
         return redirect(url_for('main.leaderboard'))
     
-    try:
-        from fix_trophies import fix_trophy_records
-        fix_trophy_records()
-        flash('Trophy records have been synchronized with tournament results.', 'success')
-    except Exception as e:
-        flash(f'Error synchronizing trophy records: {str(e)}', 'danger')
-    
+    flash('Trophy records are automatically synchronized with tournament results.', 'info')
     return redirect(url_for('main.admin_dashboard'))
 
 @bp.route("/hot_streaks")
