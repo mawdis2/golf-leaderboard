@@ -1,14 +1,10 @@
 # routes.py
-print("=== TESTING SIMPLE PATH ACCESS ===")
-print("=== SECOND TEST - CONFIRMED FILE ACCESS ===")
 from flask import Blueprint, render_template, request, redirect, url_for, jsonify, flash, get_flashed_messages, session
 from flask_login import current_user, login_required, login_user, logout_user
 from sqlalchemy.sql import func, case, and_, or_, extract
 from datetime import datetime, timedelta, timezone
 from models import db, User, Player, Birdie, Course, HistoricalTotal, Eagle, Tournament, Team, TeamMember, TournamentResult, Match
 from forms import TournamentForm, CourseForm
-
-print("TEST LINE WITH RELATIVE PATH - " + str(datetime.now()))
 
 # Create a Blueprint
 bp = Blueprint('main', __name__)
