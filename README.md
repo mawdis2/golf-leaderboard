@@ -1,5 +1,7 @@
 # Golf Leaderboard Application
 
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+
 A web application for tracking golf scores, birdies, eagles, and tournament results. Built with Flask and PostgreSQL, deployed on Render.
 
 ## Features
@@ -53,7 +55,7 @@ A web application for tracking golf scores, birdies, eagles, and tournament resu
 
 1. Clone the repository:
    ```bash
-   git clone https://github.com/your-username/golf-leaderboard.git
+   git clone https://github.com/mawdis2/golf-leaderboard.git
    cd golf-leaderboard
    ```
 
@@ -147,31 +149,40 @@ golf-leaderboard/
    - Use meaningful variable names
    - Add docstrings to functions
 
-## Deployment
-
-The application is automatically deployed to Render when changes are pushed to the main branch.
-
-1. **Production Setup**
-   - Configure environment variables in Render dashboard
-   - Set up PostgreSQL database on Supabase
-   - Enable automatic deployments
-
-2. **Manual Deployment**
-   ```bash
-   git push origin master
-   ```
-
 ## Contributing
 
-1. Fork the repository
-2. Create a feature branch
-3. Make your changes
-4. Submit a pull request
+We welcome contributions from the community! Here's how you can help:
+
+1. **Reporting Issues**
+   - Check if the issue already exists
+   - Provide detailed information about the problem
+   - Include steps to reproduce
+   - Add screenshots if relevant
+
+2. **Feature Requests**
+   - Describe the feature you'd like to see
+   - Explain why it would be useful
+   - Provide examples if possible
+
+3. **Pull Requests**
+   - Fork the repository
+   - Create a feature branch
+   - Make your changes
+   - Add tests if applicable
+   - Update documentation
+   - Submit a pull request
+
+4. **Code Guidelines**
+   - Follow PEP 8 style guide
+   - Write clear, concise code
+   - Add comments where necessary
+   - Include docstrings for functions
+   - Write tests for new features
 
 ## License
 
-This project is licensed under the MIT License - see the LICENSE file for details.
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
 
 ## Contact
 
-For questions or support, please contact the development team. 
+For questions or support, please open an issue in the repository or contact the maintainer. 
