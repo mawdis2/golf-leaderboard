@@ -980,6 +980,11 @@ def delete_trophy(player_id):
     player = Player.query.get_or_404(player_id)
     if player.has_trophy:
         player.has_trophy = False
+        # Remove trophy emoji from permanent_emojis
+        if player.permanent_emojis and "🏆" in player.permanent_emojis:
+            player.permanent_emojis = player.permanent_emojis.replace("🏆", "")
+            if not player.permanent_emojis.strip():  # If no emojis left
+                player.permanent_emojis = None
         db.session.commit()
         flash(f'Trophy removed from {player.name}')
     else:
